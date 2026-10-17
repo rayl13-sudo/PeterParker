@@ -51,6 +51,7 @@
 }
 .avatar svg { width: 100%; height: 100%; fill: var(--a-blue); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar img.default-avatar { width: 80%; height: 80%; object-fit: contain; }
 .avatar.ready { border-color: transparent; }
 .avatar.large { width: 64px; height: 64px; }
 

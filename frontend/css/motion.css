@@ -188,6 +188,23 @@ html:active-view-transition-type(fade)::view-transition-new(root) {
 .avatar img, .avatar svg { animation: vt-fade-in 0.3s ease both; }
 .avatar { transition: background-color var(--t) ease; }
 
+/* Header mascot: a playful greeting on hover or keyboard focus. */
+.brand > a:has(.mascot-logo) { display: inline-flex; border-radius: 8px; }
+.brand > a:has(.mascot-logo):focus-visible { outline: 2px solid var(--a-blue); outline-offset: 3px; }
+.mascot-logo { transform-origin: 50% 85%; }
+@keyframes mascot-greeting {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(-5px) rotate(-10deg); }
+  50% { transform: translateY(-3px) rotate(8deg); }
+  75% { transform: translateY(-4px) rotate(-4deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .brand > a:focus-visible .mascot-logo { animation: mascot-greeting 650ms ease-in-out; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .brand > a:hover .mascot-logo { animation: mascot-greeting 650ms ease-in-out; }
+}
+
 /* ---------- Reduced motion: keep it calm ---------- */
 
 @media (prefers-reduced-motion: reduce) {
