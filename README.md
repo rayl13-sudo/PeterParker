@@ -222,10 +222,12 @@ identified by their OpenStreetMap id (`way/171169301`). PostgreSQL deployments n
 
 ## Settings
 
-After sign-up, a five-step tutorial introduces search, parking colors, lot details
-and reviews, directions, and account settings. Skip tutorial and Open map both take
-the user to the main map. With Supabase email confirmation, the tutorial appears
-after the first successful sign-in in the same browser.
+After sign-up, users land on the map and see a guided tour with dashed outlines
+around the real search box, parking tabs, color key, nearby lots, directions and
+reviews, and Settings. The Student Center example shows nearby lots by walking
+distance. Skip closes the tour and leaves the user on the map; the `?` button
+replays it. With Supabase email confirmation, the tour appears after the first
+successful sign-in in the same browser.
 
 The gear button next to your name on the map opens `frontend/settings.html`, where you can
 change your username (`PATCH /api/auth/me`), change your password

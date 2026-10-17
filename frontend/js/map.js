@@ -6,6 +6,7 @@ import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
 import { renderAvatar } from "./avatar.js";
 import { initReviews, openReviews, ratingLabel } from "./reviews.js";
+import { startMapTour } from "./map-tour.js";
 
 const SIGN_IN_PAGE = "index.html";
 const UCI_CENTER = [33.6461, -117.8427]; // Aldrich Park, middle of campus
@@ -862,6 +863,18 @@ async function init() {
     renderAvatar($("user-avatar"), user.avatar);
     permitInfo = parking.permit_info;
     renderLots(parking.lots);
+    const tourActions = {
+      showExample: () => {
+        const studentCenter = places.find((place) => place.name === "Student Center");
+        if (!studentCenter) return false;
+        setDestination(studentCenter);
+        return true;
+      },
+      clearExample: clearSearch,
+    };
+    $("tour-help").addEventListener("click", () => startMapTour(user, tourActions, true));
+    $("tour-help").hidden = false;
+    startMapTour(user, tourActions);
   } catch (err) {
     $("spot-count").textContent = "";
     $("map-error").textContent = err.message;
