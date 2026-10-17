@@ -1,7 +1,7 @@
 // Settings page: view and change the signed-in account, or switch accounts.
 import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
-import { imageFileToAvatar, renderAvatar } from "./avatar.js";
+import { bindAvatarPreview, imageFileToAvatar, renderAvatar } from "./avatar.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
 import { RULES_SOURCE, STALL_NOTE, permitSummary } from "./permit-rules.js";
 import { clearTutorialState } from "./tutorial-state.js";
@@ -108,6 +108,8 @@ for (const picker of [$("color-bg"), $("color-fg")]) {
 // ---------- Account details ----------
 
 let current = null;
+bindAvatarPreview($("user-avatar"), () => current?.avatar);
+bindAvatarPreview($("profile-avatar"), () => current?.avatar);
 
 $("details-form").addEventListener("submit", (e) => {
   e.preventDefault();

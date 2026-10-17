@@ -20,6 +20,46 @@ export function renderAvatar(el, avatar) {
   el.classList.add("ready");
 }
 
+let previewDialog;
+let previewImage;
+
+function getPreviewDialog() {
+  if (previewDialog) return previewDialog;
+  previewDialog = document.createElement("dialog");
+  previewDialog.className = "avatar-preview";
+  previewDialog.setAttribute("aria-labelledby", "avatar-preview-title");
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "avatar-preview-close";
+  close.setAttribute("aria-label", "Close enlarged profile photo");
+  close.textContent = "×";
+  close.addEventListener("click", () => previewDialog.close());
+
+  previewImage = document.createElement("span");
+  previewImage.className = "avatar avatar-zoomed";
+  previewImage.setAttribute("aria-hidden", "true");
+  const title = document.createElement("h2");
+  title.id = "avatar-preview-title";
+  title.textContent = "Profile photo";
+  previewDialog.append(close, previewImage, title);
+  previewDialog.addEventListener("click", (event) => {
+    if (event.target === previewDialog) previewDialog.close();
+  });
+  document.body.append(previewDialog);
+  return previewDialog;
+}
+
+export function bindAvatarPreview(button, getAvatar) {
+  button.addEventListener("click", () => {
+    const avatar = getAvatar();
+    if (!avatar) return;
+    const dialog = getPreviewDialog();
+    renderAvatar(previewImage, avatar);
+    if (!dialog.open) dialog.showModal();
+  });
+}
+
 // Crops an image file to a centered square and shrinks it, returning a JPEG data URL
 // small enough to store with the account.
 export function imageFileToAvatar(file, size = 256) {

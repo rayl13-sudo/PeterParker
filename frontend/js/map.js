@@ -4,7 +4,7 @@
 // Leaflet is loaded as a global (L) by map.html.
 import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
-import { renderAvatar } from "./avatar.js";
+import { bindAvatarPreview, renderAvatar } from "./avatar.js";
 import { averageRating, initReviews, openReviews, ratingLabel } from "./reviews.js";
 import { startMapTour } from "./map-tour.js";
 import { createMapHistory } from "./map-history.mjs";
@@ -1757,6 +1757,7 @@ async function init() {
     $("user-name").textContent = user.username ?? user.email;
     $("user-name").title = user.email;
     renderAvatar($("user-avatar"), user.avatar);
+    bindAvatarPreview($("user-avatar"), () => user.avatar);
     permitInfo = parking.permit_info;
     userPermit = user.permit ?? null;
     renderLots(parking.lots);
