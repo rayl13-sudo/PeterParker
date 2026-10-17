@@ -10,7 +10,11 @@ from app.db import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    if settings.vercel and not settings.database_url:
+        raise RuntimeError("DATABASE_URL is required on Vercel")
+    # PostgreSQL schema is installed explicitly before deployment, not on cold starts.
+    if not settings.database_url:
+        init_db()
     yield
 
 

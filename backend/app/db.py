@@ -1,5 +1,9 @@
 import sqlite3
 from collections.abc import Iterator
+from pathlib import Path
+
+import psycopg
+from psycopg.rows import dict_row
 
 from app.config import settings
 
@@ -37,7 +41,32 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username);
 """
 
 
-def connect() -> sqlite3.Connection:
+class PostgresConnection:
+    """Expose the small query interface shared with local SQLite."""
+
+    def __init__(self):
+        self.connection = psycopg.connect(
+            settings.database_url, row_factory=dict_row,
+            prepare_threshold=None, connect_timeout=10,
+        )
+
+    def execute(self, sql, params=()):
+        if params:
+            return self.connection.execute(sql.replace("?", "%s"), params)
+        return self.connection.execute(sql)
+
+    def commit(self):
+        self.connection.commit()
+
+    def close(self):
+        self.connection.close()
+
+
+def connect() -> sqlite3.Connection | PostgresConnection:
+    if settings.database_url:
+        return PostgresConnection()
+    if settings.vercel:
+        raise RuntimeError("Set DATABASE_URL to a PostgreSQL connection URL on Vercel; SQLite is local-only")
     conn = sqlite3.connect(settings.database_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -45,6 +74,14 @@ def connect() -> sqlite3.Connection:
 
 
 def init_db() -> None:
+    if settings.database_url:
+        conn = connect()
+        try:
+            conn.execute((Path(__file__).parent.parent / "migrations" / "001_postgres.sql").read_text())
+            conn.commit()
+        finally:
+            conn.close()
+        return
     with connect() as conn:
         conn.executescript(SCHEMA)
         for table, column, sql in MIGRATIONS:
@@ -54,7 +91,7 @@ def init_db() -> None:
         conn.executescript(INDEXES)
 
 
-def get_db() -> Iterator[sqlite3.Connection]:
+def get_db() -> Iterator[sqlite3.Connection | PostgresConnection]:
     conn = connect()
     try:
         yield conn
