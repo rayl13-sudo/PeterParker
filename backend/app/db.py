@@ -64,6 +64,18 @@ class PostgresConnection:
     def close(self):
         self.connection.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            if exc_type is None:
+                self.connection.commit()
+            else:
+                self.connection.rollback()
+        finally:
+            self.connection.close()
+
 
 def connect() -> sqlite3.Connection | PostgresConnection:
     if settings.database_url:
