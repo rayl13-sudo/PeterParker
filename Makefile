@@ -12,14 +12,12 @@ install: ## Create venv and install backend deps
 backend: ## Run FastAPI on :8000 with reload
 	cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000
 
-frontend: ## Serve static frontend on :5173
+frontend: ## Optional: serve the frontend alone on :5173 (needs the backend running)
 	$(PYTHON) -m http.server 5173 --directory frontend
 
-dev: ## Run backend + frontend together
-	@trap 'kill 0' INT TERM; \
-	$(MAKE) backend & \
-	$(MAKE) frontend & \
-	wait
+dev: ## Run the app (backend serves the frontend) at http://localhost:8000
+	@echo "PeterParker running at http://localhost:8000"
+	@$(MAKE) --no-print-directory backend
 
 test: ## Run backend tests
 	cd backend && .venv/bin/pytest -q

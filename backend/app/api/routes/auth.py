@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator
 
+from app.config import settings
 from app.db import get_db
 from app import supabase_auth
 from app.security import (
@@ -131,6 +132,10 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse:
+    seeded = _seed_login(db, payload)
+    if seeded is not None:
+        return seeded
+
     if supabase_auth.enabled():
         email = payload.identifier
         if "@" not in email:
@@ -147,6 +152,23 @@ def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthRes
     row = db.execute(
         f"SELECT id, username, email, password_hash FROM users WHERE {column} = ?",
         (payload.identifier,),
+    ).fetchone()
+    if row is None or not verify_password(payload.password, row["password_hash"]):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
+    user = User(id=row["id"], username=row["username"], email=row["email"])
+    return _issue(db, user, payload.remember_me)
+
+
+def _seed_login(db: sqlite3.Connection, payload: LoginIn) -> AuthResponse | None:
+    """The temporary shared account always signs in locally, even with Supabase on."""
+    if not settings.seed_user or payload.identifier not in (
+        settings.seed_username.lower(),
+        settings.seed_email.lower(),
+    ):
+        return None
+    row = db.execute(
+        "SELECT id, username, email, password_hash FROM users WHERE username = ?",
+        (settings.seed_username,),
     ).fetchone()
     if row is None or not verify_password(payload.password, row["password_hash"]):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")

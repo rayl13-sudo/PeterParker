@@ -100,9 +100,9 @@ li {
 
 /* ---------- Auth ---------- */
 
-/* The auth screen uses its own fixed blue-and-gray palette in both light
-   and dark mode. */
-.auth {
+/* The auth and map pages use their own fixed blue-and-gray palette in both
+   light and dark mode. */
+.auth, .map-page {
   --a-blue: #4f6db8;       /* buttons, slider, checks: white text stays readable */
   --a-blue-dark: #405a9a;
   --a-blue-fade: #a4b4dc;  /* large background shapes */
@@ -115,7 +115,9 @@ li {
   --a-muted: #6b7184;
   --a-field: #f3f5fa;
   --a-line: #e4e7ef;
+}
 
+.auth {
   position: relative;
   min-height: 100vh;
   display: grid;
@@ -127,45 +129,32 @@ li {
   color: var(--a-ink);
 }
 
-/* Background composition */
-.backdrop { position: absolute; inset: 0; pointer-events: none; }
-.shape { position: absolute; display: block; }
-.circle-lg {
-  width: 52vmax; height: 52vmax;
-  top: -26vmax; left: -20vmax;
-  border-radius: 50%;
-  background: var(--a-blue-fade);
+/* Background: faded campus map, tinted blue-gray, strongest behind the card and
+   fading to the page color at the edges. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, #000 25%, transparent 100%);
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, #000 25%, transparent 100%);
 }
-.circle-md {
-  width: 40vmax; height: 40vmax;
-  bottom: -22vmax; right: -14vmax;
-  border-radius: 50%;
-  background: var(--a-gray-light);
+.auth-map {
+  position: absolute;
+  inset: 0;
+  background: #eef1f7;
+  opacity: 0.55;
 }
-.square {
-  width: 4.5rem; height: 4.5rem;
-  top: 12%; right: 14%;
-  background: var(--a-blue-soft);
-  transform: rotate(12deg);
+.auth-map .leaflet-tile-pane { filter: grayscale(1) contrast(1.05) brightness(1.04); }
+/* Wash the gray map in the app's blue */
+.backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--a-blue);
+  mix-blend-mode: color;
+  opacity: 0.45;
 }
-.ring {
-  width: 7rem; height: 7rem;
-  bottom: 10%; left: 9%;
-  border-radius: 50%;
-  border: 10px solid var(--a-gray);
-}
-.dot {
-  width: 1.25rem; height: 1.25rem;
-  top: 58%; left: 22%;
-  border-radius: 50%;
-  background: var(--a-blue-fade);
-}
-.bar {
-  width: 9rem; height: 6px;
-  bottom: 22%; right: 26%;
-  background: var(--a-gray);
-  border-radius: 3px;
-}
+.auth-map .leaflet-control-container { display: none; } /* attribution shown on the card instead */
 
 /* Card */
 .auth-card {
@@ -348,9 +337,17 @@ li {
 
 @media (max-width: 520px) {
   .auth-card { padding: 2rem 1.5rem 1.75rem; }
-  .square { width: 3rem; height: 3rem; top: 4%; right: 8%; }
-  .ring, .dot, .bar { display: none; }
 }
+
+.map-credit {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.5rem;
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--a-muted);
+}
+.map-credit a { color: inherit; }
 
 button:disabled { opacity: 0.6; cursor: wait; }
 

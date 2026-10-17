@@ -47,10 +47,12 @@ Requires Python 3.10+.
 
 ```sh
 make install   # create backend/.venv and install dependencies
-make dev       # backend on :8000, frontend on :5173
+make dev       # the whole app at http://localhost:8000
 ```
 
-Open <http://localhost:5173>. API docs are at <http://localhost:8000/docs>. Run either side separately with `make backend` or `make frontend`; run backend tests with `make test`.
+Open <http://localhost:8000>; the backend serves the frontend too. The frontend also works from any other
+local server (e.g. `make frontend` on :5173 or VS Code Live Server) as long as the backend is running, and
+opening `index.html` from disk redirects to <http://localhost:8000>. API docs are at <http://localhost:8000/docs>. Run either side separately with `make backend` or `make frontend`; run backend tests with `make test`.
 
 Backend settings come from environment variables or `backend/.env` (see `backend/.env.example`). The frontend API URL is in `frontend/js/config.js`. Add a frontend origin to `CORS_ORIGINS` if it runs on a different port.
 
@@ -157,4 +159,39 @@ with PBKDF2, and the API issues an opaque bearer token; only its hash is stored.
 
 Endpoints: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`,
 `GET /api/auth/me`. The `/api/items` routes require a token and are scoped per user.
-.
+
+## Parking map
+
+After signing in, users land on `frontend/map.html`: an OpenStreetMap view of UC Irvine
+(via Leaflet). Every parking lot is shaded by category, explained in a key you can minimize:
+
+| Category | Look | From OpenStreetMap tags |
+|---|---|---|
+| Free | blue area + pin | `fee=no` |
+| Free for customers | light-blue area + pin | `fee=no` + `access=customers` |
+| Permit required | dark-gray area | `access=permit` (or UCI Transportation lot with no access tag, marked as inferred) |
+| Paid | dashed gray outline | `fee=yes` (UCI paid lots also accept permits) |
+
+Clicking a UCI permit or paid lot shows which UCI permits it accepts (with who they're for
+and their price) and, where a visitor pass applies, the daily-pass prices. These come from
+`backend/app/data/uci_permits.json`, transcribed by hand from parking.uci.edu for 2026-2027;
+update it when UCI publishes new rates (the tests check every lot name in it still matches the
+map data). Lots that UCI's public pages don't assign to a permit say so rather than guessing.
+UCI doesn't publish live space availability, so the map can't show open spaces.
+
+The side list (Free / Permit / Paid tabs) slides in and out with the tab on its edge. Both the list and
+the key remember whether they were open.
+
+Lots come from `GET /api/parking`, which serves a snapshot in
+`backend/app/data/parking_lots.json`. Refresh it with:
+
+```sh
+cd backend && .venv/bin/python scripts/fetch_parking.py
+```
+
+## Temporary account
+
+The backend keeps a shared account: username `peter` (email `peter@example.com`), password
+`parking`. It's created on startup, its password is reset to `parking` on every startup, and
+it always signs in locally, even when Supabase is configured. It skips the sign-up password rules. Change or disable it with the `SEED_*` settings in
+`backend/.env.example`.
