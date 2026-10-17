@@ -222,6 +222,11 @@ identified by their OpenStreetMap id (`way/171169301`). PostgreSQL deployments n
 
 ## Settings
 
+After sign-up, a five-step tutorial introduces search, parking colors, lot details
+and reviews, directions, and account settings. Skip tutorial and Open map both take
+the user to the main map. With Supabase email confirmation, the tutorial appears
+after the first successful sign-in in the same browser.
+
 The gear button next to your name on the map opens `frontend/settings.html`, where you can
 change your username (`PATCH /api/auth/me`), change your password
 (`POST /api/auth/password`, which signs out your other devices), or sign out to switch

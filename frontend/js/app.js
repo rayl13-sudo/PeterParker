@@ -1,9 +1,11 @@
-// Sign-in / sign-up page. On success the user is sent to the map page.
+// Sign-in / sign-up page. New accounts see the tutorial before the map.
 import { api } from "./api.js";
 import { clearToken, getToken, saveToken } from "./auth.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
+import { needsTutorial, noteSignup } from "./tutorial-state.js";
 
 const MAP_PAGE = "map.html";
+const TUTORIAL_PAGE = "tutorial.html";
 
 const $ = (id) => document.getElementById(id);
 
@@ -82,6 +84,8 @@ authForm.addEventListener("submit", async (e) => {
             rememberMe,
           });
     if (result.confirmation_required) {
+      // No app session exists until email confirmation; show the tour at first sign-in.
+      noteSignup(authEmail.value);
       authForm.reset();
       updatePasswordRules();
       setMode("login");
@@ -89,7 +93,8 @@ authForm.addEventListener("submit", async (e) => {
       return;
     }
     saveToken(result.token, rememberMe);
-    location.replace(MAP_PAGE);
+    if (mode === "signup") noteSignup(result.user.email);
+    location.replace(needsTutorial(result.user) ? TUTORIAL_PAGE : MAP_PAGE);
   } catch (err) {
     showAuthError(err);
   } finally {
@@ -120,12 +125,12 @@ function showAuth() {
   firstField().focus();
 }
 
-// Already signed in? Skip straight to the map.
+// Already signed in? Resume onboarding if sign-up was just completed.
 async function init() {
   if (!getToken()) return showAuth();
   try {
-    await api.me();
-    location.replace(MAP_PAGE);
+    const user = await api.me();
+    location.replace(needsTutorial(user) ? TUTORIAL_PAGE : MAP_PAGE);
   } catch {
     clearToken();
     showAuth();

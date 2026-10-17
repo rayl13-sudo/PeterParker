@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="js/open-from-disk.js"></script>
+    <title>Welcome · PeterParker</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/tutorial.css" />
+    <script src="js/config.js"></script>
+    <script type="module" src="js/tutorial.js"></script>
+  </head>
+  <body class="tutorial-page">
+    <header class="tour-topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>PeterParker</span>
+      </div>
+      <button id="tour-skip" class="tour-skip" type="button" hidden>Skip tutorial →</button>
+    </header>
+
+    <main>
+      <p id="tour-loading" class="tour-loading" role="status">Loading tutorial…</p>
+      <div id="tour-shell" class="tour-shell" hidden>
+        <div class="tour-meta">
+          <span class="tour-eyebrow">A quick tour of PeterParker</span>
+          <span id="tour-counter" aria-live="polite">Step 1 of 5</span>
+        </div>
+        <div class="tour-progress-track" role="progressbar" aria-label="Tutorial progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
+          <span id="tour-progress"></span>
+        </div>
+
+        <section class="tour-step" data-step="0">
+          <div class="tour-copy">
+            <span class="tour-number">01 / Search</span>
+            <h1 tabindex="-1">Find parking near where you’re going.</h1>
+            <p>Search for a campus building, place, or lot. Choose a destination and PeterParker lists nearby parking by walking distance.</p>
+            <p class="tour-try"><strong>Example:</strong> Search “Student Center” to see the closest lots around it.</p>
+          </div>
+          <div class="tour-demo search-demo" aria-label="Example search for Student Center">
+            <div class="demo-label">ON THE MAP</div>
+            <div class="fake-search"><span aria-hidden="true">⌕</span> Student Center</div>
+            <div class="fake-result"><span class="result-icon">⌖</span><span><strong>Student Center</strong><small>Choose as destination</small></span><span aria-hidden="true">↗</span></div>
+            <div class="demo-tip">Nearby lots will be sorted by walking distance.</div>
+          </div>
+        </section>
+
+        <section class="tour-step" data-step="1" hidden>
+          <div class="tour-copy">
+            <span class="tour-number">02 / Parking colors</span>
+            <h1 tabindex="-1">Read the map at a glance.</h1>
+            <p>Colored areas and pins show the parking category. The tabs in the side panel let you look at one category at a time.</p>
+            <p class="tour-try"><strong>Example:</strong> A blue lot is marked free; a dark gray lot requires a permit. Always check posted signs before parking.</p>
+          </div>
+          <div class="tour-demo" aria-label="Example map color key">
+            <div class="demo-label">MAP COLOR KEY</div>
+            <div class="color-row"><span class="color-dot free"></span><span><strong>Free</strong><small>Open to everyone</small></span></div>
+            <div class="color-row"><span class="color-dot permit"></span><span><strong>Permit</strong><small>Permit required</small></span></div>
+            <div class="color-row"><span class="color-dot paid"></span><span><strong>Paid</strong><small>Check rates</small></span></div>
+            <div class="color-row"><span class="color-dot limited"></span><span><strong>Limited</strong><small>Time limit or tow risk</small></span></div>
+          </div>
+        </section>
+
+        <section class="tour-step" data-step="2" hidden>
+          <div class="tour-copy">
+            <span class="tour-number">03 / Lot details</span>
+            <h1 tabindex="-1">Check the details before you park.</h1>
+            <p>Select a lot on the map or in the list to see its rules, permit information, rates when available, and distance to your destination. Open Reviews to read or share community tips.</p>
+            <p class="tour-try"><strong>Example:</strong> Open a permit lot to check which pass it accepts, then read its reviews.</p>
+          </div>
+          <div class="tour-demo" aria-label="Example parking lot details">
+            <div class="demo-label">LOT PREVIEW · EXAMPLE</div>
+            <div class="lot-preview"><span class="color-dot permit"></span><div><strong>Campus parking lot</strong><small>Permit required</small></div></div>
+            <div class="lot-detail"><span>Permit rules</span><strong>View requirements</strong></div>
+            <div class="lot-detail"><span>Distance</span><strong>Shown after search</strong></div>
+            <div class="demo-actions"><span>Directions</span><span>Reviews &amp; ratings</span></div>
+          </div>
+        </section>
+
+        <section class="tour-step" data-step="3" hidden>
+          <div class="tour-copy">
+            <span class="tour-number">04 / Directions</span>
+            <h1 tabindex="-1">Get from here to there.</h1>
+            <p>Choose a destination and tap Directions on a nearby lot. PeterParker shows a driving route to the lot and a walking route to your destination.</p>
+            <p class="tour-try"><strong>Example:</strong> Route from your location to a lot, then walk from that lot to Student Center. If location access is off, pick a start point on the map.</p>
+          </div>
+          <div class="tour-demo route-demo" aria-label="Example route from your location through a parking lot to Student Center">
+            <div class="demo-label">ROUTE PREVIEW</div>
+            <div class="route-point"><span class="route-marker start">1</span><span><strong>Your location</strong><small>Or choose a point on the map</small></span></div>
+            <div class="route-leg">Drive</div>
+            <div class="route-point"><span class="route-marker lot">P</span><span><strong>Parking lot</strong><small>Check the parking rules</small></span></div>
+            <div class="route-leg walk">Walk</div>
+            <div class="route-point"><span class="route-marker end">⌖</span><span><strong>Student Center</strong><small>Your destination</small></span></div>
+          </div>
+        </section>
+
+        <section class="tour-step" data-step="4" hidden>
+          <div class="tour-copy">
+            <span class="tour-number">05 / Your account</span>
+            <h1 tabindex="-1">Make PeterParker yours.</h1>
+            <p>Use the gear on the map to open Settings. You can update your username, photo, avatar colors, and password. Your reviews appear beside each place.</p>
+            <p class="tour-try"><strong>Example:</strong> Change your avatar color, then head back to the map and rate a lot you know.</p>
+          </div>
+          <div class="tour-demo" aria-label="Example account settings">
+            <div class="demo-label">YOUR SETTINGS</div>
+            <div class="profile-preview"><span class="profile-avatar">P</span><span><strong>@yourname</strong><small>Your PeterParker profile</small></span></div>
+            <div class="setting-preview">◉ <span>Photo &amp; colors</span></div>
+            <div class="setting-preview">✎ <span>Username</span></div>
+            <div class="setting-preview">⚿ <span>Password</span></div>
+            <div class="demo-tip">Ready to explore? Open the map.</div>
+          </div>
+        </section>
+
+        <nav class="tour-actions" aria-label="Tutorial navigation">
+          <button id="tour-back" type="button" disabled>Back</button>
+          <button id="tour-next" type="button">Next feature</button>
+        </nav>
+      </div>
+    </main>
+    <footer class="tour-footer">Parking data from OpenStreetMap · Check posted signs before parking.</footer>
+  </body>
+</html>

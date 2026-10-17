@@ -1,0 +1,222 @@
+.tutorial-page {
+  --a-blue: #4f6db8;
+  --a-blue-dark: #405a9a;
+  --a-blue-soft: #c3cee9;
+  --a-gray: #c9ceda;
+  --a-ink: #14182b;
+  --a-muted: #6b7184;
+  --a-line: #e4e7ef;
+  --a-field: #f3f5fa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 88% 12%, #dce7fa 0, transparent 32%),
+              radial-gradient(circle at 0% 90%, #e8ecf7 0, transparent 35%), #f6f7fa;
+  color: var(--a-ink);
+}
+
+.tour-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  width: min(100%, 1060px);
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #f6f7faf2;
+}
+.tour-topbar .brand { font-size: 1.05rem; }
+.tour-skip {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #cbd5e7;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--a-blue-dark);
+  font-weight: 600;
+}
+.tour-skip:hover { background: #edf2fb; }
+.tour-loading { margin: 18vh auto 0; text-align: center; color: var(--a-muted); }
+
+.tutorial-page main {
+  width: min(100%, 1060px);
+  margin: auto;
+  padding: 1rem 2rem 2rem;
+}
+.tour-shell {
+  overflow: hidden;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid #e7eaf1;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 22px 65px -28px rgba(38, 57, 102, 0.28);
+}
+.tour-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--a-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.tour-eyebrow { color: var(--a-blue-dark); }
+.tour-progress-track {
+  height: 7px;
+  overflow: hidden;
+  margin: 1rem 0 2.8rem;
+  border-radius: 999px;
+  background: #e8edf8;
+}
+#tour-progress {
+  display: block;
+  height: 100%;
+  width: 20%;
+  border-radius: inherit;
+  background: var(--a-blue);
+  transition: width 0.22s ease;
+}
+.tour-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.86fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+  min-height: 340px;
+}
+.tour-copy { max-width: 520px; }
+.tour-number {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--a-blue);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tour-copy h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 3.6vw, 3.25rem);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+.tour-copy h1:focus { outline: none; }
+.tour-copy p { margin: 0 0 1rem; color: #545d75; font-size: 1.05rem; }
+.tour-copy .tour-try {
+  margin-top: 1.5rem;
+  padding: 1rem 1.15rem;
+  border-left: 4px solid var(--a-blue);
+  border-radius: 8px;
+  background: #f0f4fc;
+  color: #263858;
+  font-size: 0.95rem;
+}
+.tour-demo {
+  padding: 1.45rem;
+  border: 1px solid #e0e7f5;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #f9fbff, #f1f5fc);
+  box-shadow: 0 12px 26px -20px rgba(39, 67, 127, 0.3);
+}
+.demo-label {
+  margin-bottom: 1.1rem;
+  color: #6d7b9c;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+.fake-search, .fake-result, .color-row, .lot-preview, .lot-detail, .profile-preview, .setting-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.fake-search {
+  padding: 0.85rem 1rem;
+  border: 2px solid #a7bce8;
+  border-radius: 12px;
+  background: #fff;
+  color: #344364;
+  font-weight: 600;
+}
+.fake-search > span { color: var(--a-blue); font-size: 1.5rem; line-height: 0.7; }
+.fake-result {
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid #e2e8f4;
+  border-radius: 12px;
+  background: #fff;
+}
+.fake-result > span:last-child { margin-left: auto; color: var(--a-blue); }
+.result-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e5edfc;
+  color: var(--a-blue);
+  font-size: 1.4rem;
+}
+.tour-demo strong, .tour-demo small { display: block; }
+.tour-demo small { color: #78829b; font-size: 0.8rem; }
+.demo-tip { margin-top: 1rem; color: #5c6c8d; font-size: 0.82rem; }
+.color-row {
+  padding: 0.6rem 0.35rem;
+  border-top: 1px solid #e6eaf3;
+}
+.color-row:first-of-type { border-top: 0; }
+.color-dot {
+  display: inline-block;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #d8dfed, 0 2px 4px #0001;
+}
+.color-dot.free { background: #3f5fae; }
+.color-dot.permit { background: #3d4457; }
+.color-dot.paid { background: #6b7184; }
+.color-dot.limited { background: #e06f68; }
+.lot-preview { padding: 0.45rem 0 1.1rem; }
+.lot-preview .color-dot { width: 34px; height: 34px; }
+.lot-detail { justify-content: space-between; padding: 0.8rem 0; border-top: 1px solid #e2e8f2; font-size: 0.88rem; }
+.lot-detail span { color: #6f7a91; }
+.lot-detail strong { color: #26385b; text-align: right; }
+.demo-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.demo-actions span { padding: 0.45rem 0.7rem; border-radius: 999px; background: #e3ebfa; color: #3f5d9f; font-size: 0.83rem; font-weight: 700; }
+.route-point { display: flex; align-items: center; gap: 0.85rem; }
+.route-marker { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 50%; background: #4f6db8; color: #fff; font-weight: 800; }
+.route-marker.lot { background: #3d4457; }
+.route-marker.end { background: #e7efff; color: #4f6db8; }
+.route-leg { margin: 0.35rem 0 0.35rem 17px; padding: 0.45rem 0 0.45rem 2rem; border-left: 3px solid #4f6db8; color: #506baa; font-size: 0.78rem; font-weight: 700; }
+.route-leg.walk { border-left-style: dashed; border-left-color: #8aa1d2; }
+.profile-preview { padding-bottom: 1rem; }
+.profile-avatar { display: grid; place-items: center; width: 46px; height: 46px; flex: none; border-radius: 50%; background: #4f6db8; color: #fff; font-size: 1.2rem; font-weight: 800; }
+.setting-preview { padding: 0.72rem 0; border-top: 1px solid #e2e8f2; color: #4863a5; font-weight: 700; }
+.setting-preview span { color: #28334f; font-weight: 500; }
+.tour-actions { display: flex; justify-content: space-between; gap: 1rem; padding-top: 2.3rem; }
+.tour-actions button { min-width: 115px; padding: 0.75rem 1.4rem; border-radius: 11px; font-weight: 700; }
+#tour-back { background: #f0f2f7; color: #33415c; }
+#tour-back:disabled { opacity: 0.45; cursor: default; }
+#tour-next { background: var(--a-blue); }
+#tour-next:hover { background: var(--a-blue-dark); }
+.tour-actions button:focus-visible, .tour-skip:focus-visible { outline: 3px solid #a7bce8; outline-offset: 3px; }
+.tour-footer { padding: 0.8rem 1.5rem 1.5rem; color: #818aa0; font-size: 0.78rem; text-align: center; }
+
+@media (max-width: 720px) {
+  .tour-topbar { padding: 1rem 1.25rem; }
+  .tutorial-page main { padding: 0.4rem 1rem 1rem; }
+  .tour-shell { padding: 1.4rem; border-radius: 20px; }
+  .tour-progress-track { margin-bottom: 1.8rem; }
+  .tour-step { grid-template-columns: 1fr; gap: 1.1rem; min-height: 0; }
+  .tour-copy h1 { font-size: 2rem; }
+  .tour-copy p { font-size: 0.96rem; }
+  .tour-copy .tour-try { margin-top: 1rem; }
+  .tour-demo { padding: 1rem; }
+  .tour-actions { padding-top: 1.4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #tour-progress { transition: none; }
+}
