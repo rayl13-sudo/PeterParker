@@ -191,3 +191,4 @@ The backend keeps a shared account: username `peter` (email `peter@example.com`)
 `parking`. It's created on startup, its password is reset to `parking` on every startup, and
 it always signs in locally, even when Supabase is configured. It skips the sign-up password rules. Change or disable it with the `SEED_*` settings in
 `backend/.env.example`.
+.
