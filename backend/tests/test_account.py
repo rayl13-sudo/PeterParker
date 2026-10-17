@@ -131,3 +131,13 @@ def test_random_colors_are_far_apart():
         hue = lambda h: colorsys.rgb_to_hls(*(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)))[0] * 360
         gap = abs(hue(bg) - hue(fg)) % 360
         assert min(gap, 360 - gap) >= 115  # different color, not a shade of the same one
+
+
+def test_choose_avatar_colors(client):
+    headers = signup(client)
+    res = client.put("/api/auth/me/avatar/colors", json={"bg": "#FFEEDD", "fg": "#123abc"}, headers=headers)
+    assert res.status_code == 200
+    assert res.json()["avatar"] | {} == {"bg": "#ffeedd", "fg": "#123abc", "image": None}
+    assert client.get("/api/auth/me", headers=headers).json()["avatar"]["bg"] == "#ffeedd"
+    for bad in [{"bg": "red", "fg": "#123abc"}, {"bg": "#12345", "fg": "#123abc"}, {"bg": "#ffeedd", "fg": "url(x)"}]:
+        assert client.put("/api/auth/me/avatar/colors", json=bad, headers=headers).status_code == 422

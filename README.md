@@ -175,7 +175,12 @@ After signing in, users land on `frontend/map.html`: an OpenStreetMap view of UC
 Every lot's popup lists the named places next to it ("For: Trader Joe's · Target ..."), so
 you can see what a lot is for. Limited lots carry a tow/ticket warning.
 
-The side list (Free / Permit / Paid tabs) slides in and out with the tab on its edge. Both the list and
+The side list (Free / Permit / Paid tabs) slides in and out with the tab on its edge.
+
+The search box at the top of the list filters as you type: it matches lot names and the places
+each lot serves (case, accents and punctuation are ignored, and words can be in any order).
+Matching lots are drawn bold, everything else fades, and the map moves to fit the matches when
+you pause. Press Esc or × to clear, or "/" anywhere on the page to jump to the search box. Both the list and
 the key remember whether they were open.
 
 Lots come from `GET /api/parking`, which serves a snapshot in
@@ -184,6 +189,36 @@ Lots come from `GET /api/parking`, which serves a snapshot in
 ```sh
 cd backend && .venv/bin/python scripts/fetch_parking.py
 ```
+
+## Navigation
+
+Type a building or place into the map's search box (e.g. "Langson Library"): places appear above
+matching lots. Pick one (or press Enter for the top match) to drop a destination marker and
+highlight the closest usable lots (free, permit or paid), ranked by walking distance; a couple of
+nearby tow-risk lots are listed separately. The places come from
+`backend/app/data/places.json` (named OpenStreetMap features, written by `scripts/fetch_parking.py`)
+and are served at `GET /api/places`.
+
+**Directions** (on each nearby lot, and in every lot's popup) asks the browser for your location
+(or, if that's refused, lets you click a starting point on the map), then draws the driving route
+to the lot and the walking route from the lot to your destination, with turn-by-turn steps.
+Routes come from `GET /api/route?mode=car|foot&from_lat=…&from_lon=…&to_lat=…&to_lon=…`, which
+proxies an OSRM server (`ROUTING_URL`, default the free FOSSGIS server at
+routing.openstreetmap.de, which is fair-use only; switch to a hosted or self-hosted OSRM before
+real traffic). Drive times don't include traffic.
+
+## Reviews
+
+Any parking lot or place can be rated 1-5 stars with an optional comment (up to 1,000
+characters); each person has one review per lot/place, which they can edit or delete. Ratings
+show in lot popups and list items ("★ 4.5 · 3 reviews"), and picking a destination shows a card
+inviting you to see or write its reviews (clicking the destination marker opens them too).
+
+API: `GET /api/reviews?target_type=lot|place&target_id=…` (average, count, newest 50 with author
+name and avatar), `PUT /api/reviews` (create or update yours), `DELETE /api/reviews/{id}` (yours
+only), `GET /api/reviews/summary` (average and count for everything reviewed). Lots and places are
+identified by their OpenStreetMap id (`way/171169301`). PostgreSQL deployments need
+`backend/migrations/003_reviews.sql`.
 
 ## Settings
 
@@ -196,7 +231,8 @@ but the app does not offer email changes.
 Every account has a profile picture: by default a silhouette in a random color on a random
 background color of a clearly different hue, assigned the first time the account is shown.
 In settings you can upload a photo (cropped to a square and shrunk to 256 px in the browser,
-then stored with the account), remove it, or shuffle the colors
-(`PUT`/`DELETE /api/auth/me/avatar`, `POST /api/auth/me/avatar/colors`). PostgreSQL
-deployments need `backend/migrations/002_avatars.sql` applied; `init_db()` runs every
-migration in order.
+then stored with the account), shuffle the colors, or pick both colors yourself. After
+uploading a photo, the color controls give way to a single "Revert to default icon" button
+(`PUT`/`DELETE /api/auth/me/avatar`; `PUT` to choose or `POST` to shuffle
+`/api/auth/me/avatar/colors`). PostgreSQL deployments need `backend/migrations/002_avatars.sql`
+and `003_reviews.sql` applied; `init_db()` runs every migration in order.

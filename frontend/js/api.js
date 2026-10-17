@@ -68,6 +68,8 @@ export const api = {
     }),
   setAvatarImage: (image) => request("/auth/me/avatar", { method: "PUT", body: JSON.stringify({ image }) }),
   removeAvatarImage: () => request("/auth/me/avatar", { method: "DELETE" }),
+  setAvatarColors: ({ bg, fg }) =>
+    request("/auth/me/avatar/colors", { method: "PUT", body: JSON.stringify({ bg, fg }) }),
   shuffleAvatarColors: () => request("/auth/me/avatar/colors", { method: "POST" }),
   changePassword: ({ currentPassword, newPassword }) =>
     request("/auth/password", {
@@ -76,4 +78,17 @@ export const api = {
     }),
 
   parking: () => request("/parking"),
+  places: () => request("/places"),
+  reviewSummary: () => request("/reviews/summary"),
+  reviews: (type, id) => request(`/reviews?target_type=${type}&target_id=${encodeURIComponent(id)}`),
+  saveReview: ({ type, id, rating, comment }) =>
+    request("/reviews", {
+      method: "PUT",
+      body: JSON.stringify({ target_type: type, target_id: id, rating, comment }),
+    }),
+  deleteReview: (reviewId) => request(`/reviews/${reviewId}`, { method: "DELETE" }),
+  route: (mode, from, to) =>
+    request(
+      `/route?mode=${mode}&from_lat=${from.lat}&from_lon=${from.lon}&to_lat=${to.lat}&to_lon=${to.lon}`,
+    ),
 };

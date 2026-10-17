@@ -46,8 +46,18 @@
             <input id="photo-input" type="file" accept="image/*" />
             Upload photo
           </label>
-          <button id="photo-remove" type="button" class="secondary-button" hidden>Remove photo</button>
-          <button id="photo-colors" type="button" class="secondary-button">Shuffle colors</button>
+          <button id="photo-remove" type="button" class="secondary-button" hidden>Revert to default icon</button>
+          <span id="color-controls" class="color-controls">
+            <label class="color-field" title="Background color">
+              <input id="color-bg" type="color" />
+              Background
+            </label>
+            <label class="color-field" title="Icon color">
+              <input id="color-fg" type="color" />
+              Icon
+            </label>
+            <button id="photo-colors" type="button" class="secondary-button">Shuffle colors</button>
+          </span>
         </div>
         <p id="photo-message" class="settings-message" role="status" hidden></p>
       </section>

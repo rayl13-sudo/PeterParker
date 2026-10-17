@@ -289,6 +289,24 @@ def remove_avatar_image(
     return _me(db, user["id"])
 
 
+class AvatarColorsIn(BaseModel):
+    bg: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+    fg: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+@router.put("/me/avatar/colors", response_model=Me)
+def set_avatar_colors(
+    payload: AvatarColorsIn,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> Me:
+    db.execute(
+        "UPDATE users SET avatar_bg = ?, avatar_fg = ? WHERE id = ?",
+        (payload.bg.lower(), payload.fg.lower(), user["id"]),
+    )
+    return _me(db, user["id"])
+
+
 @router.post("/me/avatar/colors", response_model=Me)
 def shuffle_avatar_colors(
     user: sqlite3.Row = Depends(get_current_user), db: sqlite3.Connection = Depends(get_db)

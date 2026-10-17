@@ -45,6 +45,32 @@
 .photo-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 .photo-actions .secondary-button { padding: 0.5rem 0.9rem; font-size: 0.85rem; }
 .photo-actions + .settings-message { margin: 0.75rem 0 0; }
+.color-controls { display: contents; }
+.color-controls[hidden] { display: none; }
+.color-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.35rem;
+  background: var(--a-field);
+  border: 1px solid var(--a-line);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.color-field input {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+.color-field input::-webkit-color-swatch-wrapper { padding: 0; }
+.color-field input::-webkit-color-swatch { border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 6px; }
+.color-field:focus-within { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }
 .file-button { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
 .file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .file-button:focus-within { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }

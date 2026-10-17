@@ -25,6 +25,8 @@ import httpx  # dev dependency; bundles CA certs, unlike some stdlib Python inst
 # south, west, north, east
 UCI_BBOX = (33.630, -117.860, 33.660, -117.815)
 OUT = Path(__file__).resolve().parent.parent / "app" / "data" / "parking_lots.json"
+# Named buildings and places, searchable on the map as destinations.
+PLACES_OUT = OUT.with_name("places.json")
 USER_AGENT = "PeterParker/0.1 (UCI parking finder)"
 UCI_OPERATORS = {
     "University of California, Irvine - Transportation Services",
@@ -250,10 +252,20 @@ def main() -> None:
     utc = next(_pts(e["geometry"]) for e in elements if e["type"] == "way" and e["id"] == UTC_RETAIL_WAY)
 
     places = []
+    destinations = {}  # (name, ~50 m cell) -> place, so one building isn't listed twice
     for el in overpass(PLACES_QUERY):
-        label = place_label(el.get("tags", {}))
-        if label:
-            places.append({"label": label[0], "rank": label[1], "pos": center(el)})
+        tags = el.get("tags", {})
+        label = place_label(tags)
+        if not label:
+            continue
+        pos = center(el)
+        places.append({"label": label[0], "rank": label[1], "pos": pos})
+        kind = label[0][len(tags["name"]):].strip(" ()") or None
+        key = (tags["name"].lower(), round(pos[0] * 2000), round(pos[1] * 2000))
+        destinations.setdefault(key, {
+            "id": f"{el['type']}/{el['id']}",  # stable OpenStreetMap id (reviews attach to it)
+            "name": tags["name"], "kind": kind, "lat": round(pos[0], 6), "lon": round(pos[1], 6),
+        })
 
     lots = []
     for el in elements:
@@ -306,6 +318,11 @@ def main() -> None:
     OUT.write_text(
         json.dumps({"source": "OpenStreetMap contributors (ODbL)", "lots": lots}, separators=(",", ":")) + "\n"
     )
+    place_list = sorted(destinations.values(), key=lambda p: p["name"].lower())
+    PLACES_OUT.write_text(
+        json.dumps({"source": "OpenStreetMap contributors (ODbL)", "places": place_list}, separators=(",", ":")) + "\n"
+    )
+    print(f"Wrote {len(place_list)} places to {PLACES_OUT}")
     counts = {k: sum(lot["category"] == k for lot in lots) for k in ("free", "permit", "paid", "limited")}
     print(f"Wrote {len(lots)} lots to {OUT}: {counts}, {sum(lot['utc'] for lot in lots)} at UTC")
 

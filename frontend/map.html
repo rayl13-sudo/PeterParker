@@ -40,15 +40,71 @@
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
         </button>
         <div class="panel-body">
-          <h1 id="panel-title">Free parking near UCI</h1>
-          <p id="spot-count" class="panel-sub">Loading…</p>
-          <div class="list-tabs" role="tablist" aria-label="Show lots">
-            <button type="button" role="tab" class="list-tab active" data-list="free" aria-selected="true">Free <span class="count"></span></button>
-            <button type="button" role="tab" class="list-tab" data-list="permit" aria-selected="false">Permit <span class="count"></span></button>
-            <button type="button" role="tab" class="list-tab" data-list="paid" aria-selected="false">Paid <span class="count"></span></button>
-            <button type="button" role="tab" class="list-tab" data-list="limited" aria-selected="false">Limited <span class="count"></span></button>
+          <div class="search" role="search">
+            <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg>
+            <input id="search" type="text" placeholder="Search a building, place or lot" autocomplete="off" spellcheck="false"
+                   aria-label="Search for a building, place or parking lot" aria-controls="spot-list" />
+            <button id="search-clear" type="button" aria-label="Clear search" hidden>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+            </button>
           </div>
-          <ul id="spot-list"></ul>
+          <div id="list-view" class="panel-view">
+            <h1 id="panel-title">Free parking near UCI</h1>
+            <p id="spot-count" class="panel-sub">Loading…</p>
+            <div class="list-tabs" role="tablist" aria-label="Show lots">
+              <button type="button" role="tab" class="list-tab active" data-list="free" aria-selected="true">Free <span class="count"></span></button>
+              <button type="button" role="tab" class="list-tab" data-list="permit" aria-selected="false">Permit <span class="count"></span></button>
+              <button type="button" role="tab" class="list-tab" data-list="paid" aria-selected="false">Paid <span class="count"></span></button>
+              <button type="button" role="tab" class="list-tab" data-list="limited" aria-selected="false">Limited <span class="count"></span></button>
+            </div>
+            <ul id="spot-list"></ul>
+          </div>
+
+          <div id="reviews-view" class="panel-view" hidden>
+            <button id="reviews-back" type="button" class="link-button">
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+              Back
+            </button>
+            <h1 id="reviews-title">Reviews</h1>
+            <p id="reviews-subtitle" class="panel-sub"></p>
+            <div class="reviews-scroll">
+              <div id="reviews-summary" class="reviews-summary"></div>
+              <form id="review-form" class="review-form" novalidate>
+                <h3 id="review-form-title">Rate this place</h3>
+                <div id="star-input" class="star-input" role="radiogroup" aria-label="Your rating">
+                  <button type="button" role="radio" data-value="1" aria-label="1 star">★</button>
+                  <button type="button" role="radio" data-value="2" aria-label="2 stars">★</button>
+                  <button type="button" role="radio" data-value="3" aria-label="3 stars">★</button>
+                  <button type="button" role="radio" data-value="4" aria-label="4 stars">★</button>
+                  <button type="button" role="radio" data-value="5" aria-label="5 stars">★</button>
+                </div>
+                <textarea id="review-comment" rows="3" maxlength="1000"
+                          placeholder="What should others know? Easy to find spots, busy times… (optional)"></textarea>
+                <div class="review-form-actions">
+                  <button id="review-submit" type="submit" class="pill-button primary">Post review</button>
+                  <button id="review-delete" type="button" class="pill-button" hidden>Delete my review</button>
+                  <small id="review-chars" class="review-chars">0 / 1000</small>
+                </div>
+                <p id="review-message" class="review-message" role="status" hidden></p>
+              </form>
+              <ul id="review-list" class="review-list" aria-label="Reviews"></ul>
+            </div>
+          </div>
+
+          <div id="directions-view" class="panel-view" hidden>
+            <button id="directions-back" type="button" class="link-button">
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+              Back to results
+            </button>
+            <h1 id="directions-title">Directions</h1>
+            <p id="directions-status" class="panel-sub" role="status"></p>
+            <div id="directions-summary" class="directions-summary" hidden></div>
+            <div id="directions-steps" class="directions-steps"></div>
+            <p class="panel-note">
+              Routes by OpenStreetMap's routing service (FOSSGIS). Your starting point is sent there
+              only to work out the route. Drive times don't include traffic.
+            </p>
+          </div>
           <p id="map-error" class="map-error" hidden></p>
           <p class="panel-note">
             Lots from OpenStreetMap; permits and prices from

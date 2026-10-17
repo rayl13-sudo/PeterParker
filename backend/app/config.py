@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     session_hours: int = 12
     remember_me_days: int = 30
 
+    # OSRM-compatible routing server with car and foot profiles (/routed-car, /routed-foot).
+    routing_url: str = "https://routing.openstreetmap.de"
     supabase_url: str = ""
     supabase_publishable_key: str = ""
 

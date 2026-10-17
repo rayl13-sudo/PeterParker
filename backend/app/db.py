@@ -25,6 +25,19 @@ CREATE TABLE IF NOT EXISTS sessions (
     expires_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS reviews (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_type TEXT NOT NULL,  -- 'lot' or 'place'
+    target_id   TEXT NOT NULL,  -- OpenStreetMap id, e.g. 'way/171169301'
+    rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment     TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    UNIQUE (user_id, target_type, target_id)
+);
+CREATE INDEX IF NOT EXISTS reviews_target ON reviews(target_type, target_id);
+
 CREATE TABLE IF NOT EXISTS items (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

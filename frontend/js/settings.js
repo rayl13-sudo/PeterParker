@@ -30,8 +30,11 @@ function showUser(user) {
   $("details-username").value = user.username ?? "";
   renderAvatar($("user-avatar"), user.avatar);
   renderAvatar($("profile-avatar"), user.avatar);
+  // With a photo: just "Revert to default icon". Without: pick or shuffle the icon's colors.
   $("photo-remove").hidden = !user.avatar.image;
-  $("photo-colors").hidden = Boolean(user.avatar.image); // colors only show without a photo
+  $("color-controls").hidden = Boolean(user.avatar.image);
+  $("color-bg").value = user.avatar.bg;
+  $("color-fg").value = user.avatar.fg;
 }
 
 // Runs a form action with its button disabled, showing the result in `message`.
@@ -73,9 +76,22 @@ $("photo-input").addEventListener("change", (e) => {
   photoAction(async () => api.setAvatarImage(await imageFileToAvatar(file)), "Profile picture updated.");
 });
 $("photo-remove").addEventListener("click", () =>
-  photoAction(() => api.removeAvatarImage(), "Photo removed. Showing your colored icon again."),
+  photoAction(() => api.removeAvatarImage(), "Back to your default icon."),
 );
 $("photo-colors").addEventListener("click", () => photoAction(() => api.shuffleAvatarColors(), null));
+
+// Color pickers: preview while dragging, save when a color is chosen.
+const pickedColors = () => ({ bg: $("color-bg").value, fg: $("color-fg").value, image: null });
+for (const picker of [$("color-bg"), $("color-fg")]) {
+  picker.addEventListener("input", () => {
+    renderAvatar($("profile-avatar"), pickedColors());
+    renderAvatar($("user-avatar"), pickedColors());
+  });
+  picker.addEventListener("change", () => {
+    const { bg, fg } = pickedColors();
+    photoAction(() => api.setAvatarColors({ bg, fg }), null);
+  });
+}
 
 // ---------- Account details ----------
 
