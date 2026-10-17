@@ -17,12 +17,15 @@ def enabled() -> bool:
     return bool(settings.supabase_url)
 
 
-def request(path: str, payload: dict) -> dict:
+def request(path: str, payload: dict, *, method: str = "POST", access_token: str | None = None) -> dict:
+    headers = {"apikey": settings.supabase_publishable_key, "Content-Type": "application/json"}
+    if access_token:
+        headers["Authorization"] = f"Bearer {access_token}"
     req = Request(
         settings.supabase_url.rstrip("/") + "/auth/v1/" + path,
         data=json.dumps(payload).encode(),
-        headers={"apikey": settings.supabase_publishable_key, "Content-Type": "application/json"},
-        method="POST",
+        headers=headers,
+        method=method,
     )
     try:
         with urlopen(req, timeout=15, context=ssl.create_default_context(cafile=certifi.where())) as response:
@@ -32,6 +35,8 @@ def request(path: str, payload: dict) -> dict:
             raise HTTPException(429, "Too many attempts. Please try again later.") from exc
         if path.startswith("token") and exc.code in (400, 401, 403, 422):
             raise HTTPException(401, "Incorrect username/email or password, or email not confirmed") from exc
+        if path == "user" and exc.code in (400, 401, 403, 422):
+            raise HTTPException(400, "Supabase could not update the password. Check its password rules and try again.") from exc
         if exc.code in (400, 401, 403, 422):
             raise HTTPException(400, "Unable to create account. Check your details or try signing in.") from exc
         raise HTTPException(502, "Authentication service unavailable. Please try again.") from exc

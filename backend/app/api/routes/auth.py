@@ -333,11 +333,37 @@ def change_password(
     user: sqlite3.Row = Depends(get_current_user),
     db: sqlite3.Connection = Depends(get_db),
 ) -> None:
-    _editable_account(db, user, payload.current_password)
-    db.execute(
-        "UPDATE users SET password_hash = ? WHERE id = ?",
-        (hash_password(payload.new_password), user["id"]),
-    )
+    account = db.execute(
+        "SELECT password_hash, supabase_id FROM users WHERE id = ?", (user["id"],)
+    ).fetchone()
+    if account["password_hash"] == "supabase":
+        if not supabase_auth.enabled():
+            raise HTTPException(503, "Supabase authentication is not configured")
+        try:
+            verified = supabase_auth.request("token?grant_type=password", {
+                "email": user["email"], "password": payload.current_password,
+            })
+        except HTTPException as exc:
+            if exc.status_code == 401:
+                raise HTTPException(400, "Current password is incorrect") from exc
+            raise
+        if verified.get("user", {}).get("id") != account["supabase_id"]:
+            raise HTTPException(400, "Current password does not match this account")
+        access_token = verified.get("access_token")
+        if not access_token:
+            raise HTTPException(502, "Authentication service did not issue a session")
+        supabase_auth.request(
+            "user",
+            {"password": payload.new_password, "current_password": payload.current_password},
+            method="PUT",
+            access_token=access_token,
+        )
+    else:
+        _editable_account(db, user, payload.current_password)
+        db.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (hash_password(payload.new_password), user["id"]),
+        )
     # Sign out every other device; this one stays signed in.
     db.execute(
         "DELETE FROM sessions WHERE user_id = ? AND token_hash != ?",
