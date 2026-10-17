@@ -1,6 +1,9 @@
-// Runtime config. Override API_BASE_URL per environment.
-// When the backend serves the page (http://localhost:8000) the API is same-origin.
-// Anywhere else (another dev server, a different port) talk to the backend directly.
+// The frontend is a separate static deployment from the FastAPI backend.
+// Local development uses the local API; deployed frontends use the Vercel API.
+const localHostnames = new Set(["localhost", "127.0.0.1"]);
+
 window.APP_CONFIG = {
-  API_BASE_URL: location.port === "8000" ? "/api" : "http://127.0.0.1:8000/api",
+  API_BASE_URL: localHostnames.has(window.location.hostname)
+    ? "http://localhost:8000/api"
+    : "https://peterparker-mauve.vercel.app/api",
 };

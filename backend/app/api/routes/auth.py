@@ -123,10 +123,10 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
         return _supabase_session(db, result["user"], payload.remember_me)
 
     cur = db.execute(
-        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?) RETURNING id",
         (payload.username, payload.email, hash_password(payload.password)),
     )
-    user = User(id=cur.lastrowid, username=payload.username, email=payload.email)
+    user = User(id=cur.fetchone()["id"], username=payload.username, email=payload.email)
     return _issue(db, user, payload.remember_me)
 
 
@@ -194,10 +194,10 @@ def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -
             if username and db.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
                 username = None
             cur = db.execute(
-                "INSERT INTO users (username, email, password_hash, supabase_id) VALUES (?, ?, ?, ?)",
+                "INSERT INTO users (username, email, password_hash, supabase_id) VALUES (?, ?, ?, ?) RETURNING id",
                 (username, email, "supabase", remote_id),
             )
-            row = db.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
+            row = db.execute("SELECT * FROM users WHERE id = ?", (cur.fetchone()["id"],)).fetchone()
     return _issue(db, User(id=row["id"], username=row["username"], email=row["email"]), remember_me)
 
 
