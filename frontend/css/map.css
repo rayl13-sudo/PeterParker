@@ -63,24 +63,18 @@
 .avatar-button:hover { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }
 .avatar-button:focus-visible { outline: 2px solid var(--a-blue); outline-offset: 3px; }
 .avatar-preview {
-  width: min(90vw, 320px);
+  width: max-content;
   max-width: none;
-  padding: 2.25rem 1.5rem 1.5rem;
+  padding: 0;
   border: 0;
-  border-radius: 20px;
-  background: var(--a-white);
-  color: var(--a-ink);
-  box-shadow: 0 20px 70px rgba(20, 24, 43, 0.3);
-  text-align: center;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 .avatar-preview::backdrop { background: rgba(20, 24, 43, 0.7); }
 .avatar-preview .avatar-zoomed { width: min(65vw, 240px); height: min(65vw, 240px); margin: 0 auto; }
 .avatar-preview h2 { margin: 1rem 0 0; font-size: 1rem; }
 .avatar-preview-close {
-  display: grid;
-  place-items: center;
-  padding: 0;
-  line-height: 1;
   position: absolute;
   top: 0.5rem;
   right: 0.65rem;
@@ -93,7 +87,6 @@
   cursor: pointer;
 }
 .avatar-preview-close:focus-visible { outline: 2px solid var(--a-blue); }
-.review-like[aria-pressed="true"] { color: var(--a-blue); font-weight: 700; }
 
 .account-menu { position: relative; }
 .account-menu summary { list-style: none; cursor: pointer; }
@@ -1198,17 +1191,83 @@
   animation: msg-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .permit-banner:empty { display: none; }
-.permit-banner.empty { background: var(--a-field); color: var(--a-muted); gap: 0; }
+.permit-banner.empty { background: var(--a-field); color: var(--a-muted); }
 .permit-banner.empty a { color: var(--a-blue); font-weight: 600; text-decoration: none; }
+/* The badge is a compact dropdown for switching permits */
+.permit-picker { position: relative; flex: none; }
+/* Lift the banner above the list below it, so its permit menu isn't covered. */
+.permit-banner { position: relative; z-index: 40; }
 .permit-badge {
-  padding: 0.05rem 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.35rem 0.15rem 0.55rem;
   background: #13806a;
   color: #fff;
   border-radius: 999px;
   font-weight: 700;
   font-size: 0.72rem;
   letter-spacing: 0.02em;
+  transition: background-color 0.15s ease, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+.permit-badge:hover { background: #0f6b58; transform: scale(1.05); }
+.permit-badge:active { transform: scale(0.95); }
+.permit-badge:focus-visible { outline: 2px solid #7cc7b5; outline-offset: 2px; }
+.permit-badge .chevron {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.permit-badge[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+.permit-banner.empty .permit-badge { background: var(--a-blue); }
+.permit-banner.empty .permit-badge:hover { background: var(--a-blue-dark); }
+
+.permit-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 236px;
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.5rem;
+  background: var(--a-white);
+  color: var(--a-ink);
+  border: 1px solid var(--a-line);
+  border-radius: 12px;
+  box-shadow: 0 16px 36px -14px rgba(20, 24, 43, 0.35);
+  transform-origin: 18px 0;
+  animation: menu-open 0.22s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.permit-menu.closing { animation: menu-close 0.14s ease-in both; }
+@keyframes menu-close { to { opacity: 0; transform: translateY(-4px) scale(0.96); } }
+.permit-menu-group { display: grid; gap: 0.25rem; animation: item-in 0.25s ease both; }
+.permit-menu-group:nth-child(2) { animation-delay: 0.03s; }
+.permit-menu-group:nth-child(3) { animation-delay: 0.06s; }
+.permit-menu-group:nth-child(4) { animation-delay: 0.09s; }
+.permit-menu-label { color: var(--a-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.permit-menu-options { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.permit-option {
+  padding: 0.25rem 0.5rem;
+  background: var(--a-field);
+  color: var(--a-ink);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.permit-option:hover, .permit-option:focus-visible { background: #e6f4ef; border-color: #9fd3c6; outline: none; transform: scale(1.06); }
+.permit-option:active { transform: scale(0.94); }
+.permit-option.current { background: #13806a; border-color: #13806a; color: #fff; }
+.permit-option.none { justify-self: start; color: var(--a-muted); font-weight: 500; }
+.permit-option.none.current { background: var(--a-ink); border-color: var(--a-ink); color: #fff; }
+.permit-banner-text { flex: 1; min-width: 0; }
 .permit-yours .permit-now { margin: 0 0 0.4rem; font-size: 0.84rem; font-weight: 600; }
 .permit-yours .permit-now.ok { color: #0f6b58; }
 .permit-yours .permit-now.ok::before { content: "✓ "; }

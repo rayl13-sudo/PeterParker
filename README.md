@@ -237,6 +237,33 @@ again: drive From → a parking lot, then walk to To (or just drive, if To is it
 at" pills offer the closest usable lots to To (respecting the filter chips); click one to route
 via it.
 
+## Your parking permit
+
+In **Settings → Your parking permit**, pick the UCI permit you hold ("S" zone, "P" preferred zone,
+"R" resident or "E" evening; saved with `PUT /api/auth/me/permit`). The map then turns every lot
+that permit covers *right now* into **Free with your permit** (teal), counts them in a banner,
+includes them in the Free chip and "free parking" searches, and explains the hours in each lot's
+popup. It re-checks every minute, since coverage changes at 7 am, 3 pm, 5 pm and midnight.
+
+Rules (`frontend/js/permit-rules.js`) follow UCI's student permit page
+(https://parking.uci.edu/permits/student), in campus time:
+
+| Permit | Where | When |
+|---|---|---|
+| S / P zone | your zone's lots (+ ECPS white stalls) | every day 7 am–midnight |
+| S / P zone | any Zone 1–6 lot | Mon–Fri 3 pm–midnight |
+| S / P zone | any UCI lot (general, P, non-24h AR stalls) | Mon–Fri 5 pm–midnight, Sat–Sun |
+| R resident | your assigned area | 24/7 |
+| R resident (not R-CVGRAD) | UCI surface lots, not structures | Mon–Fri 5 pm–midnight, Sat–Sun |
+| E evening | any UCI lot | Mon–Fri 5 pm–midnight, Sat–Sun |
+
+Choices made where UCI is ambiguous err toward *not* free: students can't park overnight, so
+weekend "All Day" is treated as 7 am–midnight. Only confirmed UCI Transportation lots count
+(named on UCI's permit pages, tagged as UCI-operated, or numbered "Lot __"); untagged campus lots
+and housing structures (Verano, Palo Verde, Campus Village…) are excluded, since UCI says housing
+parking "is valid only in your housing community". Popups note which stalls don't count
+(Pay-by-Space, R, X, service, yellow ECPS, "Enforced 24 Hours").
+
 ## Reviews
 
 Any parking lot or place can be rated 1-5 stars with an optional comment (up to 1,000
