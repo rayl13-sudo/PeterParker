@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PeterParker</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="js/config.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>PeterParker</h1>
+        <p class="status">API: <span id="api-status" class="badge">checking…</span></p>
+      </header>
+
+      <section class="card">
+        <h2>Items</h2>
+        <form id="item-form">
+          <input id="item-name" name="name" placeholder="New item" required autocomplete="off" />
+          <button type="submit">Add</button>
+        </form>
+        <ul id="item-list"></ul>
+        <p id="error" class="error" hidden></p>
+      </section>
+    </main>
+  </body>
+</html>
