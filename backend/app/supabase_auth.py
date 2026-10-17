@@ -36,7 +36,8 @@ def request(path: str, payload: dict, *, method: str = "POST", access_token: str
         if path.startswith("token") and exc.code in (400, 401, 403, 422):
             raise HTTPException(401, "Incorrect username/email or password, or email not confirmed") from exc
         if path == "user" and exc.code in (400, 401, 403, 422):
-            raise HTTPException(400, "Supabase could not update the password. Check its password rules and try again.") from exc
+            subject = "password" if "password" in payload else "account details"
+            raise HTTPException(400, f"Supabase could not update the {subject}. Check your details and try again.") from exc
         if exc.code in (400, 401, 403, 422):
             raise HTTPException(400, "Unable to create account. Check your details or try signing in.") from exc
         raise HTTPException(502, "Authentication service unavailable. Please try again.") from exc

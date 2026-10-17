@@ -215,7 +215,13 @@ def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -
                 (username, email, "supabase", remote_id),
             )
             row = db.execute("SELECT * FROM users WHERE id = ?", (cur.fetchone()["id"],)).fetchone()
-    return _issue(db, User(id=row["id"], username=row["username"], email=row["email"]), remember_me)
+    elif row["email"] != email:
+        # Supabase exposes the new email only after its confirmation flow completes.
+        clash = db.execute("SELECT 1 FROM users WHERE email = ? AND id != ?", (email, row["id"])).fetchone()
+        if clash:
+            raise HTTPException(409, "This email is already associated with another account")
+        db.execute("UPDATE users SET email = ? WHERE id = ?", (email, row["id"]))
+    return _issue(db, User(id=row["id"], username=row["username"], email=email), remember_me)
 
 
 @router.post("/logout", status_code=204)
@@ -235,6 +241,7 @@ class Avatar(BaseModel):
 
 class Me(User):
     avatar: Avatar
+    email_change_pending: bool = False
 
 
 def _me(db, user_id: int) -> Me:
@@ -307,13 +314,40 @@ def _editable_account(db, user, current_password: str) -> sqlite3.Row:
     return row
 
 
+def _supabase_access_token(db, user, current_password: str) -> str | None:
+    """Reauthenticate a Supabase account before changing its credentials or details."""
+    account = db.execute(
+        "SELECT password_hash, supabase_id FROM users WHERE id = ?", (user["id"],)
+    ).fetchone()
+    if account["password_hash"] != "supabase":
+        return None
+    if not supabase_auth.enabled():
+        raise HTTPException(503, "Supabase authentication is not configured")
+    try:
+        verified = supabase_auth.request("token?grant_type=password", {
+            "email": user["email"], "password": current_password,
+        })
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            raise HTTPException(400, "Current password is incorrect") from exc
+        raise
+    if verified.get("user", {}).get("id") != account["supabase_id"]:
+        raise HTTPException(400, "Current password does not match this account")
+    access_token = verified.get("access_token")
+    if not access_token:
+        raise HTTPException(502, "Authentication service did not issue a session")
+    return access_token
+
+
 @router.patch("/me", response_model=Me)
 def update_me(
     payload: AccountUpdateIn,
     user: sqlite3.Row = Depends(get_current_user),
     db: sqlite3.Connection = Depends(get_db),
 ) -> Me:
-    _editable_account(db, user, payload.current_password)
+    access_token = _supabase_access_token(db, user, payload.current_password)
+    if access_token is None:
+        _editable_account(db, user, payload.current_password)
     username = payload.username or user["username"]
     email = payload.email or user["email"]
     for field, value in (("username", username), ("email", email)):
@@ -322,8 +356,16 @@ def update_me(
         ).fetchone()
         if clash:
             raise HTTPException(status.HTTP_409_CONFLICT, f"That {field} is already taken")
-    db.execute("UPDATE users SET username = ?, email = ? WHERE id = ?", (username, email, user["id"]))
-    return _me(db, user["id"])
+    pending_email = bool(access_token and email != user["email"])
+    if pending_email:
+        supabase_auth.request("user", {"email": email}, method="PUT", access_token=access_token)
+    db.execute(
+        "UPDATE users SET username = ?, email = ? WHERE id = ?",
+        (username, user["email"] if pending_email else email, user["id"]),
+    )
+    result = _me(db, user["id"])
+    result.email_change_pending = pending_email
+    return result
 
 
 @router.post("/password", status_code=204)
@@ -333,25 +375,8 @@ def change_password(
     user: sqlite3.Row = Depends(get_current_user),
     db: sqlite3.Connection = Depends(get_db),
 ) -> None:
-    account = db.execute(
-        "SELECT password_hash, supabase_id FROM users WHERE id = ?", (user["id"],)
-    ).fetchone()
-    if account["password_hash"] == "supabase":
-        if not supabase_auth.enabled():
-            raise HTTPException(503, "Supabase authentication is not configured")
-        try:
-            verified = supabase_auth.request("token?grant_type=password", {
-                "email": user["email"], "password": payload.current_password,
-            })
-        except HTTPException as exc:
-            if exc.status_code == 401:
-                raise HTTPException(400, "Current password is incorrect") from exc
-            raise
-        if verified.get("user", {}).get("id") != account["supabase_id"]:
-            raise HTTPException(400, "Current password does not match this account")
-        access_token = verified.get("access_token")
-        if not access_token:
-            raise HTTPException(502, "Authentication service did not issue a session")
+    access_token = _supabase_access_token(db, user, payload.current_password)
+    if access_token:
         supabase_auth.request(
             "user",
             {"password": payload.new_password, "current_password": payload.current_password},

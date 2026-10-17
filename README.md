@@ -191,6 +191,8 @@ The gear button next to your name on the map opens `frontend/settings.html`, whe
 change your username and email (`PATCH /api/auth/me`), change your password
 (`POST /api/auth/password`, which signs out your other devices), or sign out to switch
 accounts. Both changes require your current password.
+For Supabase accounts, an email change requires confirmation; the new address appears
+in the app after confirmation and the next sign-in.
 
 Every account has a profile picture: by default a silhouette in a random color on a random
 background color of a clearly different hue, assigned the first time the account is shown.
@@ -199,4 +201,3 @@ then stored with the account), remove it, or shuffle the colors
 (`PUT`/`DELETE /api/auth/me/avatar`, `POST /api/auth/me/avatar/colors`). PostgreSQL
 deployments need `backend/migrations/002_avatars.sql` applied; `init_db()` runs every
 migration in order.
-

@@ -95,8 +95,10 @@ $("details-form").addEventListener("submit", (e) => {
     if (email.toLowerCase() !== current.email) changes.email = email;
     if (!Object.keys(changes).length) return "Nothing to save. Your details are unchanged.";
     current = await api.updateMe({ ...changes, currentPassword });
+    const pendingEmail = current.email_change_pending;
     showUser(current);
     $("details-password").value = "";
+    if (pendingEmail) return "Saved. Confirm the email change from your inbox, then sign out and back in.";
     return "Saved. Use your new details next time you sign in.";
   });
 });

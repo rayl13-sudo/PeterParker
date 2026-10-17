@@ -84,3 +84,53 @@ def test_remote_password_change_verifies_identity_and_updates_supabase(client, m
     }, {"method": "PUT", "access_token": "supabase-token"})
     assert client.get("/api/auth/me", headers=headers).status_code == 200
     assert client.get("/api/auth/me", headers=other_headers).status_code == 401
+
+
+def test_remote_account_update_waits_for_email_confirmation(client, monkeypatch):
+    monkeypatch.setattr(settings, "supabase_url", "https://example.supabase.co")
+    monkeypatch.setattr(settings, "supabase_publishable_key", "test-key")
+    remote_email = "peter@example.com"
+    calls = []
+
+    def request(path, payload, **kwargs):
+        calls.append((path, payload, kwargs))
+        if path.startswith("token"):
+            if payload["password"] == "wrong":
+                raise HTTPException(401, "Invalid credentials")
+            return {"access_token": "supabase-token", "user": {
+                "id": "remote", "email": remote_email, "email_confirmed_at": "2026-10-17",
+                "user_metadata": {"username": "peter"},
+            }}
+        return {"id": "remote"}
+
+    monkeypatch.setattr(supabase_auth, "request", request)
+    logged_in = client.post("/api/auth/login", json={
+        "identifier": remote_email, "password": "Webslinger!",
+    })
+    assert logged_in.status_code == 200
+    headers = {"Authorization": "Bearer " + logged_in.json()["token"]}
+
+    wrong = client.patch("/api/auth/me", headers=headers, json={
+        "username": "newpeter", "current_password": "wrong",
+    })
+    assert wrong.status_code == 400
+    assert client.get("/api/auth/me", headers=headers).json()["username"] == "peter"
+
+    changed = client.patch("/api/auth/me", headers=headers, json={
+        "username": "newpeter", "email": "new@example.com", "current_password": "Webslinger!",
+    })
+    assert changed.status_code == 200
+    assert changed.json()["username"] == "newpeter"
+    assert changed.json()["email"] == remote_email
+    assert changed.json()["email_change_pending"] is True
+    assert calls[-1] == ("user", {"email": "new@example.com"}, {
+        "method": "PUT", "access_token": "supabase-token",
+    })
+
+    remote_email = "new@example.com"  # Supabase now reports the confirmed address.
+    again = client.post("/api/auth/login", json={
+        "identifier": remote_email, "password": "Webslinger!",
+    })
+    assert again.status_code == 200
+    new_headers = {"Authorization": "Bearer " + again.json()["token"]}
+    assert client.get("/api/auth/me", headers=new_headers).json()["email"] == remote_email
