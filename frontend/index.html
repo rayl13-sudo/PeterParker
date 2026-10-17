@@ -40,12 +40,13 @@
         </div>
 
         <form id="auth-form" novalidate>
-          <!-- Sign in: one field that accepts either -->
+          <!-- Sign in: UCI email only (usernames are display names, not logins) -->
           <label data-show="login">
-            Username or email
+            UCI email
             <span class="input-with-icon">
-              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><circle class="cut" cx="12" cy="9.5" r="3.6"/><path class="cut" d="M5.6 19.2c1.4-2.9 3.7-4.4 6.4-4.4s5 1.5 6.4 4.4"/></svg>
-              <input id="auth-identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" />
+              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><rect class="stroke" x="5.8" y="7.6" width="12.4" height="8.8" rx="1.6"/><path class="stroke" d="M6.4 8.6l5.6 4.2 5.6-4.2"/></svg>
+              <input id="auth-identifier" type="email" autocomplete="email" autocapitalize="none" spellcheck="false"
+                     placeholder="you@uci.edu" inputmode="email" />
             </span>
           </label>
           <!-- Sign up: both are collected -->
@@ -57,10 +58,10 @@
             </span>
           </label>
           <label data-show="signup" hidden>
-            Email
+            UCI email
             <span class="input-with-icon">
               <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><rect class="stroke" x="5.8" y="7.6" width="12.4" height="8.8" rx="1.6"/><path class="stroke" d="M6.4 8.6l5.6 4.2 5.6-4.2"/></svg>
-              <input id="auth-email" type="email" autocomplete="email" />
+              <input id="auth-email" type="email" autocomplete="email" placeholder="you@uci.edu" inputmode="email" />
             </span>
           </label>
           <label>

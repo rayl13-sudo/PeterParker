@@ -42,11 +42,19 @@ def clean_username(v: str) -> str:
     return v
 
 
+# PeterParker is for the UCI community: accounts use a UCI email (name@uci.edu, or a
+# UCI department subdomain such as name@ics.uci.edu).
+UCI_EMAIL_DOMAIN = re.compile(r"^(?:[a-z0-9-]+\.)*uci\.edu$")
+UCI_EMAIL_ERROR = "Invalid email: use your UCI email address (ending in uci.edu)"
+
+
 def clean_email(v: str) -> str:
     v = v.strip().lower()
     local, _, domain = v.partition("@")
     if not local or "." not in domain:
         raise ValueError("Enter a valid email address")
+    if not UCI_EMAIL_DOMAIN.match(domain):
+        raise ValueError(UCI_EMAIL_ERROR)
     return v
 
 
@@ -108,14 +116,17 @@ class PasswordChangeIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    identifier: str = Field(min_length=1, description="Username or email")
+    # Sign-in is by UCI email only (usernames are display names, not logins).
+    identifier: str = Field(min_length=1, description="UCI email address")
     password: str
     remember_me: bool = False
 
     @field_validator("identifier")
     @classmethod
-    def normalize_identifier(cls, v: str) -> str:
-        return v.strip().lower()
+    def uci_email_only(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("Sign in with your UCI email address, not your username")
+        return clean_email(v)
 
 
 class User(BaseModel):
@@ -171,24 +182,17 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse:
     if supabase_auth.enabled():
-        email = payload.identifier
-        if "@" not in email:
-            account = db.execute("SELECT email FROM users WHERE username = ?", (email,)).fetchone()
-            if account is None:
-                raise HTTPException(401, "Use your email for your first sign-in after confirming your account")
-            email = account["email"]
         result = supabase_auth.request("token?grant_type=password", {
-            "email": email, "password": payload.password,
+            "email": payload.identifier, "password": payload.password,
         })
         return _supabase_session(db, result["user"], payload.remember_me)
 
-    column = "email" if "@" in payload.identifier else "username"
     row = db.execute(
-        f"SELECT id, username, email, password_hash FROM users WHERE {column} = ?",
+        "SELECT id, username, email, password_hash FROM users WHERE email = ?",
         (payload.identifier,),
     ).fetchone()
     if row is None or not verify_password(payload.password, row["password_hash"]):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
     user = User(id=row["id"], username=row["username"], email=row["email"])
     return _issue(db, user, payload.remember_me)
 

@@ -21,6 +21,6 @@ def client(tmp_path, monkeypatch):
 def auth_headers(client):
     res = client.post(
         "/api/auth/signup",
-        json={"username": "peter", "email": "peter@example.com", "password": "Webslinger!"},
+        json={"username": "peter", "email": "peter@uci.edu", "password": "Webslinger!"},
     )
     return {"Authorization": f"Bearer {res.json()['token']}"}

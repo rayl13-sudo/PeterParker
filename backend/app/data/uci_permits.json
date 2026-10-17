@@ -101,6 +101,21 @@
       "name": "\"E\" Evening",
       "who": "Student commuters and VDC, VDCN, CDS, PDS residents",
       "price": "$48/month"
+    },
+    "C": {
+      "name": "\"C\" General (faculty/staff)",
+      "who": "UCI faculty and staff",
+      "price": "$81/month \u00b7 $40/week \u00b7 $16/day"
+    },
+    "AR": {
+      "name": "\"AR\" Reserved (faculty/staff)",
+      "who": "UCI faculty and staff",
+      "price": "$101/month \u00b7 $49/week \u00b7 $20/day"
+    },
+    "X": {
+      "name": "\"X\" Executive",
+      "who": "UCI executives (needs authorization)",
+      "price": "$162/month"
     }
   },
   "visitor_rates": [
@@ -244,6 +259,48 @@
         "P3",
         "R-CVGRAD"
       ]
+    },
+    "Lot 90": {
+      "permits": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "P1",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+      ]
+    },
+    "Lot ARC": {
+      "permits": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "P1",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "R-CVGRAD"
+      ],
+      "note": "R-MC and R-ME permits are also valid here during Anteater Recreation Center hours."
+    },
+    "Lot AV2": {
+      "permits": [
+        "R-AV"
+      ]
+    },
+    "Lot AV3": {
+      "permits": [
+        "R-AV"
+      ]
     }
   },
   "holdable_permits": [
@@ -263,7 +320,11 @@
     "R-AV",
     "R-CVGRAD",
     "R-OC",
-    "E"
+    "E",
+    "C",
+    "AR",
+    "X"
   ],
-  "permit_rules_source": "https://parking.uci.edu/permits/student"
+  "permit_rules_source": "https://parking.uci.edu/permits/student",
+  "staff_rules_source": "https://parking.uci.edu/permits/faculty-staff/"
 }

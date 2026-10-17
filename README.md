@@ -147,7 +147,9 @@ and is never sent to the browser.
 ### Local authentication
 
 Opening the app shows a sign-in / sign-up screen. Sign-up asks for a username and
-email; sign-in accepts either one in a single "Username or email" field.
+UCI email. Sign-in is by **UCI email only** (`@uci.edu` or a UCI subdomain like `@ics.uci.edu`);
+usernames are display names, and any other email domain is rejected as invalid on both forms
+and by the API.
 
 Sign-up rules (enforced by the API, mirrored in the UI):
 
@@ -236,6 +238,28 @@ swap them with ⇅, or drag the start/destination markers on the map. Every chan
 again: drive From → a parking lot, then walk to To (or just drive, if To is itself a lot). "Park
 at" pills offer the closest usable lots to To (respecting the filter chips); click one to route
 via it.
+
+## Spaces, accessible stalls, EV charging and staff lots
+
+UCI publishes, on its official campus map (https://map.uci.edu/?id=463), a stall table for every
+lot and structure ("General", "ADA (Standard)", "ADA (Van)", "AR" reserved, "P" preferred,
+"Electric Vehicle", ...), charging ports per location (all ChargePoint, Level 1/Level 2), and its
+list of Faculty, Staff & Visitor lots. `scripts/fetch_uci_map.py` saves these to
+`app/data/uci_lots.json`; `GET /api/parking` merges them in by lot name (adding UCI lots that
+OpenStreetMap lacks, such as Lot 90, 91, ARC, 1C and the resident AV2/AV3).
+
+Each lot popup has an **Accessible parking** subsection: UCI's count (standard, van-accessible
+and accessible EV stalls) and where in the lot they are, from UCI's "Accessible Parking Stalls"
+map layer; list rows show "♿ N accessible". Lots without published counts show the ADA-required
+minimum for their size, marked as such. Each lot popup also has a **Spaces** section: regular, accessible (with van count) and EV ports, the
+full stall breakdown, and Tesla chargers (UCI lists none; Teslas can use Level 2 ports with
+Tesla's J1772 adapter). Lots UCI doesn't cover show OpenStreetMap's total if mapped, otherwise
+an estimate from the lot's size (~30 m² per space) and the ADA-required minimum of accessible
+stalls for that size, clearly labelled as estimates.
+
+UCI's faculty & staff lots form their own **Faculty & staff** category (purple; "Staff" chip;
+search "staff" or "faculty"), except lots that student zone permits also use (e.g. Lot 90).
+Students and visitors may use them weekdays after 5 pm and on weekends, per UCI's rules.
 
 ## Your parking permit
 
@@ -337,4 +361,3 @@ have [`backend/migrations/005_issue_reports.sql`](backend/migrations/005_issue_r
 applied before deploying this feature. It creates the private report table and admin flag.
 API routes: `POST /api/issues`, `GET /api/issues/mine`, admin-only `GET /api/issues/admin`, and
 admin-only `PATCH /api/issues/{id}` with `{"status":"resolved"}` or `{"status":"open"}`.
-.

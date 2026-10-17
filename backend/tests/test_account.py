@@ -1,4 +1,4 @@
-SIGNUP = {"username": "milesm", "email": "miles@example.com", "password": "Spider-Verse1"}
+SIGNUP = {"username": "milesm", "email": "miles@uci.edu", "password": "Spider-Verse1"}
 
 
 def signup(client, **overrides):
@@ -21,8 +21,9 @@ def test_update_username(client):
     assert res.status_code == 200, res.json()
     assert res.json()["username"] == "miles#42" and res.json()["email"] == SIGNUP["email"]
     assert client.get("/api/auth/me", headers=headers).json()["username"] == "miles#42"
-    assert login(client, "miles#42", SIGNUP["password"]).status_code == 200
-    assert login(client, "milesm", SIGNUP["password"]).status_code == 401
+    # Sign-in stays by email; the username is just a display name.
+    assert login(client, SIGNUP["email"], SIGNUP["password"]).status_code == 200
+    assert login(client, "miles#42", SIGNUP["password"]).status_code == 422
 
 
 def test_update_requires_current_password(client):
@@ -34,13 +35,13 @@ def test_update_requires_current_password(client):
 
 def test_update_rejects_taken_and_email_changes(client):
     headers = signup(client)
-    signup(client, username="gwen", email="gwen@example.com")
+    signup(client, username="gwen", email="gwen@uci.edu")
     taken = client.patch(
         "/api/auth/me", json={"username": "gwen", "current_password": SIGNUP["password"]}, headers=headers
     )
     assert taken.status_code == 409 and "username" in taken.json()["detail"]
     email_change = client.patch(
-        "/api/auth/me", json={"email": "other@example.com", "current_password": SIGNUP["password"]}, headers=headers
+        "/api/auth/me", json={"email": "other@uci.edu", "current_password": SIGNUP["password"]}, headers=headers
     )
     assert email_change.status_code == 422
     assert client.get("/api/auth/me", headers=headers).json()["email"] == SIGNUP["email"]
@@ -48,7 +49,7 @@ def test_update_rejects_taken_and_email_changes(client):
 
 def test_change_password_signs_out_other_devices(client):
     headers = signup(client)
-    other_device = {"Authorization": f"Bearer {login(client, 'milesm', SIGNUP['password']).json()['token']}"}
+    other_device = {"Authorization": f"Bearer {login(client, SIGNUP['email'], SIGNUP['password']).json()['token']}"}
 
     weak = client.post(
         "/api/auth/password", json={"current_password": SIGNUP["password"], "new_password": "weak"}, headers=headers
@@ -67,8 +68,8 @@ def test_change_password_signs_out_other_devices(client):
     assert ok.status_code == 204
     assert client.get("/api/auth/me", headers=headers).status_code == 200
     assert client.get("/api/auth/me", headers=other_device).status_code == 401
-    assert login(client, "milesm", "Brand-New1").status_code == 200
-    assert login(client, "milesm", SIGNUP["password"]).status_code == 401
+    assert login(client, SIGNUP["email"], "Brand-New1").status_code == 200
+    assert login(client, SIGNUP["email"], SIGNUP["password"]).status_code == 401
 
 
 TINY_PNG = (
@@ -80,7 +81,7 @@ TINY_PNG = (
 def test_new_accounts_get_random_two_color_avatar(client):
     first = client.get("/api/auth/me", headers=signup(client)).json()["avatar"]
     second = client.get(
-        "/api/auth/me", headers=signup(client, username="gwen", email="gwen@example.com")
+        "/api/auth/me", headers=signup(client, username="gwen", email="gwen@uci.edu")
     ).json()["avatar"]
     for avatar in (first, second):
         assert avatar["image"] is None
@@ -146,6 +147,7 @@ def test_choose_avatar_colors(client):
 def test_set_and_clear_permit(client):
     headers = signup(client)
     assert client.get("/api/auth/me", headers=headers).json()["permit"] is None
+    assert client.put("/api/auth/me/permit", json={"permit": "AR"}, headers=headers).json()["permit"] == "AR"  # staff
     res = client.put("/api/auth/me/permit", json={"permit": "S4"}, headers=headers)
     assert res.status_code == 200 and res.json()["permit"] == "S4"
     assert client.get("/api/auth/me", headers=headers).json()["permit"] == "S4"

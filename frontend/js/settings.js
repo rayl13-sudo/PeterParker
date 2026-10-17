@@ -3,7 +3,7 @@ import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
 import { bindAvatarPreview, imageFileToAvatar, renderAvatar } from "./avatar.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
-import { RULES_SOURCE, STALL_NOTE, permitSummary } from "./permit-rules.js";
+import { STALL_NOTE, permitSummary, rulesSourceFor } from "./permit-rules.js";
 import { clearTutorialState } from "./tutorial-state.js";
 import { clearMapHistory } from "./map-history.mjs";
 
@@ -224,6 +224,7 @@ const PERMIT_GROUPS = [
   { label: "Preferred “P” zone permit", test: (c) => /^P\d$/.test(c) },
   { label: "Resident “R” permit", test: (c) => c.startsWith("R-") },
   { label: "Evening permit", test: (c) => c === "E" },
+  { label: "Faculty & staff permit", test: (c) => ["C", "AR", "X"].includes(c) },
 ];
 let permitCatalogue = null;
 
@@ -242,7 +243,7 @@ function renderPermitDetails(code) {
   }
   const note = el("p", "permit-note", `${STALL_NOTE} Overnight parking isn't included unless it's your resident area. `);
   const src = el("a", null, "UCI's permit rules");
-  src.href = RULES_SOURCE;
+  src.href = rulesSourceFor(code);
   src.target = "_blank";
   src.rel = "noopener";
   note.append(src);

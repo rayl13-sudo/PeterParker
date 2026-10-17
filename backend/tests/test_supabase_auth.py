@@ -18,27 +18,28 @@ def enable(monkeypatch, result):
 def test_confirmation_does_not_issue_session(client, monkeypatch):
     enable(monkeypatch, {"id": "remote"})
     response = client.post("/api/auth/signup", json={
-        "username": "peter", "email": "peter@example.com", "password": "Webslinger!",
+        "username": "peter", "email": "peter@uci.edu", "password": "Webslinger!",
     })
     assert response.status_code == 201
     assert response.json()["confirmation_required"]
     assert "token" not in response.json()
 
 
-def test_remote_login_links_user_and_supports_username(client, monkeypatch):
+def test_remote_login_links_user_by_uci_email(client, monkeypatch):
     calls = enable(monkeypatch, {"user": {
-        "id": "remote", "email": "peter@example.com", "email_confirmed_at": "2026-10-17",
+        "id": "remote", "email": "peter@uci.edu", "email_confirmed_at": "2026-10-17",
         "user_metadata": {"username": "peter"},
     }})
     response = client.post("/api/auth/login", json={
-        "identifier": "peter@example.com", "password": "Webslinger!",
+        "identifier": "peter@uci.edu", "password": "Webslinger!",
     })
     assert response.status_code == 200
     headers = {"Authorization": "Bearer " + response.json()["token"]}
     assert client.get("/api/auth/me", headers=headers).json()["username"] == "peter"
+    assert calls[-1][1]["email"] == "peter@uci.edu"
+    # Usernames are no longer accepted for sign-in.
     response = client.post("/api/auth/login", json={"identifier": "peter", "password": "Webslinger!"})
-    assert response.status_code == 200
-    assert calls[-1][1]["email"] == "peter@example.com"
+    assert response.status_code == 422
     assert client.post("/api/auth/logout", headers=headers).status_code == 204
     assert client.get("/api/auth/me", headers=headers).status_code == 401
 
@@ -54,19 +55,19 @@ def test_remote_password_change_verifies_identity_and_updates_supabase(client, m
             if payload["password"] == "wrong":
                 raise HTTPException(401, "Invalid credentials")
             return {"access_token": "supabase-token", "user": {
-                "id": "remote", "email": "peter@example.com", "email_confirmed_at": "2026-10-17",
+                "id": "remote", "email": "peter@uci.edu", "email_confirmed_at": "2026-10-17",
                 "user_metadata": {"username": "peter"},
             }}
         return {"id": "remote"}
 
     monkeypatch.setattr(supabase_auth, "request", request)
     logged_in = client.post("/api/auth/login", json={
-        "identifier": "peter@example.com", "password": "Webslinger!",
+        "identifier": "peter@uci.edu", "password": "Webslinger!",
     })
     assert logged_in.status_code == 200
     headers = {"Authorization": "Bearer " + logged_in.json()["token"]}
     other = client.post("/api/auth/login", json={
-        "identifier": "peter@example.com", "password": "Webslinger!",
+        "identifier": "peter@uci.edu", "password": "Webslinger!",
     })
     other_headers = {"Authorization": "Bearer " + other.json()["token"]}
 
@@ -90,7 +91,7 @@ def test_remote_password_change_verifies_identity_and_updates_supabase(client, m
 def test_remote_username_update_rejects_email_changes(client, monkeypatch):
     monkeypatch.setattr(settings, "supabase_url", "https://example.supabase.co")
     monkeypatch.setattr(settings, "supabase_publishable_key", "test-key")
-    remote_email = "peter@example.com"
+    remote_email = "peter@uci.edu"
     calls = []
 
     def request(path, payload, **kwargs):
@@ -126,12 +127,12 @@ def test_remote_username_update_rejects_email_changes(client, monkeypatch):
     assert all(path != "user" for path, _, _ in calls)
 
     email_change = client.patch("/api/auth/me", headers=headers, json={
-        "email": "new@example.com", "current_password": "Webslinger!",
+        "email": "new@uci.edu", "current_password": "Webslinger!",
     })
     assert email_change.status_code == 422
     assert all(path != "user" for path, _, _ in calls)
 
-    remote_email = "new@example.com"  # Supabase now reports the confirmed address.
+    remote_email = "new@uci.edu"  # Supabase now reports the confirmed address.
     again = client.post("/api/auth/login", json={
         "identifier": remote_email, "password": "Webslinger!",
     })
@@ -150,14 +151,14 @@ def test_remote_delete_needs_secret_and_only_removes_local_data_after_auth_delet
             if payload["password"] == "wrong":
                 raise HTTPException(401, "Invalid credentials")
             return {"access_token": "remote-token", "user": {
-                "id": "remote", "email": "peter@example.com", "email_confirmed_at": "2026-10-17",
+                "id": "remote", "email": "peter@uci.edu", "email_confirmed_at": "2026-10-17",
                 "user_metadata": {"username": "peter"},
             }}
         raise AssertionError(path)
 
     monkeypatch.setattr(supabase_auth, "request", request)
     signed_in = client.post("/api/auth/login", json={
-        "identifier": "peter@example.com", "password": "Webslinger!",
+        "identifier": "peter@uci.edu", "password": "Webslinger!",
     })
     headers = {"Authorization": "Bearer " + signed_in.json()["token"]}
     payload = {"current_password": "Webslinger!", "confirmation": "YES"}

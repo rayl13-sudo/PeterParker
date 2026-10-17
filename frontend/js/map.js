@@ -8,7 +8,8 @@ import { bindAvatarPreview, renderAvatar } from "./avatar.js";
 import { averageRating, initReviews, openReviews, ratingLabel } from "./reviews.js";
 import { startMapTour } from "./map-tour.js";
 import { createMapHistory } from "./map-history.mjs";
-import { RULES_SOURCE, STALL_NOTE, describeWindow, permitStatus } from "./permit-rules.js";
+import { STALL_NOTE, describeWindow, permitStatus, rulesSourceFor } from "./permit-rules.js";
+import { AVAILABILITY_NOTE, openNow } from "./availability.js";
 
 const SIGN_IN_PAGE = "index.html";
 const UCI_CENTER = [33.6461, -117.8427]; // Aldrich Park, middle of campus
@@ -25,6 +26,8 @@ const CATEGORIES = {
   permit: { label: "Permit required", color: "#3d4457", fillOpacity: 0.4 },
   paid: { label: "Paid", color: "#6b7184", fillOpacity: 0.12, dashArray: "5 4", weight: 2 },
   limited: { label: "Limited / may be towed", color: "#e06f68", fillOpacity: 0.3, marker: "dot" },
+  // UCI's "Faculty, Staff & Visitor Parking" lots (map.uci.edu) that aren't also student zone lots.
+  staff: { label: "Faculty & staff", color: "#8a5cb8", fillOpacity: 0.35 },
 };
 const CATEGORY_ORDER = Object.keys(CATEGORIES);
 const isFree = (lot) => lot.category === "free";
@@ -114,6 +117,7 @@ function pinIcon(lot) {
 
 // Visitor prices and hours from UCI (filled in from the API response).
 let permitInfo = null;
+let uciSource = null; // map.uci.edu, where official space counts come from
 const VISITOR_PERMIT = "GNA"; // one-day General visitor permit
 
 const el = (tag, className, text) => {
@@ -125,6 +129,145 @@ const el = (tag, className, text) => {
 
 const memberPermits = (lot) => lot.permits.filter((p) => p.code !== VISITOR_PERMIT);
 const takesVisitorPass = (lot) => lot.permits.some((p) => p.code === VISITOR_PERMIT);
+
+// ----- Spaces: regular / accessible / EV, from UCI's map where it has them -----
+
+const STALL_LABELS = {
+  General: "Regular",
+  "AR Reserved (7am-5pm)": "“AR” reserved (7am–5pm)",
+  "AR Reserved (24 Hr)": "“AR” reserved (24 hr)",
+  "AR Reserved": "“AR” reserved",
+  "AR-CAV Reserved": "“AR-CAV” reserved",
+  "P Preferred": "“P” preferred",
+  "X Executive": "“X” executive",
+  "MX Motorcycle": "Motorcycle",
+  "Electric Vehicle": "EV stalls (designated)",
+  "Electric Veh. (ADA)": "EV stalls (accessible)",
+  "ADA (Standard)": "Accessible",
+  "ADA (Van)": "Accessible (van)",
+  "E-Plate": "E-plate (UCI vehicles)",
+};
+const fmt = (n) => Number(n).toLocaleString();
+
+// "Sat 3:40 pm", campus time.
+const campusClock = () =>
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", weekday: "short", hour: "numeric", minute: "2-digit" })
+    .format(new Date())
+    .replace(/\s?([AP])M/, (_, ap) => ` ${ap.toLowerCase()}m`);
+
+function statTile(value, label, title) {
+  const tile = el("div", "stat");
+  if (title) tile.title = title;
+  tile.append(el("b", null, value), el("span", null, label));
+  return tile;
+}
+
+function spacesSection(lot) {
+  const sp = lot.spaces;
+  const section = el("div", "popup-section spaces");
+  const official = sp.source === "uci";
+  section.append(el("h4", null, official ? `Spaces · ${fmt(sp.total)} total` : sp.source === "osm" ? `Spaces · ${fmt(sp.total)} total` : `Spaces · ≈${fmt(sp.total)} (estimated)`));
+
+  const evPorts = sp.ev_ports ? sp.ev_ports.level1 + sp.ev_ports.level2 : 0;
+  const open = openNow(lot);
+  const tiles = el("div", "stat-row");
+  tiles.append(
+    statTile(official ? fmt(sp.regular ?? 0) : sp.source === "osm" ? "—" : `≈${fmt(sp.total)}`, "Regular",
+      official ? "General stalls (UCI)" : "Not broken down; estimate"),
+    statTile(open ? `~${fmt(open.open)}` : "—", "Open now", open ? `About ${Math.round(open.occupancy * 100)}% full at this time on a typical day` : "Lot size unknown"),
+    statTile(official ? fmt(evPorts) : "—", "EV ports", official && sp.ev_ports ? `${sp.ev_ports.level2} Level 2 · ${sp.ev_ports.level1} Level 1` : "No public charging listed"),
+  );
+  tiles.querySelectorAll(".stat")[1].classList.add("open-now");
+  section.append(tiles);
+  if (open) section.append(el("p", "popup-note open-note", `Open now is typical for ${campusClock()} (${Math.round(open.occupancy * 100)}% full). ${AVAILABILITY_NOTE}`));
+  section.append(accessibleSubsection(sp));
+
+  if (official) {
+    if (sp.ev_ports) {
+      section.append(el("p", "popup-note", `Charging: ${sp.ev_ports.level2} Level 2 · ${sp.ev_ports.level1} Level 1 ports (ChargePoint). Tesla chargers: 0. Teslas can use Level 2 ports with Tesla's J1772 adapter.`));
+    } else {
+      section.append(el("p", "popup-note", "Charging: none here. Tesla chargers: 0."));
+    }
+    const details = el("details", "stall-breakdown");
+    details.append(el("summary", null, `All ${Object.keys(sp.breakdown).length} stall types${sp.levels ? ` · ${sp.levels} levels` : ""}`));
+    const list = el("ul");
+    for (const [kind, qty] of Object.entries(sp.breakdown)) {
+      const li = el("li");
+      li.append(el("span", null, STALL_LABELS[kind] ?? kind), el("b", null, fmt(qty)));
+      list.append(li);
+    }
+    details.append(list);
+    section.append(details);
+    const src = el("a", "popup-source", "Counts: UCI campus map");
+    src.href = lot.uci_map_id ? `https://map.uci.edu/?id=463#!m/${lot.uci_map_id}` : (uciSource ?? "https://map.uci.edu/?id=463");
+    src.target = "_blank";
+    src.rel = "noopener";
+    section.append(src);
+  } else {
+    section.append(
+      el("p", "popup-note", sp.source === "osm"
+        ? "Total from OpenStreetMap. The owner doesn't publish EV or Tesla counts."
+        : "Size estimated from the lot's mapped area (~30 m² per space incl. aisles). EV and Tesla chargers: none listed."),
+    );
+  }
+  return section;
+}
+
+const WHEELCHAIR_ICON =
+  '<svg class="a11y-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2"/><path d="M11 8v6h5l2.5 5"/><path d="M8.5 11a5.5 5.5 0 1 0 7 7"/></svg>';
+
+// "Accessible parking" subsection: UCI's counts (standard / van / accessible EV) and where
+// the stalls are; otherwise the ADA minimum for a lot that size, marked as an estimate.
+function accessibleSubsection(sp) {
+  const box = el("div", "accessible-sub");
+  const head = el("h5");
+  head.insertAdjacentHTML("beforeend", WHEELCHAIR_ICON);
+  head.append(el("span", null, "Accessible parking"));
+  box.append(head);
+
+  if (sp.accessible == null) {
+    box.append(el("p", "popup-note", "Not published for this lot."));
+    return box;
+  }
+  const count = el("p", "a11y-count");
+  count.append(el("b", null, sp.accessible_is_minimum ? `≥${fmt(sp.accessible)}` : fmt(sp.accessible)));
+  count.append(el("span", null, sp.accessible === 1 && !sp.accessible_is_minimum ? " spot" : " spots"));
+  box.append(count);
+
+  if (sp.accessible_is_minimum) {
+    box.append(el("p", "popup-note", "Not published by the owner; this is the minimum the ADA requires for a lot this size."));
+    return box;
+  }
+  const parts = [
+    sp.accessible_standard ? `${fmt(sp.accessible_standard)} standard` : null,
+    sp.accessible_van ? `${fmt(sp.accessible_van)} van-accessible` : null,
+    sp.accessible_ev ? `${fmt(sp.accessible_ev)} accessible EV` : null,
+  ].filter(Boolean);
+  if (parts.length) {
+    const chips = el("div", "a11y-parts");
+    for (const part of parts) chips.append(el("span", null, part));
+    box.append(chips);
+  }
+  if (sp.accessible === 0) box.append(el("p", "popup-note", "UCI lists no accessible stalls in this lot."));
+  for (const note of sp.accessible_where) box.append(el("p", "a11y-where", note));
+  box.append(el("p", "popup-note", "Display a DMV disabled-person placard or plate. A valid UCI permit is also required."));
+  return box;
+}
+
+function staffSection(lot) {
+  const section = el("div", "popup-section");
+  section.append(el("h4", null, "Faculty & staff parking"));
+  section.append(el("p", null, "For UCI faculty and staff permits (“C” general, “AR” reserved, “X” executive)."));
+  section.append(el("p", "popup-note", "Students with “S”/“P”/“E” permits and visitors with a $16 one-day pass may use general, P and non-24-hour AR stalls here weekdays after 5 pm and on weekends."));
+  if (/^Lot 80$/.test(lot.name)) section.append(el("p", "popup-note", "Lot 80: UCI asks you to email parking@uci.edu to park here."));
+  if (/^Lot 1C$/.test(lot.name)) section.append(el("p", "popup-note", "Lot 1C isn't valid for “C” general permits."));
+  const src = el("a", "popup-source", "UCI faculty & staff permits");
+  src.href = "https://parking.uci.edu/permits/faculty-staff/";
+  src.target = "_blank";
+  src.rel = "noopener";
+  section.append(src);
+  return section;
+}
 
 function permitSection(lot) {
   const section = el("div", "popup-section");
@@ -203,16 +346,17 @@ function popupContent(lot) {
     lot.time_limit && `Time limit: ${lot.time_limit}`,
     lot.permit_accepted && "UCI permits also accepted",
     lot.inferred,
-    lot.capacity && `${lot.capacity.toLocaleString()} spaces`,
     lot.opening_hours && `Hours: ${lot.opening_hours}`,
   ].filter(Boolean);
   for (const text of details) root.append(el("p", null, text));
 
   if (lot.category === "limited") root.append(warningBox(lot));
   if (lot.permitStatus) root.append(permitSectionForYou(lot));
+  if (lot.spaces) root.append(spacesSection(lot));
 
   const baseCategory = lot.baseCategory ?? lot.category;
-  if (lot.uci && (baseCategory === "permit" || baseCategory === "paid")) {
+  if (baseCategory === "staff") root.append(staffSection(lot));
+  else if (lot.uci && (baseCategory === "permit" || baseCategory === "paid")) {
     root.append(permitSection(lot));
     if (baseCategory === "paid" || takesVisitorPass(lot)) {
       root.append(dailyPassSection(lot));
@@ -375,7 +519,7 @@ function permitSectionForYou(lot) {
   }
   const note = el("p", "popup-note", `${STALL_NOTE} `);
   const src = el("a", null, "UCI permit rules");
-  src.href = RULES_SOURCE;
+  src.href = rulesSourceFor(userPermit);
   src.target = "_blank";
   src.rel = "noopener";
   note.append(src);
@@ -389,6 +533,7 @@ const PERMIT_MENU_GROUPS = [
   { label: "Preferred “P”", test: (c) => /^P\d$/.test(c) },
   { label: "Resident", test: (c) => c.startsWith("R-") },
   { label: "Evening", test: (c) => c === "E" },
+  { label: "Faculty & staff", test: (c) => ["C", "AR", "X"].includes(c) },
 ];
 
 function renderPermitBanner() {
@@ -489,6 +634,8 @@ let listEntries = []; // [{ lot, area, marker, primary }]
 
 function listMeta(lot) {
   const cat = CATEGORIES[lot.category];
+  const spaces = lot.spaces?.total ? ` · ${lot.spaces.source === "uci" ? "" : "≈"}${fmt(lot.spaces.total)} spaces` : "";
+  if (lot.category === "staff") return `Faculty & staff${spaces}`;
   if (lot.category === "mine") return `Free with your ${userPermit} permit · ${lot.permitStatus.until}`;
   if (lot.category === "paid") return "One-day pass $16 · Reserved $20 · Hourly $4–$5";
   if (lot.category === "limited") {
@@ -517,6 +664,13 @@ function listItem({ lot, primary: layer }, walkMeters) {
   text.append(el("span", null, lot.name), el("small", null, meta));
   const rating = ratingLabel("lot", lot.id);
   if (rating) text.append(el("small", "rating-line", rating));
+  const open = openNow(lot);
+  if (open && (lot.baseCategory ?? lot.category) !== "limited") {
+    text.append(el("small", "open-line", `~${fmt(open.open)} open now (typical)`));
+  }
+  if (lot.spaces?.accessible != null && !lot.spaces.accessible_is_minimum) {
+    text.append(el("small", "a11y-line", `♿ ${fmt(lot.spaces.accessible)} accessible`));
+  }
   btn.append(swatch, text);
   btn.addEventListener("click", () => focusLot({ lot, primary: layer }));
   const li = el("li");
@@ -674,11 +828,12 @@ const MAX_PLACE_RESULTS = 6;
 
 // Chips under the search box. Words typed in the search box can switch these on too.
 const chipFilters = { categories: new Set(), minStars: 0 };
-const FILTER_NAMES = { free: "free", permit: "permit", paid: "paid", limited: "limited" };
+const FILTER_NAMES = { free: "free", permit: "permit", paid: "paid", limited: "limited", staff: "faculty & staff" };
 const CATEGORY_WORDS = {
   free: "free", paid: "paid", pay: "paid", meter: "paid", metered: "paid", fee: "paid",
   permit: "permit", permits: "permit", uci: "permit",
   limited: "limited", tow: "limited", towing: "limited", private: "limited", customers: "limited",
+  staff: "staff", faculty: "staff", employee: "staff", employees: "staff",
 };
 // Only dropped when a category or rating word is typed, so "parking" alone still matches names.
 const FILLER_WORDS = new Set(["parking", "park", "lot", "lots", "spot", "spots", "space", "spaces", "near", "with", "and", "or", "rated", "rating", "only"]);
@@ -712,9 +867,15 @@ function activeFilters() {
   };
 }
 
+// Which filter chips a lot belongs to: its own type, plus "free" when your permit covers it now.
+// (So a staff lot that's free for you still shows under Staff.)
+function lotTypes(lot) {
+  const own = lot.baseCategory ?? lot.category;
+  return lot.category === "mine" ? [own, "free"] : [own];
+}
+
 function passes(lot, { categories, minStars, tokens }, { ignoreText = false } = {}) {
-  const category = lot.category === "mine" ? "free" : lot.category; // "free" includes free-with-your-permit
-  if (categories.size && !categories.has(category)) return false;
+  if (categories.size && !lotTypes(lot).some((t) => categories.has(t))) return false;
   if (minStars && !((averageRating("lot", lot.id) ?? 0) >= minStars)) return false;
   return ignoreText || tokens.every((t) => searchableText(lot).includes(t));
 }
@@ -1051,7 +1212,7 @@ function buildLotLayers({ animate = true } = {}) {
   listEntries = lots.map((lot) => ({ lot, ...addLot(lot) }));
   for (const chip of document.querySelectorAll(".chip-toggle[data-category]")) {
     const c = chip.dataset.category;
-    const count = lots.filter((lot) => lot.category === c || (c === "free" && lot.category === "mine")).length;
+    const count = lots.filter((lot) => lotTypes(lot).includes(c)).length;
     chip.querySelector(".count").textContent = count;
     chip.querySelector(".swatch").style.background = CATEGORIES[c].color;
   }
@@ -1062,7 +1223,9 @@ function buildLotLayers({ animate = true } = {}) {
 
 // Permit hours change during the day: re-check every minute, redraw only on change.
 setInterval(() => {
-  if (userPermit && allLots.length && applyPermit(allLots)) buildLotLayers({ animate: false });
+  if (!allLots.length) return;
+  if (userPermit && applyPermit(allLots)) buildLotLayers({ animate: false });
+  else renderList(); // keep "open now" in step with the clock
 }, 60_000);
 
 function fitToLots(lots) {
@@ -1653,6 +1816,7 @@ async function planTrip({ fit = true } = {}) {
   if (lot.category === "limited") parkNote.append(el("small", null, lot.time_limit ? `${lot.time_limit} max · tow risk` : "Not public parking: you may be towed"));
   if (lot.category === "mine") parkNote.append(el("small", null, `Free with your ${userPermit} permit · ${lot.permitStatus.until}`));
   if (lot.category === "permit") parkNote.append(el("small", null, "Needs a UCI permit or visitor pass"));
+  if (lot.category === "staff") parkNote.append(el("small", null, "Faculty & staff permits; others weekdays after 5 pm & weekends"));
   if (lot.category === "paid") parkNote.append(el("small", null, "One-day pass $16 · hourly $4–$5"));
 
   const sections = [routeSection(`Drive to ${lot.name}`, drive, "drive"), parkNote];
@@ -1885,13 +2049,6 @@ document.addEventListener("keydown", (event) => {
 $("parking-tricks").addEventListener("click", () => $("parking-tricks-dialog").showModal());
 $("parking-tricks-dialog").addEventListener("close", () => menuTrigger.focus());
 
-$("logout").addEventListener("click", async () => {
-  try {
-    await api.logout();
-  } finally {
-    toSignIn();
-  }
-});
 
 async function init() {
   try {
@@ -1911,6 +2068,7 @@ async function init() {
     renderAvatar($("user-avatar"), user.avatar);
     bindAvatarPreview($("user-avatar"), () => user.avatar);
     permitInfo = parking.permit_info;
+    uciSource = parking.uci_source ?? null;
     userPermit = user.permit ?? null;
     renderLots(parking.lots);
     const tourActions = {

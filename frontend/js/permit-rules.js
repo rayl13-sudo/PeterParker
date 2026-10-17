@@ -8,6 +8,8 @@
 // - Lots with unknown structure type don't get the resident "surface lots only" exception.
 
 export const RULES_SOURCE = "https://parking.uci.edu/permits/student";
+export const STAFF_RULES_SOURCE = "https://parking.uci.edu/permits/faculty-staff/";
+export const rulesSourceFor = (code) => (["C", "AR", "X"].includes(code) ? STAFF_RULES_SOURCE : RULES_SOURCE);
 export const STALL_NOTE =
   "General unassigned stalls only: not Pay-by-Space, R, X, service, yellow ECPS or “Enforced 24 Hours” stalls.";
 
@@ -45,6 +47,25 @@ function rulesFor(code) {
       { label: "UCI surface lots only", days: "weekdays", start: H(17), end: DAY, applies: isUciSurfaceLot },
       { label: "UCI surface lots only", days: "weekends", start: H(7), end: DAY, applies: isUciSurfaceLot },
     ];
+  }
+  // Faculty/staff permits (https://parking.uci.edu/permits/faculty-staff/). UCI states no
+  // daytime hours, but "Overnight parking is not permitted with a faculty/staff permit",
+  // so like student permits they count from 7 am to midnight.
+  if (code === "C") {
+    return [
+      { label: "Any UCI lot's general stalls (not Lot 1C)", days: "all", start: H(7), end: DAY, applies: (lot) => isUciLot(lot) && lot.name !== "Lot 1C" },
+      { label: "Also P and AR stalls", days: "weekdays", start: H(17), end: DAY, applies: (lot) => isUciLot(lot) && lot.name !== "Lot 1C" },
+      { label: "Also P and AR stalls", days: "weekends", start: H(7), end: DAY, applies: (lot) => isUciLot(lot) && lot.name !== "Lot 1C" },
+    ];
+  }
+  if (code === "AR") {
+    return [
+      { label: "Any UCI lot's AR, P and general stalls (not Lots 1C or 80)", days: "all", start: H(7), end: DAY,
+        applies: (lot) => isUciLot(lot) && lot.name !== "Lot 1C" && lot.name !== "Lot 80" },
+    ];
+  }
+  if (code === "X") {
+    return [{ label: "Any UCI lot or stall (not department, patient, E-plate or disabled stalls)", days: "all", start: H(7), end: DAY, applies: isUciLot }];
   }
   if (code === "E") {
     return [
