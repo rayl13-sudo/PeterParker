@@ -175,6 +175,26 @@ function reviewItem(review) {
 
   const actions = el("div", "review-actions");
   const replyBtn = el("button", "text-button", "Reply");
+  const likeBtn = el("button", "text-button review-like");
+  likeBtn.type = "button";
+  let liked = Boolean(review.liked);
+  function updateLike(state) {
+    liked = state.liked;
+    likeBtn.textContent = `${liked ? "Liked" : "Like"} (${state.like_count ?? 0})`;
+    likeBtn.setAttribute("aria-pressed", String(liked));
+  }
+  updateLike(review);
+  likeBtn.addEventListener("click", async () => {
+    likeBtn.disabled = true;
+    try {
+      updateLike(await api.likeReview(review.id, !liked));
+    } catch (err) {
+      showMessage(err.message, "error");
+    } finally {
+      likeBtn.disabled = false;
+    }
+  });
+  actions.append(likeBtn);
   replyBtn.type = "button";
   replyBtn.addEventListener("click", () => {
     replyBtn.hidden = true;
