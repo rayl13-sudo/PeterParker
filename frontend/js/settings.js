@@ -28,7 +28,6 @@ function showUser(user) {
   $("profile-email").textContent = user.email;
   $("switch-name").textContent = name;
   $("details-username").value = user.username ?? "";
-  $("details-email").value = user.email;
   renderAvatar($("user-avatar"), user.avatar);
   renderAvatar($("profile-avatar"), user.avatar);
   $("photo-remove").hidden = !user.avatar.image;
@@ -85,21 +84,15 @@ let current = null;
 $("details-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const username = $("details-username").value.trim();
-  const email = $("details-email").value.trim();
   const currentPassword = $("details-password").value;
   submitting($("details-form"), $("details-message"), async () => {
-    if (!username || !email) throw new Error("Enter a username and email.");
+    if (!username) throw new Error("Enter a username.");
+    if (username.toLowerCase() === current.username) return "Nothing to save. Your username is unchanged.";
     if (!currentPassword) throw new Error("Enter your current password to save changes.");
-    const changes = {};
-    if (username.toLowerCase() !== current.username) changes.username = username;
-    if (email.toLowerCase() !== current.email) changes.email = email;
-    if (!Object.keys(changes).length) return "Nothing to save. Your details are unchanged.";
-    current = await api.updateMe({ ...changes, currentPassword });
-    const pendingEmail = current.email_change_pending;
+    current = await api.updateMe({ username, currentPassword });
     showUser(current);
     $("details-password").value = "";
-    if (pendingEmail) return "Saved. Confirm the email change from your inbox, then sign out and back in.";
-    return "Saved. Use your new details next time you sign in.";
+    return "Username saved. Use it next time you sign in.";
   });
 });
 

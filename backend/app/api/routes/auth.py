@@ -4,7 +4,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.config import settings
 from app.db import get_db
@@ -82,19 +82,15 @@ class SignupIn(BaseModel):
 
 
 class AccountUpdateIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     username: str | None = None
-    email: str | None = None
     current_password: str
 
     @field_validator("username")
     @classmethod
     def check_username(cls, v: str | None) -> str | None:
         return v if v is None else clean_username(v)
-
-    @field_validator("email")
-    @classmethod
-    def check_email(cls, v: str | None) -> str | None:
-        return v if v is None else clean_email(v)
 
 
 class PasswordChangeIn(BaseModel):
@@ -241,7 +237,6 @@ class Avatar(BaseModel):
 
 class Me(User):
     avatar: Avatar
-    email_change_pending: bool = False
 
 
 def _me(db, user_id: int) -> Me:
@@ -349,23 +344,13 @@ def update_me(
     if access_token is None:
         _editable_account(db, user, payload.current_password)
     username = payload.username or user["username"]
-    email = payload.email or user["email"]
-    for field, value in (("username", username), ("email", email)):
-        clash = db.execute(
-            f"SELECT 1 FROM users WHERE {field} = ? AND id != ?", (value, user["id"])
-        ).fetchone()
-        if clash:
-            raise HTTPException(status.HTTP_409_CONFLICT, f"That {field} is already taken")
-    pending_email = bool(access_token and email != user["email"])
-    if pending_email:
-        supabase_auth.request("user", {"email": email}, method="PUT", access_token=access_token)
-    db.execute(
-        "UPDATE users SET username = ?, email = ? WHERE id = ?",
-        (username, user["email"] if pending_email else email, user["id"]),
-    )
-    result = _me(db, user["id"])
-    result.email_change_pending = pending_email
-    return result
+    clash = db.execute(
+        "SELECT 1 FROM users WHERE username = ? AND id != ?", (username, user["id"])
+    ).fetchone()
+    if clash:
+        raise HTTPException(status.HTTP_409_CONFLICT, "That username is already taken")
+    db.execute("UPDATE users SET username = ? WHERE id = ?", (username, user["id"]))
+    return _me(db, user["id"])
 
 
 @router.post("/password", status_code=204)

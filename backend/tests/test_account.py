@@ -11,15 +11,15 @@ def login(client, identifier, password):
     return client.post("/api/auth/login", json={"identifier": identifier, "password": password})
 
 
-def test_update_username_and_email(client):
+def test_update_username(client):
     headers = signup(client)
     res = client.patch(
         "/api/auth/me",
-        json={"username": "Miles#42", "email": "MORALES@example.com", "current_password": SIGNUP["password"]},
+        json={"username": "Miles#42", "current_password": SIGNUP["password"]},
         headers=headers,
     )
     assert res.status_code == 200, res.json()
-    assert res.json()["username"] == "miles#42" and res.json()["email"] == "morales@example.com"
+    assert res.json()["username"] == "miles#42" and res.json()["email"] == SIGNUP["email"]
     assert client.get("/api/auth/me", headers=headers).json()["username"] == "miles#42"
     assert login(client, "miles#42", SIGNUP["password"]).status_code == 200
     assert login(client, "milesm", SIGNUP["password"]).status_code == 401
@@ -32,17 +32,18 @@ def test_update_requires_current_password(client):
     assert client.get("/api/auth/me", headers=headers).status_code == 200
 
 
-def test_update_rejects_taken_and_invalid_values(client):
+def test_update_rejects_taken_and_email_changes(client):
     headers = signup(client)
     signup(client, username="gwen", email="gwen@example.com")
     taken = client.patch(
         "/api/auth/me", json={"username": "gwen", "current_password": SIGNUP["password"]}, headers=headers
     )
     assert taken.status_code == 409 and "username" in taken.json()["detail"]
-    bad = client.patch(
-        "/api/auth/me", json={"email": "not-an-email", "current_password": SIGNUP["password"]}, headers=headers
+    email_change = client.patch(
+        "/api/auth/me", json={"email": "other@example.com", "current_password": SIGNUP["password"]}, headers=headers
     )
-    assert bad.status_code == 422
+    assert email_change.status_code == 422
+    assert client.get("/api/auth/me", headers=headers).json()["email"] == SIGNUP["email"]
 
 
 def test_change_password_signs_out_other_devices(client):

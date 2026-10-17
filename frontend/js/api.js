@@ -61,10 +61,10 @@ export const api = {
     }),
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request("/auth/me"),
-  updateMe: ({ username, email, currentPassword }) =>
+  updateMe: ({ username, currentPassword }) =>
     request("/auth/me", {
       method: "PATCH",
-      body: JSON.stringify({ username, email, current_password: currentPassword }),
+      body: JSON.stringify({ username, current_password: currentPassword }),
     }),
   setAvatarImage: (image) => request("/auth/me/avatar", { method: "PUT", body: JSON.stringify({ image }) }),
   removeAvatarImage: () => request("/auth/me/avatar", { method: "DELETE" }),

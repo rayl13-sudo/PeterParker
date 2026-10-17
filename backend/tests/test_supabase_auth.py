@@ -86,7 +86,7 @@ def test_remote_password_change_verifies_identity_and_updates_supabase(client, m
     assert client.get("/api/auth/me", headers=other_headers).status_code == 401
 
 
-def test_remote_account_update_waits_for_email_confirmation(client, monkeypatch):
+def test_remote_username_update_rejects_email_changes(client, monkeypatch):
     monkeypatch.setattr(settings, "supabase_url", "https://example.supabase.co")
     monkeypatch.setattr(settings, "supabase_publishable_key", "test-key")
     remote_email = "peter@example.com"
@@ -117,15 +117,18 @@ def test_remote_account_update_waits_for_email_confirmation(client, monkeypatch)
     assert client.get("/api/auth/me", headers=headers).json()["username"] == "peter"
 
     changed = client.patch("/api/auth/me", headers=headers, json={
-        "username": "newpeter", "email": "new@example.com", "current_password": "Webslinger!",
+        "username": "newpeter", "current_password": "Webslinger!",
     })
     assert changed.status_code == 200
     assert changed.json()["username"] == "newpeter"
     assert changed.json()["email"] == remote_email
-    assert changed.json()["email_change_pending"] is True
-    assert calls[-1] == ("user", {"email": "new@example.com"}, {
-        "method": "PUT", "access_token": "supabase-token",
+    assert all(path != "user" for path, _, _ in calls)
+
+    email_change = client.patch("/api/auth/me", headers=headers, json={
+        "email": "new@example.com", "current_password": "Webslinger!",
     })
+    assert email_change.status_code == 422
+    assert all(path != "user" for path, _, _ in calls)
 
     remote_email = "new@example.com"  # Supabase now reports the confirmed address.
     again = client.post("/api/auth/login", json={
