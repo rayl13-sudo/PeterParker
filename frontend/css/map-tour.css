@@ -59,7 +59,7 @@
 .map-tour-next { background: #4f6db8; color: #fff; }
 .map-tour-next:hover { background: #405a9a; }
 .map-tour-card button:focus-visible { outline: 3px solid #a7bce8; outline-offset: 2px; }
-#tour-help:not([hidden]) { display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+#tour-help:not([hidden]) { display: flex; align-items: center; justify-content: flex-start; padding: 10px 12px; }
 #tour-help svg { width: 20px; height: 20px; stroke-width: 2.5; }
 
 @media (prefers-reduced-motion: reduce) {

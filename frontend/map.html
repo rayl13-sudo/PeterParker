@@ -28,12 +28,22 @@
           <button id="user-avatar" class="avatar avatar-button" type="button" aria-label="Enlarge profile photo"></button>
           <span id="user-name"></span>
         </span>
+        <details id="account-menu" class="account-menu">
+          <summary class="icon-button" aria-label="More options" title="More options"><span aria-hidden="true">•••</span></summary>
+          <div class="account-dropdown">
         <button id="tour-help" class="icon-button" type="button" aria-label="Show map tutorial" title="Show map tutorial" hidden>
+          <span class="menu-symbol" aria-hidden="true">?</span>
+          <span>Tutorial</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 9a2.8 2.8 0 1 1 4.8 2c-1.1 1-2 1.5-2 3"/><path d="M12 18h.01"/></svg>
         </button>
         <a class="icon-button" href="settings.html" aria-label="Settings" title="Settings">
+          <span class="menu-symbol" aria-hidden="true">⚙</span>
+          <span>Settings</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </a>
+            <button id="parking-tricks" type="button"><span class="menu-symbol" aria-hidden="true">💡</span><span>Parking tricks</span></button>
+          </div>
+        </details>
         <button id="logout" type="button">Sign out</button>
       </div>
     </header>
@@ -180,5 +190,16 @@
         <ul id="key-list" class="key-list"></ul>
       </section>
     </main>
+    <dialog id="parking-tricks-dialog" class="parking-tricks-dialog" aria-labelledby="parking-tricks-title">
+      <h2 id="parking-tricks-title">Parking tricks</h2>
+      <ul>
+        <li>Set your permit in Settings to find parking that matches it.</li>
+        <li>Search your destination, then compare nearby lots and walking routes.</li>
+        <li>Use the parking type filters and save your favorite places for next time.</li>
+        <li>Read recent reviews for tips from other parkers. They do not guarantee availability.</li>
+        <li>Check posted signs for current fees, permit restrictions, and time limits before leaving your car.</li>
+      </ul>
+      <form method="dialog"><button type="submit">Got it</button></form>
+    </dialog>
   </body>
 </html>
