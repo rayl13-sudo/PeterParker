@@ -202,7 +202,8 @@ html:active-view-transition-type(fade)::view-transition-new(root) {
   .brand > a:focus-visible .mascot-logo { animation: mascot-greeting 650ms ease-in-out; }
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .brand > a:hover .mascot-logo { animation: mascot-greeting 650ms ease-in-out; }
+  .brand > a:hover .mascot-logo,
+  .brand > span:hover .mascot-logo { animation: mascot-greeting 650ms ease-in-out; }
 }
 
 /* ---------- Reduced motion: keep it calm ---------- */
