@@ -58,4 +58,24 @@ Backend settings come from environment variables or `backend/.env` (see `backend
 
 ## Existing authentication
 
+Opening the app shows a sign-in / sign-up screen. Sign-up asks for a username and
+email; sign-in accepts either one in a single "Username or email" field.
+
+Sign-up rules (enforced by the API, mirrored in the UI):
+
+- **Password:** at least 8 characters, one capital letter, one special character.
+  The sign-up form shows a checklist that ticks off each rule as you type.
+- **Username:** 3-32 characters (letters, numbers, `.`, `_`, `-`). Accounts, sessions and items
+are stored in SQLite (`backend/app.db`, created on first run). Passwords are hashed
+with PBKDF2, and the API issues an opaque bearer token; only its hash is stored.
+
+**Remember Me** controls how long the session lasts:
+
+| | Token stored in | Server-side lifetime |
+|---|---|---|
+| Unchecked | `sessionStorage` (cleared when the browser closes) | `SESSION_HOURS` (default 12) |
+| Checked | `localStorage` (survives restarts) | `REMEMBER_ME_DAYS` (default 30) |
+
+Endpoints: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`,
+`GET /api/auth/me`. The `/api/items` routes require a token and are scoped per user.
 The current scaffold requires sign-in to reach its Items screen. Sign-up collects a username and email; sign-in accepts either. Passwords need at least eight characters, one capital letter, and one special character. `Remember Me` stores the token in `localStorage` for the configured long session; otherwise it uses `sessionStorage`. The API exposes `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, and `GET /api/auth/me`.

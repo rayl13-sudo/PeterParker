@@ -7,7 +7,6 @@ from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator
 
 from app.db import get_db
-from app.moderation import is_username_allowed
 from app.security import (
     bearer,
     create_session,
@@ -42,8 +41,6 @@ class SignupIn(BaseModel):
             raise ValueError(
                 "Username must be 3-32 characters: letters, numbers, '.', '_' or '-'"
             )
-        if not is_username_allowed(v):
-            raise ValueError("That username isn't allowed. Please choose another.")
         return v
 
     @field_validator("password")

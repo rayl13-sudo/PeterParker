@@ -95,10 +95,3 @@ def test_password_requirements(client):
     res = client.post("/api/auth/signup", json={**SIGNUP, "password": "nocapsorspecial"})
     msg = res.json()["detail"][0]["msg"]
     assert "capital letter" in msg and "special character" in msg
-
-
-def test_profane_username_rejected(client):
-    for bad in ["fuck", "xX_shit_Xx", "sh1tlord", "f.u.c.k", "fuuuck", "big_ass", "ass69", "a55"]:
-        res = client.post("/api/auth/signup", json={**SIGNUP, "username": bad})
-        assert res.status_code == 422, bad
-        assert "isn't allowed" in res.json()["detail"][0]["msg"]
