@@ -160,7 +160,7 @@ function dailyPassSection(lot) {
   section.append(table);
   section.append(
     el("p", "popup-note", takesVisitorPass(lot)
-      ? "Weekdays 7 a.m.–midnight in general stalls; buy at a kiosk, dispenser or PARKbyPLATE."
+      ? "Weekdays 7 a.m.–Midnight in general stalls; buy at a kiosk, dispenser or PARKbyPLATE."
       : "Weekdays: check the signs or dispenser at this lot for which pass applies."),
     el("p", "popup-note", "Evenings after 5 p.m. and weekends: the $16 one-day General pass works in general, P and AR stalls."),
   );
@@ -315,7 +315,7 @@ function permitSectionForYou(lot) {
   section.append(el("h4", null, `Your ${permitName(userPermit)} permit`));
   section.append(
     status.active
-      ? el("p", "permit-now ok", `Free for you now (${status.active.label.toLowerCase()}) · ${status.until}`)
+      ? el("p", "permit-now ok", `Free for you now · ${status.until}`)
       : el("p", "permit-now no", "Not valid here right now"),
   );
   const list = el("ul", "permit-windows");
