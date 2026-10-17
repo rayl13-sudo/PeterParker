@@ -1,17 +1,17 @@
 # PeterParker
 
-PeterParker helps people find parking near a searched UCI location. The demo has four screens: **login/sign-up, map/search, parking details, and profile**. Selecting a color-coded place on the map opens its distance, permit/type information, rating, and community reports.
+PeterParker helps people find parking near a searched UCI location. The demo has four screens: **login/sign-up, map/search, parking details, and profile**. The map uses OpenStreetMap. Selecting a color-coded place on the map opens its distance, permit/type information, rating, and community reports.
 
 ## 12-hour feature plan
 
 | Screen | Must work in the demo | Backend support |
 | --- | --- | --- |
 | Login/sign-up | Create an account, sign in, sign out, and keep the session. | Repair and reuse the existing `/api/auth/*` routes. |
-| Main map | Search a supported UCI landmark, see nearby parking pins and a matching list, filter by parking type, and select a place. | Return a small verified parking catalog with coordinates, type, address, and permit notes. A short landmark list and straight-line distance calculation can live in the frontend; label the distance accordingly. |
+| Main map | Show an OpenStreetMap basemap with attribution. Search a supported UCI landmark, see nearby parking pins and a matching list, filter by parking type, and select a place. | Return a small verified parking catalog with coordinates, type, address, and permit notes. A short landmark list and straight-line distance calculation can live in the frontend; label the distance accordingly. |
 | Parking details | Show name, distance from the search point, parking rules, rating, community reports, and a directions link. | Return place details and stored ratings/reports. Show “No ratings yet” when none exist. |
 | Profile | Show username, email, selected permit type, and saved parking places. Let the user update the permit type and save/unsave a place. | Reuse `/api/auth/me`; add profile and saved-place routes scoped to the signed-in user. |
 
-The map colors represent **parking/permit types**, with a legend and the same labels in result cards. Search is limited to a small, known UCI area for this demo. Do not promise live spot availability or invent spot counts, ratings, or community reports.
+OpenStreetMap provides the basemap; PeterParker supplies its own checked parking records, permit labels, ratings, and reports. The frontend renders the map and pins, so the backend does not need to serve map tiles. The map colors represent **parking/permit types**, with a legend and the same labels in result cards. Search is limited to a small, known UCI area for this demo. Do not promise live spot availability or invent spot counts, ratings, or community reports.
 
 ### Backend work split
 
@@ -20,7 +20,7 @@ Agree on the place JSON shape and database fields first. Assign one owner to `ba
 | Workstream | Files/routes to own | Deliverable |
 | --- | --- | --- |
 | **1. Auth + profile** | Existing `routes/auth.py`; new `routes/profile.py` | First fix the committed conflict markers and missing moderation import in `auth.py` so the API starts. Preserve login/sign-up/logout/`me`. Add `GET /api/profile`, `PATCH /api/profile` for a simple permit type, and `GET/POST/DELETE /api/profile/saved/{place_id}` for saved places. Keep email/password changes out of this sprint. |
-| **2. Parking catalog + search data** | New `routes/parking.py`; checked seed data | Add `parking_places` with ID, name, latitude, longitude, address, parking type, permit note, and optional source URL. Expose `GET /api/parking` and `GET /api/parking/{id}`. The frontend can filter and calculate distance for a small catalog, so no geocoding service is required. |
+| **2. Parking catalog + search data** | New `routes/parking.py`; checked seed data | Add `parking_places` with ID, name, latitude, longitude, address, parking type, permit note, and optional source URL. Expose `GET /api/parking` and `GET /api/parking/{id}`. The frontend can filter and calculate straight-line distance for a small catalog, so no geocoding service is required for the demo. OpenStreetMap tiles do not provide parking availability or user ratings. |
 | **3. Community ratings/reports** | New `routes/reviews.py` | Add reviews linked to a real user and place, with a 1–5 rating, short report, and timestamp. Expose `GET /api/parking/{id}/reviews` and authenticated `POST /api/parking/{id}/reviews`; return the average rating and count from stored reviews. No review means no rating. |
 | **4. Integration** | DB schema/router registration, API checks | Connect the routes, confirm anonymous reads versus signed-in writes, check error responses, and run one end-to-end flow across all four screens. |
 
