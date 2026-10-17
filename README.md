@@ -43,3 +43,4 @@ Backend settings come from environment variables or `backend/.env`
 if you serve it from somewhere other than port 5173.
 
 The frontend's API base URL is set in `frontend/js/config.js`.
+.
