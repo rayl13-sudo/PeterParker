@@ -180,7 +180,17 @@ The side list (Free / Permit / Paid tabs) slides in and out with the tab on its 
 The search box at the top of the list filters as you type: it matches lot names and the places
 each lot serves (case, accents and punctuation are ignored, and words can be in any order).
 Matching lots are drawn bold, everything else fades, and the map moves to fit the matches when
-you pause. Press Esc or × to clear, or "/" anywhere on the page to jump to the search box. Both the list and
+you pause. Press Esc or × to clear, or "/" anywhere on the page to jump to the search box.
+
+Under the search box, **filter chips** narrow the map and list: parking type (Free, Permit, Paid,
+Limited; pick any combination) and minimum rating (Any, 3+, 4+, 4.5+ stars; unrated lots drop
+out). Typing works too: "free parking", "paid lots", "permit", "tow", "4 stars" or
+"paid 4+ stars" switch the matching chips on (shown dashed), and any other words still match names.
+With a destination picked, the filters also decide which nearby lots are ranked.
+
+**Your location**: the locate button (under the zoom buttons) shows a live blue dot that follows
+you; if you've already allowed location for the site it starts on its own. Directions start from
+your live position, and "Re-route from where I am" rebuilds the route as you move. Both the list and
 the key remember whether they were open.
 
 Lots come from `GET /api/parking`, which serves a snapshot in
@@ -207,6 +217,13 @@ proxies an OSRM server (`ROUTING_URL`, default the free FOSSGIS server at
 routing.openstreetmap.de, which is fair-use only; switch to a hosted or self-hosted OSRM before
 real traffic). Drive times don't include traffic.
 
+Directions open as a **trip planner** with editable **From** and **To** fields. Each can be your
+live location, any searched place or lot, or a point picked on the map; clear either with ×,
+swap them with ⇅, or drag the start/destination markers on the map. Every change plans the trip
+again: drive From → a parking lot, then walk to To (or just drive, if To is itself a lot). "Park
+at" pills offer the closest usable lots to To (respecting the filter chips); click one to route
+via it.
+
 ## Reviews
 
 Any parking lot or place can be rated 1-5 stars with an optional comment (up to 1,000
@@ -214,11 +231,17 @@ characters); each person has one review per lot/place, which they can edit or de
 show in lot popups and list items ("★ 4.5 · 3 reviews"), and picking a destination shows a card
 inviting you to see or write its reviews (clicking the destination marker opens them too).
 
+Anyone can **reply** to a review (up to 500 characters); replies are threaded under it, oldest
+first, and don't affect the rating. You can **delete** your own review or replies from their
+card (a second click confirms); deleting a review removes its replies too. Nobody can delete
+someone else's posts.
+
 API: `GET /api/reviews?target_type=lot|place&target_id=…` (average, count, newest 50 with author
 name and avatar), `PUT /api/reviews` (create or update yours), `DELETE /api/reviews/{id}` (yours
-only), `GET /api/reviews/summary` (average and count for everything reviewed). Lots and places are
+only), `POST /api/reviews/{id}/replies`, `DELETE /api/reviews/replies/{id}` (yours only),
+`GET /api/reviews/summary` (average and count for everything reviewed). Lots and places are
 identified by their OpenStreetMap id (`way/171169301`). PostgreSQL deployments need
-`backend/migrations/003_reviews.sql`.
+`backend/migrations/003_reviews.sql` and `004_review_replies.sql`.
 
 ## Settings
 

@@ -71,6 +71,7 @@ authForm.addEventListener("submit", async (e) => {
   if (problem) return showAuthError(new Error(problem));
 
   authSubmit.disabled = true;
+  authSubmit.setAttribute("aria-busy", "true");
   try {
     const result =
       mode === "login"
@@ -89,11 +90,12 @@ authForm.addEventListener("submit", async (e) => {
       return;
     }
     saveToken(result.token, rememberMe);
-    location.replace(MAP_PAGE);
+    window.ppNavigate(MAP_PAGE, { replace: true });
   } catch (err) {
     showAuthError(err);
   } finally {
     authSubmit.disabled = false;
+    authSubmit.removeAttribute("aria-busy");
   }
 });
 
@@ -125,7 +127,7 @@ async function init() {
   if (!getToken()) return showAuth();
   try {
     await api.me();
-    location.replace(MAP_PAGE);
+    location.replace(MAP_PAGE); // already signed in: skip straight there
   } catch {
     clearToken();
     showAuth();

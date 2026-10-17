@@ -5,7 +5,7 @@
 import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
 import { renderAvatar } from "./avatar.js";
-import { initReviews, openReviews, ratingLabel } from "./reviews.js";
+import { averageRating, initReviews, openReviews, ratingLabel } from "./reviews.js";
 
 const SIGN_IN_PAGE = "index.html";
 const UCI_CENTER = [33.6461, -117.8427]; // Aldrich Park, middle of campus
@@ -28,7 +28,7 @@ const $ = (id) => document.getElementById(id);
 
 function toSignIn() {
   clearToken();
-  location.replace(SIGN_IN_PAGE);
+  window.ppNavigate(SIGN_IN_PAGE, { replace: true });
 }
 
 if (!getToken()) toSignIn();
@@ -247,16 +247,9 @@ function addLot(lot) {
   return { area, marker, primary: marker ?? area };
 }
 
-// ---------- Side list: Free / Permit / Paid / Limited tabs ----------
+// ---------- Side list ----------
 
-const LIST_TABS = {
-  free: { title: "Free parking", match: (lot) => isFree(lot) },
-  permit: { title: "Permit parking", match: (lot) => lot.category === "permit" },
-  paid: { title: "Paid parking", match: (lot) => lot.category === "paid" },
-  limited: { title: "Limited / tow-risk parking", match: (lot) => lot.category === "limited" },
-};
 let listEntries = []; // [{ lot, area, marker, primary }]
-let activeTab = "free";
 
 function listMeta(lot) {
   const cat = CATEGORIES[lot.category];
@@ -349,60 +342,64 @@ function showPlaceReviews(place) {
   openReviews({ type: "place", id: place.id, name: place.name, kind: place.kind });
 }
 
-function renderList() {
-  const searching = searchResults !== null || destination !== null;
-  document.querySelector(".list-tabs").classList.toggle("searching", searching);
+function listTitle(cats, minStars) {
+  const names = CATEGORY_ORDER.filter((c) => cats.has(c)).map((c) => FILTER_NAMES[c]);
+  const what = names.length ? `${names.join(" & ")} parking` : "Parking";
+  const title = `${what.charAt(0).toUpperCase()}${what.slice(1)}`;
+  return minStars ? `${title} rated ${minStars}+ ★` : `${title} near UCI`;
+}
+
+// Rebuilds the side list. With `animate`, items cascade in (used for chip clicks,
+// picking a destination, first load; not on every keystroke).
+function renderList({ animate = false } = {}) {
+  buildList();
+  if (animate) animateList();
+}
+
+function animateList() {
+  const list = $("spot-list");
+  [...list.children].slice(0, 14).forEach((li, i) => li.style.setProperty("--i", i));
+  list.classList.remove("enter");
+  void list.offsetWidth; // restart the animation
+  list.classList.add("enter");
+}
+
+function buildList() {
+  const { categories: cats, minStars, text } = activeFilters();
 
   if (destination) {
     $("panel-title").textContent = `Parking near ${destination.name}`;
     const usable = nearest.filter(({ entry }) => entry.lot.category !== "limited");
     const risky = nearest.filter(({ entry }) => entry.lot.category === "limited");
-    $("spot-count").textContent = "Closest lots by walking distance";
-    $("spot-list").replaceChildren(
-      placeCard(destination),
-      sectionHeading("Closest parking"),
-      ...usable.map(({ entry, meters }) => listItem(entry, meters)),
-      ...(risky.length ? [sectionHeading("Also nearby: may be towed")] : []),
-      ...risky.map(({ entry, meters }) => listItem(entry, meters)),
-    );
-  } else if (searching) {
-    const lots = searchResults;
-    const places = placeResults;
-    $("panel-title").textContent = "Search results";
-    const parts = [];
-    if (places.length) parts.push(`${places.length} ${places.length === 1 ? "place" : "places"}`);
-    parts.push(`${lots.length} ${lots.length === 1 ? "lot" : "lots"}`);
-    $("spot-count").textContent = `${parts.join(" and ")} for “${$("search").value.trim()}”`;
-    const items = [];
-    if (places.length) items.push(sectionHeading("Places: pick one to see the closest parking"), ...places.map(placeItem));
-    if (lots.length) items.push(...(places.length ? [sectionHeading("Parking lots")] : []), ...lots.map((e) => listItem(e)));
-    if (!items.length) items.push(el("li", "no-results", "Nothing matches. Try a shorter or different word."));
+    const filtered = cats.size || minStars;
+    $("spot-count").textContent = filtered ? `Closest ${listTitle(cats, minStars).toLowerCase().replace(" near uci", "")}` : "Closest lots by walking distance";
+    const items = [placeCard(destination)];
+    if (usable.length) items.push(sectionHeading("Closest parking"), ...usable.map(({ entry, meters }) => listItem(entry, meters)));
+    if (risky.length) items.push(sectionHeading(usable.length ? "Also nearby: may be towed" : "Closest (may be towed)"), ...risky.map(({ entry, meters }) => listItem(entry, meters)));
+    if (!usable.length && !risky.length) items.push(el("li", "no-results", "No nearby lots match these filters."));
     $("spot-list").replaceChildren(...items);
-  } else {
-    const tab = LIST_TABS[activeTab];
-    const entries = listEntries.filter(({ lot }) => tab.match(lot));
-    $("panel-title").textContent = `${tab.title} near UCI`;
-    $("spot-count").textContent = `${entries.length} ${entries.length === 1 ? "lot" : "lots"}`;
-    $("spot-list").replaceChildren(...entries.map((e) => listItem(e)));
+    return;
   }
-  document.querySelectorAll(".list-tab").forEach((btn) => {
-    const active = btn.dataset.list === activeTab;
-    btn.classList.toggle("active", active);
-    btn.setAttribute("aria-selected", String(active));
-  });
-}
 
-document.querySelectorAll(".list-tab").forEach((btn) =>
-  btn.addEventListener("click", () => {
-    activeTab = btn.dataset.list;
-    if (searchResults !== null || destination) clearSearch(); // picking a tab leaves search
-    renderList();
-  }),
-);
+  const lots = filteredEntries;
+  $("panel-title").textContent = text ? "Search results" : listTitle(cats, minStars);
+  const parts = [];
+  if (placeResults.length) parts.push(`${placeResults.length} ${placeResults.length === 1 ? "place" : "places"}`);
+  parts.push(`${lots.length} ${lots.length === 1 ? "lot" : "lots"}`);
+  $("spot-count").textContent = text ? `${parts.join(" and ")} for “${text}”` : parts.join(" and ");
+  const items = [];
+  if (placeResults.length) items.push(sectionHeading("Places: pick one to see the closest parking"), ...placeResults.map(placeItem));
+  if (lots.length) items.push(...(placeResults.length ? [sectionHeading("Parking lots")] : []), ...lots.map((e) => listItem(e)));
+  if (!items.length) {
+    const hint = minStars ? "No rated lots match yet. Try a lower rating." : "Nothing matches. Try a shorter or different word.";
+    items.push(el("li", "no-results", hint));
+  }
+  $("spot-list").replaceChildren(...items);
+}
 
 // ---------- Search: bold matching lots, fade the rest, as you type ----------
 
-let searchResults = null; // null = not searching; otherwise the matching list entries
+let filteredEntries = []; // lots passing the current filters (all lots when none are on)
 let placeResults = []; // buildings/places matching the search
 let places = []; // searchable destinations, from /api/places
 let destination = null; // the chosen place, once picked
@@ -412,6 +409,77 @@ let fitTimer = null;
 const NEAREST_LOTS = 6;
 const NEAREST_RISKY = 2;
 const MAX_PLACE_RESULTS = 6;
+
+// Chips under the search box. Words typed in the search box can switch these on too.
+const chipFilters = { categories: new Set(), minStars: 0 };
+const FILTER_NAMES = { free: "free", permit: "permit", paid: "paid", limited: "limited" };
+const CATEGORY_WORDS = {
+  free: "free", paid: "paid", pay: "paid", meter: "paid", metered: "paid", fee: "paid",
+  permit: "permit", permits: "permit", uci: "permit",
+  limited: "limited", tow: "limited", towing: "limited", private: "limited", customers: "limited",
+};
+// Only dropped when a category or rating word is typed, so "parking" alone still matches names.
+const FILLER_WORDS = new Set(["parking", "park", "lot", "lots", "spot", "spots", "space", "spaces", "near", "with", "and", "or", "rated", "rating", "only"]);
+
+let parsedQuery = { tokens: [], categories: new Set(), minStars: 0, text: "" };
+
+// "free parking", "paid lots", "4+ stars", "permit 4 stars mesa" -> categories, rating, words.
+function parseQuery(raw) {
+  let rest = raw.toLowerCase();
+  let minStars = 0;
+  const stars = rest.match(/(\d(?:\.\d)?)\s*\+?\s*(?:stars?|★)/);
+  if (stars) {
+    minStars = Math.min(5, Math.max(1, Number(stars[1])));
+    rest = rest.replace(stars[0], " ");
+  }
+  let tokens = normalize(rest).split(" ").filter(Boolean);
+  const categories = new Set(tokens.filter((t) => CATEGORY_WORDS[t]).map((t) => CATEGORY_WORDS[t]));
+  if (categories.size || minStars) {
+    tokens = tokens.filter((t) => !CATEGORY_WORDS[t] && !FILLER_WORDS.has(t));
+  }
+  return { tokens, categories, minStars, text: raw.trim() };
+}
+
+// Chips and typed words combined.
+function activeFilters() {
+  return {
+    categories: new Set([...chipFilters.categories, ...parsedQuery.categories]),
+    minStars: Math.max(chipFilters.minStars, parsedQuery.minStars),
+    tokens: parsedQuery.tokens,
+    text: parsedQuery.text,
+  };
+}
+
+function passes(lot, { categories, minStars, tokens }, { ignoreText = false } = {}) {
+  if (categories.size && !categories.has(lot.category)) return false;
+  if (minStars && !((averageRating("lot", lot.id) ?? 0) >= minStars)) return false;
+  return ignoreText || tokens.every((t) => searchableText(lot).includes(t));
+}
+
+// After a chip removes typed filter words, drop leftovers like "parking" or "lots" too.
+function setSearchText(text) {
+  let value = text.replace(/\s+/g, " ").trim();
+  if (normalize(value).split(" ").filter(Boolean).every((t) => FILLER_WORDS.has(t))) value = "";
+  $("search").value = value;
+  $("search-clear").hidden = !value;
+  parsedQuery = parseQuery(value);
+}
+
+function syncChips() {
+  document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) => {
+    const c = chip.dataset.category;
+    const byChip = chipFilters.categories.has(c);
+    const byText = parsedQuery.categories.has(c);
+    chip.setAttribute("aria-pressed", String(byChip || byText));
+    chip.classList.toggle("implied", byText && !byChip); // switched on by typing
+  });
+  const stars = Math.max(chipFilters.minStars, parsedQuery.minStars);
+  document.querySelectorAll(".star-chip").forEach((chip) => {
+    const on = Number(chip.dataset.stars) === stars;
+    chip.setAttribute("aria-pressed", String(on));
+    chip.classList.toggle("implied", on && parsedQuery.minStars > chipFilters.minStars);
+  });
+}
 
 const PLACE_ICON =
   '<svg class="place-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>';
@@ -483,37 +551,68 @@ function fitBoundsAroundPanel(bounds, maxZoom) {
   });
 }
 
-function findPlaces(tokens, query) {
+function findPlaces(tokens, minStars) {
+  const query = tokens.join(" ");
   return places
     .filter((place) => tokens.every((t) => place.search.includes(t)))
+    .filter((place) => !minStars || (averageRating("place", place.id) ?? 0) >= minStars)
     .sort((a, b) => (b.search.startsWith(query) - a.search.startsWith(query)) || a.name.length - b.name.length)
     .slice(0, MAX_PLACE_RESULTS);
 }
 
-function runSearch() {
-  const raw = $("search").value;
-  const query = normalize(raw);
-  const tokens = query.split(" ").filter(Boolean);
-  $("search-clear").hidden = !raw;
+// Re-applies search text + chips: highlights matching lots, fades the rest, refreshes the list.
+function applyFilters({ fit = true, animate = false } = {}) {
   clearTimeout(fitTimer);
-  clearDestination(); // typing again means looking for something new
-  if (!tokens.length) {
-    searchResults = null;
-    placeResults = [];
-    listEntries.forEach((entry) => setLotState(entry, "normal"));
-    renderList();
+  syncChips();
+  if (destination) {
+    rankNearest();
+    renderList({ animate });
+    if (fit) fitToResults(nearest.map(({ entry }) => entry), destination);
     return;
   }
-  placeResults = findPlaces(tokens, query);
-  const matched = new Set(
-    listEntries.filter(({ lot }) => tokens.every((t) => searchableText(lot).includes(t))),
-  );
-  searchResults = [...matched];
-  listEntries.forEach((entry) => setLotState(entry, matched.has(entry) ? "match" : "dim"));
-  renderList();
+  const filters = activeFilters();
+  const active = filters.categories.size || filters.minStars || filters.tokens.length;
+  placeResults = filters.tokens.length ? findPlaces(filters.tokens, filters.minStars) : [];
+  filteredEntries = listEntries.filter(({ lot }) => passes(lot, filters));
+  const matched = new Set(filteredEntries);
+  listEntries.forEach((entry) => setLotState(entry, !active ? "normal" : matched.has(entry) ? "match" : "dim"));
+  renderList({ animate });
   // Move the map once typing pauses, so it doesn't jump on every letter.
-  fitTimer = setTimeout(() => fitToResults(searchResults ?? []), 350);
+  if (fit && active && filteredEntries.length) fitTimer = setTimeout(() => fitToResults(filteredEntries), 350);
 }
+
+function runSearch() {
+  const raw = $("search").value;
+  $("search-clear").hidden = !raw;
+  clearDestination(); // typing again means looking for something new
+  parsedQuery = parseQuery(raw);
+  applyFilters();
+}
+
+document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) =>
+  chip.addEventListener("click", () => {
+    const c = chip.dataset.category;
+    if (parsedQuery.categories.has(c) && !chipFilters.categories.has(c)) {
+      // Turning off a filter that came from the search text: remove those words.
+      const words = Object.keys(CATEGORY_WORDS).filter((w) => CATEGORY_WORDS[w] === c).join("|");
+      setSearchText($("search").value.replace(new RegExp(`\\b(${words})\\b`, "gi"), ""));
+    } else if (chipFilters.categories.has(c)) chipFilters.categories.delete(c);
+    else chipFilters.categories.add(c);
+    applyFilters({ animate: true });
+  }),
+);
+document.querySelectorAll(".star-chip").forEach((chip) =>
+  chip.addEventListener("click", () => {
+    const value = Number(chip.dataset.stars);
+    const current = Math.max(chipFilters.minStars, parsedQuery.minStars);
+    // Clicking the rating that's already on turns it off, like the type chips.
+    chipFilters.minStars = value === current ? 0 : value;
+    if (parsedQuery.minStars) {
+      setSearchText($("search").value.replace(/(\d(?:\.\d)?)\s*\+?\s*(?:stars?|★)/i, ""));
+    }
+    applyFilters({ animate: true });
+  }),
+);
 
 function clearSearch() {
   $("search").value = "";
@@ -548,33 +647,41 @@ const destinationIcon = L.divIcon({
 });
 
 function setDestination(place) {
-  clearTimeout(fitTimer);
   destination = place;
-  searchResults = null;
   placeResults = [];
   $("search").value = place.name;
   $("search-clear").hidden = false;
 
+  showDestinationMarker(place);
+
+  parsedQuery = parseQuery(""); // the box now names the destination, not a filter
+  applyFilters({ animate: true });
+}
+
+// Closest lots to the destination among those passing the chips: usable lots first,
+// then a couple of nearby tow-risk lots, flagged (or only those, if that's the filter).
+function rankNearest() {
+  const filters = activeFilters();
+  const ranked = listEntries
+    .filter(({ lot }) => passes(lot, filters, { ignoreText: true }))
+    .map((entry) => ({ entry, meters: meters(destination, entry.lot) }))
+    .sort((a, b) => a.meters - b.meters);
+  const usable = ranked.filter(({ entry }) => entry.lot.category !== "limited").slice(0, NEAREST_LOTS);
+  const farthest = usable.length ? usable.at(-1).meters : Infinity;
+  const risky = ranked
+    .filter(({ entry, meters }) => entry.lot.category === "limited" && meters < farthest)
+    .slice(0, usable.length ? NEAREST_RISKY : NEAREST_LOTS);
+  nearest = [...usable, ...risky];
+  const close = new Set(nearest.map(({ entry }) => entry));
+  listEntries.forEach((entry) => setLotState(entry, close.has(entry) ? "match" : "dim"));
+}
+
+function showDestinationMarker(place) {
   destinationMarker?.remove();
   destinationMarker = L.marker([place.lat, place.lon], { icon: destinationIcon, zIndexOffset: 2000, keyboard: false })
     .bindTooltip(place.name, { direction: "top", permanent: true, className: "destination-label" })
     .on("click", () => showPlaceReviews(place))
     .addTo(map);
-
-  // Lots you can actually use first; a couple of nearby tow-risk lots after, flagged.
-  const ranked = listEntries
-    .map((entry) => ({ entry, meters: meters(place, entry.lot) }))
-    .sort((a, b) => a.meters - b.meters);
-  const usable = ranked.filter(({ entry }) => entry.lot.category !== "limited").slice(0, NEAREST_LOTS);
-  const farthest = usable.at(-1)?.meters ?? Infinity;
-  const risky = ranked
-    .filter(({ entry, meters }) => entry.lot.category === "limited" && meters < farthest)
-    .slice(0, NEAREST_RISKY);
-  nearest = [...usable, ...risky];
-  const close = new Set(nearest.map(({ entry }) => entry));
-  listEntries.forEach((entry) => setLotState(entry, close.has(entry) ? "match" : "dim"));
-  renderList();
-  fitToResults(nearest.map(({ entry }) => entry), place);
 }
 
 function clearDestination() {
@@ -607,10 +714,12 @@ function renderLots(lots) {
     (a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || a.name.localeCompare(b.name, undefined, { numeric: true }),
   );
   listEntries = lots.map((lot) => ({ lot, ...addLot(lot) }));
-  for (const [key, tab] of Object.entries(LIST_TABS)) {
-    document.querySelector(`.list-tab[data-list="${key}"] .count`).textContent = lots.filter(tab.match).length;
+  for (const chip of document.querySelectorAll(".chip-toggle[data-category]")) {
+    const c = chip.dataset.category;
+    chip.querySelector(".count").textContent = lots.filter((lot) => lot.category === c).length;
+    chip.querySelector(".swatch").style.background = CATEGORIES[c].color;
   }
-  renderList();
+  applyFilters({ fit: false, animate: true });
   if (lots.length) fitToLots(lots);
 }
 
@@ -670,6 +779,99 @@ function renderKey() {
 }
 renderKey();
 
+// ---------- Your live location ----------
+
+const FRESH_FIX_MS = 60_000; // a fix this recent is good enough to route from
+let here = null; // { lat, lon, accuracy, time }
+let watchId = null;
+let recenterOnFix = false;
+const hereLayer = L.layerGroup().addTo(map);
+const hereIcon = L.divIcon({ className: "you-dot", html: "<span></span>", iconSize: [18, 18], iconAnchor: [9, 9] });
+let hereMarker = null;
+let hereAccuracy = null;
+
+const LocateControl = L.Control.extend({
+  options: { position: "topright" },
+  onAdd() {
+    const btn = L.DomUtil.create("button", "locate-button");
+    btn.type = "button";
+    btn.id = "locate";
+    btn.title = "Show my location";
+    btn.setAttribute("aria-label", "Show my location");
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>';
+    L.DomEvent.disableClickPropagation(btn);
+    L.DomEvent.on(btn, "click", () => watchLocation({ recenter: true }));
+    return btn;
+  },
+});
+new LocateControl().addTo(map);
+
+function setLocateState(state, message) {
+  const btn = $("locate");
+  btn.dataset.state = state; // off | locating | on | error
+  btn.title = message ?? (state === "on" ? "Centre on my location" : "Show my location");
+}
+
+function onPosition(pos) {
+  here = { lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy, time: Date.now() };
+  const latlng = [here.lat, here.lon];
+  if (!hereMarker) {
+    hereAccuracy = L.circle(latlng, { radius: here.accuracy, color: "#2f55c4", weight: 1, opacity: 0.4, fillOpacity: 0.12, interactive: false });
+    hereMarker = L.marker(latlng, { icon: hereIcon, zIndexOffset: 3000, keyboard: false, title: "You are here" })
+      .bindTooltip("You", { direction: "top", offset: [0, -8], className: "destination-label" });
+    hereLayer.addLayer(hereAccuracy).addLayer(hereMarker);
+  } else {
+    hereMarker.setLatLng(latlng);
+    hereAccuracy.setLatLng(latlng).setRadius(here.accuracy);
+  }
+  setLocateState("on");
+  if (recenterOnFix) {
+    recenterOnFix = false;
+    map.flyTo(latlng, Math.max(map.getZoom(), 16), { duration: 0.6 });
+  }
+}
+
+function onPositionError(err) {
+  if (err.code === err.PERMISSION_DENIED) {
+    stopWatching();
+    setLocateState("error", "Location access is turned off in your browser");
+  } else if (!here) {
+    setLocateState("error", "Your location isn't available right now");
+  }
+}
+
+function stopWatching() {
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  watchId = null;
+}
+
+// Start following your location (the browser asks the first time). With
+// `recenter`, the map moves to you once there's a fix.
+function watchLocation({ recenter = false } = {}) {
+  if (!navigator.geolocation) {
+    setLocateState("error", "Your browser can't share your location");
+    return;
+  }
+  if (recenter && here) map.flyTo([here.lat, here.lon], Math.max(map.getZoom(), 16), { duration: 0.6 });
+  else recenterOnFix = recenter;
+  if (watchId !== null) return;
+  setLocateState("locating");
+  watchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
+    enableHighAccuracy: true,
+    maximumAge: 10_000,
+    timeout: 20_000,
+  });
+}
+
+// If you've already allowed location for this site, show it without asking again.
+navigator.permissions
+  ?.query({ name: "geolocation" })
+  .then((status) => {
+    if (status.state === "granted") watchLocation();
+  })
+  .catch(() => {});
+
 // ---------- Directions: drive to a lot, then walk to the destination ----------
 
 const routeLayer = L.layerGroup().addTo(map);
@@ -679,6 +881,7 @@ const PANEL_VIEWS = ["list-view", "directions-view", "reviews-view"];
 
 function showPanelView(name) {
   for (const view of PANEL_VIEWS) $(view).hidden = view !== name;
+  document.querySelector(".filters").hidden = name !== "list-view"; // filters only apply to the list
   if ($("panel").classList.contains("collapsed")) $("panel-toggle").click();
 }
 
@@ -691,13 +894,18 @@ function directionsStatus(text, kind) {
 }
 
 function currentPosition() {
+  if (here && Date.now() - here.time < FRESH_FIX_MS) return Promise.resolve(here);
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Your browser can't share your location."));
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      (pos) => {
+        onPosition(pos);
+        watchLocation(); // keep the dot following you from now on
+        resolve(here);
+      },
       (err) =>
         reject(
           new Error(
@@ -710,18 +918,6 @@ function currentPosition() {
         ),
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
     );
-  });
-}
-
-// Fallback when location isn't available: the next click on the map is the start.
-function pickStartOnMap(run) {
-  return new Promise((resolve) => {
-    const container = map.getContainer();
-    container.classList.add("picking-start");
-    map.once("click", (e) => {
-      container.classList.remove("picking-start");
-      if (run === directionsRun) resolve({ lat: e.latlng.lat, lon: e.latlng.lng });
-    });
   });
 }
 
@@ -749,32 +945,167 @@ function routeSection(title, route, kind) {
   return section;
 }
 
-async function startDirections(lot) {
-  const run = ++directionsRun;
-  const target = destination;
-  routeLayer.clearLayers();
+// ---------- Trip planner: From -(drive)-> parking lot -(walk)-> To ----------
+//
+// From and To can each be your live location, a place, a lot, or a pin dropped
+// on the map. Change either (type, pick on the map, drag its marker, swap) and
+// the route is planned again.
+
+const HERE = { kind: "here", name: "My location" };
+const trip = { from: null, to: null, lot: null, lotChosen: false };
+const tripLayer = L.layerGroup().addTo(map);
+let pendingPick = null; // map-click handler while picking a point
+let suggestFor = null; // "from" | "to" while suggestions are open
+let suggestions = [];
+
+const placeEndpoint = (place) => ({ kind: "place", name: place.name, lat: place.lat, lon: place.lon, place });
+const lotEndpoint = (lot) => ({ kind: "lot", name: lot.name, lat: lot.lat, lon: lot.lon, lot });
+const pinEndpoint = ({ lat, lng }) => ({ kind: "pin", name: "Dropped pin", lat, lon: lng });
+
+const startIcon = L.divIcon({ className: "trip-start", html: "<span></span>", iconSize: [22, 22], iconAnchor: [11, 11] });
+
+// Directions from the list or a popup: keep your start, go via this lot.
+function startDirections(lot) {
+  trip.from = trip.from ?? HERE;
+  trip.to = destination ? placeEndpoint(destination) : lotEndpoint(lot);
+  trip.lot = lot;
+  trip.lotChosen = true;
+  destinationMarker?.remove(); // the trip's own markers take over
   showDirectionsView(true);
-  $("directions-title").textContent = target ? `To ${target.name}` : `To ${lot.name}`;
+  renderTripFields();
+  planTrip();
+}
+
+function renderTripFields() {
+  for (const end of ["from", "to"]) {
+    const input = $(`trip-${end}`);
+    if (document.activeElement !== input) input.value = trip[end]?.name ?? "";
+    input.closest(".trip-field").classList.toggle("is-here", trip[end]?.kind === "here");
+    document.querySelector(`.trip-clear[data-end="${end}"]`).hidden = !input.value;
+  }
+}
+
+// Closest lots you can use near a point (respecting the filter chips).
+function closestLots(point, count = 4) {
+  const filters = activeFilters();
+  const candidates = listEntries.filter(({ lot }) => passes(lot, filters, { ignoreText: true }));
+  const usable = candidates.filter(({ lot }) => lot.category !== "limited");
+  return (usable.length ? usable : candidates)
+    .map((entry) => ({ lot: entry.lot, meters: meters(point, entry.lot) }))
+    .sort((a, b) => a.meters - b.meters)
+    .slice(0, count);
+}
+
+function setEndpoint(end, endpoint, { fit = true } = {}) {
+  cancelPick();
+  // Done typing: let the field show the chosen name.
+  if (document.activeElement?.matches("#trip-from, #trip-to")) document.activeElement.blur();
+  trip[end] = endpoint;
+  if (end === "to") {
+    trip.lotChosen = false; // new destination: pick its closest lot again
+    if (endpoint?.kind === "place") {
+      destination = endpoint.place; // "Back to results" shows parking near it
+      rankNearest();
+      renderList();
+    }
+  }
+  hideSuggestions();
+  renderTripFields();
+  planTrip({ fit });
+}
+
+function drawTripMarkers() {
+  tripLayer.clearLayers();
+  const { from, to } = trip;
+  if (from && from.kind !== "here") {
+    tripLayer.addLayer(
+      L.marker([from.lat, from.lon], { icon: startIcon, draggable: true, zIndexOffset: 2500, title: "Drag to move the start" })
+        .bindTooltip(from.kind === "pin" ? "Start" : from.name, { direction: "top", offset: [0, -10], className: "destination-label" })
+        .on("dragend", (e) => setEndpoint("from", pinEndpoint(e.target.getLatLng()), { fit: false })),
+    );
+  }
+  if (to && to.kind !== "here") {
+    tripLayer.addLayer(
+      L.marker([to.lat, to.lon], { icon: destinationIcon, draggable: true, zIndexOffset: 2600, title: "Drag to move the destination" })
+        .bindTooltip(to.kind === "pin" ? "Destination" : to.name, { direction: "top", permanent: true, className: "destination-label" })
+        .on("dragend", (e) => setEndpoint("to", pinEndpoint(e.target.getLatLng()), { fit: false })),
+    );
+  }
+}
+
+// Pills for the closest lots to the destination; click one to park there instead.
+function renderLotOptions(lot) {
+  const box = $("trip-lots");
+  if (!trip.to || trip.to.kind === "lot") return box.replaceChildren();
+  const options = closestLots(trip.to);
+  if (!options.some((o) => o.lot === lot)) options.push({ lot, meters: meters(trip.to, lot) });
+  box.replaceChildren(
+    el("span", "trip-lots-label", "Park at"),
+    ...options.map(({ lot: option, meters: m }) => {
+      const pill = el("button", "chip-toggle trip-lot");
+      pill.type = "button";
+      pill.setAttribute("aria-pressed", String(option === lot));
+      const swatch = el("i", "swatch");
+      swatch.style.background = CATEGORIES[option.category].color;
+      pill.append(swatch, el("span", null, option.name), el("span", "count", `~${formatDuration((m * 1.25) / 1.4)}`));
+      pill.title = `${option.name} · ${CATEGORIES[option.category].label} · ${walkLabel(m)} to ${trip.to.name}`;
+      pill.addEventListener("click", () => {
+        trip.lot = option;
+        trip.lotChosen = true;
+        planTrip({ fit: false });
+      });
+      return pill;
+    }),
+  );
+}
+
+async function planTrip({ fit = true } = {}) {
+  const run = ++directionsRun;
+  routeLayer.clearLayers();
+  drawTripMarkers();
   $("directions-summary").hidden = true;
   $("directions-steps").replaceChildren();
+  $("directions-reroute").hidden = true;
+  const { from, to } = trip;
+  if (!from || !to) {
+    $("trip-lots").replaceChildren();
+    directionsStatus(!from && !to ? "Choose where you're starting and where you're going." : !from ? "Choose a starting point." : "Choose a destination.");
+    return;
+  }
 
-  directionsStatus("Finding your location… your browser may ask for permission.");
-  let start;
-  try {
-    start = await currentPosition();
-  } catch (err) {
-    if (run !== directionsRun) return;
-    directionsStatus(`${err.message} Click on the map where you're starting from.`, "warn");
-    start = await pickStartOnMap(run);
+  // Going to a lot means parking there; otherwise the lot you picked, or the closest usable one.
+  if (to.kind === "lot") trip.lot = to.lot;
+  else if (!trip.lotChosen || !trip.lot) trip.lot = closestLots(to)[0]?.lot ?? null;
+  const lot = trip.lot;
+  renderLotOptions(lot);
+  if (!lot) {
+    directionsStatus("No parking lots match your filters near there.", "warn");
+    return;
+  }
+
+  let start = from;
+  if (from.kind === "here") {
+    directionsStatus("Finding your location… your browser may ask for permission.");
+    try {
+      start = await currentPosition();
+    } catch (err) {
+      if (run !== directionsRun) return;
+      trip.from = null;
+      renderTripFields();
+      directionsStatus(`${err.message} Choose another starting point, or pick one on the map.`, "warn");
+      $("trip-from").focus();
+      return;
+    }
   }
   if (run !== directionsRun) return;
 
+  const walkNeeded = to.kind !== "lot";
   directionsStatus("Finding the best route…");
   let drive, walk;
   try {
     [drive, walk] = await Promise.all([
       api.route("car", start, lot),
-      target ? api.route("foot", lot, target).catch((err) => ({ error: err })) : null,
+      walkNeeded ? api.route("foot", lot, to.kind === "here" ? start : to).catch((err) => ({ error: err })) : null,
     ]);
   } catch (err) {
     if (run !== directionsRun) return;
@@ -783,27 +1114,28 @@ async function startDirections(lot) {
   }
   if (run !== directionsRun) return;
 
-  // Draw: you -> lot (solid) and lot -> destination (dotted walk).
-  const driveLine = L.polyline(drive.path, { color: "#2f55c4", weight: 6, opacity: 0.9, lineCap: "round" });
-  routeLayer.addLayer(L.polyline(drive.path, { color: "#fff", weight: 10, opacity: 0.8 })).addLayer(driveLine);
-  routeLayer.addLayer(
-    L.circleMarker([start.lat, start.lon], { radius: 8, color: "#fff", weight: 3, fillColor: "#2f55c4", fillOpacity: 1 })
-      .bindTooltip("You", { direction: "top", permanent: true, className: "destination-label" }),
-  );
+  // Draw: start -> lot (solid) and lot -> destination (dotted walk). Lines start
+  // hidden and draw in once the map has finished moving to them.
+  const driveCasing = L.polyline(drive.path, { color: "#fff", weight: 10, opacity: 0 });
+  const driveLine = L.polyline(drive.path, { color: "#2f55c4", weight: 6, opacity: 0, lineCap: "round" });
+  routeLayer.addLayer(driveCasing).addLayer(driveLine);
+  let walkLine = null;
   const bounds = driveLine.getBounds();
   if (walk && !walk.error) {
-    const walkLine = L.polyline(walk.path, { color: "#3d4457", weight: 4, dashArray: "1 9", lineCap: "round" });
+    walkLine = L.polyline(walk.path, { color: "#3d4457", weight: 4, opacity: 0, dashArray: "1 9", lineCap: "round" });
     routeLayer.addLayer(walkLine);
     bounds.extend(walkLine.getBounds());
   }
-  fitBoundsAroundPanel(bounds, 18);
+  if (fit) fitBoundsAroundPanel(bounds, 18);
+  revealRoute(run, driveCasing, driveLine, walkLine, { immediate: !fit });
 
   // Summary + steps
-  const total = drive.duration + (walk && !walk.error ? walk.duration : 0);
+  const walked = walk && !walk.error;
+  const total = drive.duration + (walked ? walk.duration : 0);
   const summary = $("directions-summary");
   summary.replaceChildren(
     el("span", "chip drive", `Drive ${formatDuration(drive.duration)}`),
-    ...(walk && !walk.error ? [el("span", "chip walk", `Walk ${formatDuration(walk.duration)}`)] : []),
+    ...(walked ? [el("span", "chip walk", `Walk ${formatDuration(walk.duration)}`)] : []),
     el("span", "chip total", `About ${formatDuration(total)} total`),
   );
   summary.hidden = false;
@@ -815,25 +1147,205 @@ async function startDirections(lot) {
   if (lot.category === "paid") parkNote.append(el("small", null, "One-day pass $16 · hourly $4–$5"));
 
   const sections = [routeSection(`Drive to ${lot.name}`, drive, "drive"), parkNote];
-  if (target) {
+  if (walkNeeded) {
     sections.push(
       walk.error
         ? el("p", "map-error", `Couldn't get walking directions: ${walk.error.message}`)
-        : routeSection(`Walk to ${target.name}`, walk, "walk"),
+        : routeSection(`Walk to ${to.name}`, walk, "walk"),
     );
   }
   $("directions-steps").replaceChildren(...sections);
-  directionsStatus(target ? `Via ${lot.name}` : "");
+  directionsStatus("");
+  $("directions-reroute").hidden = from.kind !== "here";
+}
+
+// ----- From / To fields: type to search, or use your location / the map -----
+
+function suggestionsFor(end, text) {
+  const tokens = normalize(text).split(" ").filter(Boolean);
+  const items = [];
+  if (trip[end]?.kind !== "here") items.push({ label: "Use my location", detail: "Follows you live", icon: "here", pick: () => setEndpoint(end, HERE) });
+  items.push({ label: "Pick a point on the map", detail: "Click anywhere on the map", icon: "pin", pick: () => startPick(end) });
+  if (tokens.length) {
+    for (const place of findPlaces(tokens, 0).slice(0, 5)) {
+      items.push({ label: place.name, detail: place.kind ?? "Place", icon: "place", pick: () => setEndpoint(end, placeEndpoint(place)) });
+    }
+    const lots = listEntries.filter(({ lot }) => tokens.every((t) => searchableText(lot).includes(t))).slice(0, 4);
+    for (const { lot } of lots) {
+      items.push({ label: lot.name, detail: CATEGORIES[lot.category].label, icon: "lot", color: CATEGORIES[lot.category].color, pick: () => setEndpoint(end, lotEndpoint(lot)) });
+    }
+  }
+  return items;
+}
+
+const SUGGESTION_ICONS = {
+  here: '<span class="sugg-icon here"></span>',
+  pin: '<svg class="sugg-icon" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><path d="M9 10h6M12 7v6"/></svg>',
+  place: PLACE_ICON,
+};
+
+function showSuggestions(end) {
+  suggestFor = end;
+  const input = $(`trip-${end}`);
+  const text = input.value === trip[end]?.name ? "" : input.value;
+  suggestions = suggestionsFor(end, text);
+  const list = $("trip-suggestions");
+  list.replaceChildren(
+    ...suggestions.map((item, i) => {
+      const li = el("li");
+      li.setAttribute("role", "option");
+      li.id = `sugg-${i}`;
+      const btn = el("button", "sugg");
+      btn.type = "button";
+      btn.tabIndex = -1;
+      if (item.icon === "lot") {
+        const swatch = el("i", "swatch");
+        swatch.style.background = item.color;
+        btn.append(swatch);
+      } else btn.insertAdjacentHTML("beforeend", SUGGESTION_ICONS[item.icon]);
+      const text = el("span", "spot-text");
+      text.append(el("span", null, item.label), el("small", null, item.detail));
+      btn.append(text);
+      btn.addEventListener("click", item.pick);
+      li.append(btn);
+      return li;
+    }),
+  );
+  list.dataset.end = end;
+  list.hidden = false;
+}
+
+function hideSuggestions() {
+  suggestFor = null;
+  $("trip-suggestions").hidden = true;
+}
+
+function startPick(end) {
+  cancelPick();
+  hideSuggestions();
+  document.activeElement?.blur();
+  renderTripFields();
+  directionsStatus(`Click the map to set your ${end === "from" ? "starting point" : "destination"}.`, "warn");
+  map.getContainer().classList.add("picking-start");
+  pendingPick = (e) => setEndpoint(end, pinEndpoint(e.latlng));
+  map.once("click", pendingPick);
+}
+
+function cancelPick() {
+  if (pendingPick) map.off("click", pendingPick);
+  pendingPick = null;
+  map.getContainer().classList.remove("picking-start");
+}
+
+for (const end of ["from", "to"]) {
+  const input = $(`trip-${end}`);
+  input.addEventListener("focus", () => {
+    input.select();
+    showSuggestions(end);
+  });
+  input.addEventListener("input", () => {
+    document.querySelector(`.trip-clear[data-end="${end}"]`).hidden = !input.value;
+    showSuggestions(end);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      hideSuggestions();
+      input.value = trip[end]?.name ?? "";
+      input.blur();
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Typed something: take the first search match; otherwise the first option.
+      const typed = suggestions.filter((s) => s.icon === "place" || s.icon === "lot");
+      (typed[0] ?? suggestions[0])?.pick();
+    }
+  });
+  input.addEventListener("blur", () =>
+    setTimeout(() => {
+      if (suggestFor === end && !$("trip-suggestions").contains(document.activeElement)) {
+        hideSuggestions();
+        renderTripFields();
+      }
+    }, 150),
+  );
+}
+// Keep focus in the field while clicking a suggestion.
+$("trip-suggestions").addEventListener("pointerdown", (e) => e.preventDefault());
+
+document.querySelectorAll(".trip-clear").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    const end = btn.dataset.end;
+    cancelPick();
+    trip[end] = null;
+    if (end === "to") trip.lotChosen = false;
+    const input = $(`trip-${end}`);
+    input.value = "";
+    planTrip();
+    renderTripFields();
+    input.focus();
+  }),
+);
+
+$("trip-swap").addEventListener("click", () => {
+  cancelPick();
+  [trip.from, trip.to] = [trip.to, trip.from];
+  trip.lotChosen = false;
+  if (trip.to?.kind === "place") destination = trip.to.place;
+  const swap = $("trip-swap");
+  swap.classList.remove("spun");
+  void swap.offsetWidth;
+  swap.classList.add("spun");
+  renderTripFields();
+  planTrip();
+});
+
+// Draws the driving line along its path, then fades in the walking leg.
+function revealRoute(run, casing, line, walkLine, { immediate = false } = {}) {
+  let shown = false;
+  const show = () => {
+    if (shown || run !== directionsRun) return;
+    shown = true;
+    casing.setStyle({ opacity: 0.8 });
+    line.setStyle({ opacity: 0.9 });
+    const path = line.getElement();
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finish = () => {
+      if (path) Object.assign(path.style, { strokeDasharray: "", strokeDashoffset: "", transition: "" });
+      walkLine?.setStyle({ opacity: 1 });
+    };
+    if (!path || reduce) return finish();
+    const length = path.getTotalLength();
+    Object.assign(path.style, { strokeDasharray: `${length}`, strokeDashoffset: `${length}`, transition: "none" });
+    path.getBoundingClientRect(); // apply the start state before animating
+    Object.assign(path.style, {
+      transition: `stroke-dashoffset ${Math.min(1400, 500 + length / 3)}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+      strokeDashoffset: "0",
+    });
+    path.addEventListener("transitionend", finish, { once: true });
+    map.once("zoomstart", finish); // zooming redraws the path, so stop drawing
+  };
+  if (immediate) return show();
+  map.once("moveend", show);
+  setTimeout(show, 1000); // in case the map didn't need to move
 }
 
 function closeDirections() {
   directionsRun++;
+  cancelPick();
+  hideSuggestions();
   routeLayer.clearLayers();
-  map.getContainer().classList.remove("picking-start");
+  tripLayer.clearLayers();
   showDirectionsView(false);
+  if (destination) {
+    showDestinationMarker(destination);
+    $("search").value = destination.name;
+    $("search-clear").hidden = false;
+    applyFilters({ fit: false, animate: true });
+  }
 }
 
 $("directions-back").addEventListener("click", closeDirections);
+$("directions-reroute").addEventListener("click", () => planTrip());
 
 // ---------- Boot ----------
 
@@ -851,7 +1363,7 @@ async function init() {
       api.me(),
       api.parking(),
       api.places().catch(() => ({ places: [] })), // search still works for lots without these
-      initReviews({ showPanelView, onChange: () => renderList() }),
+      initReviews({ showPanelView, onChange: () => listEntries.length && applyFilters({ fit: false }) }),
     ]);
     places = placeData.places.map((place) => ({
       ...place,

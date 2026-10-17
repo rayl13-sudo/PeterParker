@@ -18,6 +18,7 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 TargetType = Literal["lot", "place"]
 MAX_COMMENT = 1000
+MAX_REPLY = 500
 PAGE = 50  # newest reviews returned per target
 
 
@@ -36,6 +37,14 @@ class Author(BaseModel):
     avatar: Avatar
 
 
+class Reply(BaseModel):
+    id: int
+    comment: str
+    created_at: str
+    author: Author
+    mine: bool
+
+
 class Review(BaseModel):
     id: int
     rating: int
@@ -44,6 +53,7 @@ class Review(BaseModel):
     updated_at: str
     author: Author
     mine: bool
+    replies: list[Reply] = []  # oldest first
 
 
 class ReviewList(BaseModel):
@@ -64,6 +74,47 @@ class ReviewIn(BaseModel):
     @classmethod
     def tidy(cls, v: str) -> str:
         return v.strip()
+
+
+class ReplyIn(BaseModel):
+    comment: str = Field(max_length=MAX_REPLY)
+
+    @field_validator("comment")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Write something to reply")
+        return v
+
+
+def _author(row) -> Author:
+    bg, fg = (row["avatar_bg"], row["avatar_fg"]) if row["avatar_bg"] and row["avatar_fg"] else random_colors()
+    return Author(username=row["username"], avatar=Avatar(bg=bg, fg=fg, image=row["avatar_image"]))
+
+
+def _replies(db, review_ids: list[int], user_id: int) -> dict[int, list[Reply]]:
+    if not review_ids:
+        return {}
+    marks = ",".join("?" * len(review_ids))
+    rows = db.execute(
+        f"""
+        SELECT review_replies.id, review_replies.review_id, review_replies.user_id,
+               review_replies.comment, review_replies.created_at,
+               users.username, users.avatar_bg, users.avatar_fg, users.avatar_image
+        FROM review_replies JOIN users ON users.id = review_replies.user_id
+        WHERE review_replies.review_id IN ({marks})
+        ORDER BY review_replies.created_at, review_replies.id
+        """,
+        tuple(review_ids),
+    ).fetchall()
+    out: dict[int, list[Reply]] = {}
+    for r in rows:
+        out.setdefault(r["review_id"], []).append(
+            Reply(id=r["id"], comment=r["comment"], created_at=r["created_at"],
+                  author=_author(r), mine=r["user_id"] == user_id)
+        )
+    return out
 
 
 class Summary(BaseModel):
@@ -110,17 +161,16 @@ def list_reviews(
         """,
         (target_type, target_id, user["id"], PAGE),
     ).fetchall()
-    reviews = []
-    for r in rows:
-        bg, fg = (r["avatar_bg"], r["avatar_fg"]) if r["avatar_bg"] and r["avatar_fg"] else random_colors()
-        reviews.append(
-            Review(
-                id=r["id"], rating=r["rating"], comment=r["comment"],
-                created_at=r["created_at"], updated_at=r["updated_at"],
-                author=Author(username=r["username"], avatar=Avatar(bg=bg, fg=fg, image=r["avatar_image"])),
-                mine=r["user_id"] == user["id"],
-            )
+    replies = _replies(db, [r["id"] for r in rows], user["id"])
+    reviews = [
+        Review(
+            id=r["id"], rating=r["rating"], comment=r["comment"],
+            created_at=r["created_at"], updated_at=r["updated_at"],
+            author=_author(r), mine=r["user_id"] == user["id"],
+            replies=replies.get(r["id"], []),
         )
+        for r in rows
+    ]
     return ReviewList(
         target_type=target_type,
         target_id=target_id,
@@ -160,3 +210,37 @@ def delete_review(
     cur = db.execute("DELETE FROM reviews WHERE id = ? AND user_id = ?", (review_id, user["id"]))
     if cur.rowcount == 0:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
+
+
+def _target_of(db, review_id: int):
+    row = db.execute("SELECT target_type, target_id FROM reviews WHERE id = ?", (review_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
+    return row
+
+
+@router.post("/{review_id}/replies", response_model=ReviewList, status_code=201)
+def reply(
+    review_id: int,
+    payload: ReplyIn,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> ReviewList:
+    """Reply to a review; returns the target's reviews with the new reply in place."""
+    target = _target_of(db, review_id)
+    db.execute(
+        "INSERT INTO review_replies (review_id, user_id, comment, created_at) VALUES (?, ?, ?, ?)",
+        (review_id, user["id"], payload.comment, datetime.now(UTC).isoformat(timespec="seconds")),
+    )
+    return list_reviews(target["target_type"], target["target_id"], user, db)
+
+
+@router.delete("/replies/{reply_id}", status_code=204)
+def delete_reply(
+    reply_id: int,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> None:
+    cur = db.execute("DELETE FROM review_replies WHERE id = ? AND user_id = ?", (reply_id, user["id"]))
+    if cur.rowcount == 0:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reply not found")

@@ -9,7 +9,7 @@ const $ = (id) => document.getElementById(id);
 
 function toSignIn() {
   clearToken();
-  location.replace(SIGN_IN_PAGE);
+  window.ppNavigate(SIGN_IN_PAGE, { replace: true });
 }
 
 if (!getToken()) toSignIn();
@@ -41,6 +41,7 @@ function showUser(user) {
 async function submitting(form, message, action) {
   const button = form.querySelector('button[type="submit"]');
   button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   showMessage(message, null);
   try {
     showMessage(message, await action(), "success");
@@ -48,6 +49,7 @@ async function submitting(form, message, action) {
     showMessage(message, err.message, "error");
   } finally {
     button.disabled = false;
+    button.removeAttribute("aria-busy");
   }
 }
 

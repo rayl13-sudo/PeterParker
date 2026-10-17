@@ -23,6 +23,11 @@ let loadRun = 0;
 const key = (type, id) => `${type}:${id}`;
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+// Average rating (1-5) of a lot or place, or null when nobody has reviewed it yet.
+export function averageRating(type, id) {
+  return summary[key(type, id)]?.average ?? null;
+}
+
 // "★ 4.5 · 3 reviews", or null when nobody has reviewed it yet.
 export function ratingLabel(type, id) {
   const s = summary[key(type, id)];
@@ -64,20 +69,127 @@ function updateChars() {
 const formatDate = (iso) =>
   new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
+function authorLine(author, mine, when, avatarClass) {
+  const head = el("div", "review-head");
+  const avatar = el("span", `avatar ${avatarClass}`);
+  avatar.setAttribute("aria-hidden", "true");
+  renderAvatar(avatar, author.avatar);
+  const who = el("div", "review-who");
+  const name = el("strong", null, author.username ?? "UCI parker");
+  if (mine) name.append(el("span", "you-tag", "You"));
+  who.append(name, el("small", null, when));
+  head.append(avatar, who);
+  return head;
+}
+
+// A small text button that needs a second click to confirm (no browser pop-up).
+function confirmButton(label, confirmLabel, action) {
+  const btn = el("button", "text-button danger", label);
+  btn.type = "button";
+  let timer = null;
+  btn.addEventListener("click", async () => {
+    if (!btn.classList.contains("confirming")) {
+      btn.classList.add("confirming");
+      btn.textContent = confirmLabel;
+      timer = setTimeout(() => {
+        btn.classList.remove("confirming");
+        btn.textContent = label;
+      }, 4000);
+      return;
+    }
+    clearTimeout(timer);
+    btn.disabled = true;
+    await action();
+  });
+  return btn;
+}
+
+function replyItem(reply) {
+  const li = el("li", reply.mine ? "reply mine" : "reply");
+  li.append(authorLine(reply.author, reply.mine, formatDate(reply.created_at), "reply-avatar"));
+  li.append(el("p", "review-comment", reply.comment));
+  if (reply.mine) {
+    const actions = el("div", "review-actions");
+    actions.append(
+      confirmButton("Delete", "Delete reply?", async () => {
+        try {
+          await api.deleteReply(reply.id);
+          render(await api.reviews(target.type, target.id));
+        } catch (err) {
+          showMessage(err.message, "error");
+        }
+      }),
+    );
+    li.append(actions);
+  }
+  return li;
+}
+
+function replyForm(review, li, opener) {
+  const form = el("form", "reply-form");
+  form.noValidate = true;
+  const box = el("textarea");
+  box.rows = 2;
+  box.maxLength = 500;
+  box.placeholder = `Reply to ${review.author.username ?? "this review"}…`;
+  box.setAttribute("aria-label", "Your reply");
+  const post = el("button", "pill-button primary", "Reply");
+  post.type = "submit";
+  const cancel = el("button", "text-button", "Cancel");
+  cancel.type = "button";
+  const error = el("small", "reply-error");
+  const row = el("div", "reply-form-actions");
+  row.append(post, cancel, error);
+  form.append(box, row);
+
+  cancel.addEventListener("click", () => {
+    form.remove();
+    opener.hidden = false;
+    opener.focus();
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!box.value.trim()) {
+      error.textContent = "Write something first.";
+      return;
+    }
+    post.disabled = true;
+    try {
+      render(await api.replyToReview(review.id, box.value));
+    } catch (err) {
+      error.textContent = err.message;
+      post.disabled = false;
+    }
+  });
+  li.append(form);
+  box.focus();
+}
+
 function reviewItem(review) {
   const li = el("li", review.mine ? "review mine" : "review");
-  const head = el("div", "review-head");
-  const avatar = el("span", "avatar review-avatar");
-  avatar.setAttribute("aria-hidden", "true");
-  renderAvatar(avatar, review.author.avatar);
-  const who = el("div", "review-who");
-  const name = el("strong", null, review.author.username ?? "UCI parker");
-  if (review.mine) name.append(el("span", "you-tag", "You"));
   const when = formatDate(review.updated_at) + (review.updated_at !== review.created_at ? " · edited" : "");
-  who.append(name, el("small", null, when));
-  head.append(avatar, who, stars(review.rating, "stars small"));
+  const head = authorLine(review.author, review.mine, when, "review-avatar");
+  head.append(stars(review.rating, "stars small"));
   li.append(head);
   if (review.comment) li.append(el("p", "review-comment", review.comment));
+
+  const actions = el("div", "review-actions");
+  const replyBtn = el("button", "text-button", "Reply");
+  replyBtn.type = "button";
+  replyBtn.addEventListener("click", () => {
+    replyBtn.hidden = true;
+    replyForm(review, li, replyBtn);
+  });
+  actions.append(replyBtn);
+  if (review.mine) actions.append(confirmButton("Delete", "Delete review?", remove));
+  li.append(actions);
+
+  if (review.replies.length) {
+    const thread = el("ul", "reply-list");
+    thread.setAttribute("aria-label", `Replies to ${review.author.username ?? "this review"}`);
+    thread.append(...review.replies.map(replyItem));
+    li.append(thread);
+  }
   return li;
 }
 
@@ -101,7 +213,11 @@ function render(data) {
   updateChars();
   $("review-form-title").textContent = mine ? "Your review" : `Rate this ${target.type === "lot" ? "lot" : "place"}`;
   $("review-submit").textContent = mine ? "Update review" : "Post review";
-  $("review-delete").hidden = !mine;
+  const del = $("review-delete");
+  del.hidden = !mine;
+  del.disabled = false;
+  del.classList.remove("confirming");
+  del.textContent = "Delete my review";
 
   $("review-list").replaceChildren(...data.reviews.map(reviewItem));
 
@@ -174,7 +290,11 @@ export async function initReviews(options) {
   );
   $("review-comment").addEventListener("input", updateChars);
   $("review-form").addEventListener("submit", submit);
-  $("review-delete").addEventListener("click", remove);
+  const formDelete = confirmButton("Delete my review", "Delete review?", remove);
+  formDelete.id = "review-delete";
+  formDelete.className = "pill-button";
+  formDelete.hidden = true;
+  $("review-delete").replaceWith(formDelete);
   $("reviews-back").addEventListener("click", () => showPanelView(previousView));
 
   try {

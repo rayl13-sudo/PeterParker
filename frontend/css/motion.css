@@ -1,0 +1,202 @@
+/* Motion: page transitions, press feedback and entrances shared by every page.
+   Loaded last on each page. Everything here switches off for reduced motion. */
+
+:root {
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.5, 0.64, 1);
+  --t-fast: 0.15s;
+  --t: 0.25s;
+  --t-slow: 0.4s;
+}
+
+/* ---------- Page transitions ---------- */
+
+@view-transition {
+  navigation: auto;
+}
+
+/* The top bar stays put between the map and settings; the rest slides. */
+.topbar { view-transition-name: topbar; }
+
+::view-transition-group(root) { animation-duration: 0.4s; }
+
+html:active-view-transition-type(forward)::view-transition-old(root) {
+  animation: 0.32s var(--ease-in-out) both vt-out-left;
+}
+html:active-view-transition-type(forward)::view-transition-new(root) {
+  animation: 0.4s var(--ease-out) both vt-in-right;
+}
+html:active-view-transition-type(back)::view-transition-old(root) {
+  animation: 0.32s var(--ease-in-out) both vt-out-right;
+}
+html:active-view-transition-type(back)::view-transition-new(root) {
+  animation: 0.4s var(--ease-out) both vt-in-left;
+}
+html:active-view-transition-type(fade)::view-transition-old(root) {
+  animation: 0.3s var(--ease-in-out) both vt-fade-out;
+}
+html:active-view-transition-type(fade)::view-transition-new(root) {
+  animation: 0.45s var(--ease-out) both vt-fade-in;
+}
+
+@keyframes vt-out-left { to { opacity: 0; transform: translateX(-12%); } }
+@keyframes vt-in-right { from { opacity: 0; transform: translateX(18%); } }
+@keyframes vt-out-right { to { opacity: 0; transform: translateX(12%); } }
+@keyframes vt-in-left { from { opacity: 0; transform: translateX(-18%); } }
+@keyframes vt-fade-out { to { opacity: 0; transform: scale(0.98); } }
+@keyframes vt-fade-in { from { opacity: 0; transform: scale(1.02); } }
+
+/* Fallback for browsers without cross-document view transitions. */
+/* (Opacity only: moving <body> would disturb the map's positioning.) */
+.no-vt body { animation: page-in 0.3s ease both; }
+.page-leaving body { opacity: 0; transition: opacity 0.16s ease-in; }
+@keyframes page-in { from { opacity: 0; } }
+
+/* ---------- Press feedback ---------- */
+
+.pill-button, .chip-toggle, .icon-button, .back-button, .secondary-button, .link-button,
+.text-button, #logout, #auth-submit, .settings-form button[type="submit"], .tab,
+.go-button, .locate-button, .panel-toggle, .key-header, .color-field, .file-button {
+  transition:
+    background-color var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease,
+    box-shadow var(--t) ease,
+    opacity var(--t-fast) ease,
+    transform var(--t-fast) var(--ease-out);
+}
+.pill-button:active:not(:disabled), .chip-toggle:active, .icon-button:active, .back-button:active,
+.secondary-button:active:not(:disabled), #logout:active, #auth-submit:active:not(:disabled),
+.settings-form button[type="submit"]:active:not(:disabled), .locate-button:active,
+.color-field:active, .file-button:active, .link-button:active, .text-button:active {
+  transform: scale(0.95);
+}
+#spot-list .spot-item { transition: background-color var(--t-fast) ease, transform var(--t-fast) var(--ease-out); }
+#spot-list .spot-item:active { transform: scale(0.985); }
+.icon-button:hover svg { transform: rotate(45deg); }
+.icon-button svg { transition: transform var(--t-slow) var(--ease-out); }
+
+/* Filter chips fill from the middle outward when switched on. */
+.chip-toggle { position: relative; isolation: isolate; overflow: hidden; }
+.chip-toggle::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  background: var(--chip-fill, var(--a-ink));
+  clip-path: circle(0% at 50% 50%);
+  transition: clip-path 0.38s var(--ease-out);
+}
+.chip-toggle[aria-pressed="true"]::before { clip-path: circle(75% at 50% 50%); }
+.chip-toggle[aria-pressed="true"] { transition-delay: 0s, 0s, 0.06s, 0s, 0s, 0s; }
+
+/* Busy buttons show a small spinner. */
+[aria-busy="true"] { position: relative; color: transparent !important; pointer-events: none; }
+[aria-busy="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1em;
+  height: 1em;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.pill-button:not(.primary)[aria-busy="true"]::after, .secondary-button[aria-busy="true"]::after {
+  border-color: rgba(20, 24, 43, 0.2);
+  border-top-color: var(--a-ink);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Entrances ---------- */
+
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(14px); } }
+@keyframes item-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.92) translateY(6px); } }
+@keyframes drop-in {
+  0% { opacity: 0; transform: translateY(-26px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(2px) scale(1.02); }
+  100% { transform: none; }
+}
+@keyframes msg-in { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes shake {
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+@keyframes star-pop { 50% { transform: scale(1.3); } }
+
+/* Sign-in */
+.auth-card { animation: rise-in 0.55s var(--ease-out) both; }
+.backdrop { animation: vt-fade-in 1.2s ease both; }
+#auth-form label[data-show]:not([hidden]), #password-rules:not([hidden]) { animation: msg-in 0.3s var(--ease-out) both; }
+#auth-error:not([hidden]) { animation: shake 0.4s var(--ease-out), msg-in 0.2s ease both; }
+.rules li::before { transition: background 0.2s ease, border-color 0.2s ease, transform 0.25s var(--ease-spring); }
+.rules li.met::before { transform: scale(1.08); }
+
+/* Map side panel: views and lists */
+.panel-view:not([hidden]), .filters:not([hidden]) { animation: slide-in 0.3s var(--ease-out) both; }
+#spot-list.enter > li { animation: item-in 0.35s var(--ease-out) both; animation-delay: calc(var(--i, 14) * 22ms); }
+.step-list li, .route-section, .park-note, .directions-summary { animation: item-in 0.35s var(--ease-out) both; }
+.review-list > li, .reply-list > li, .reply-form { animation: item-in 0.3s var(--ease-out) both; }
+.star-input button.on { animation: star-pop 0.3s var(--ease-spring); }
+.review-message:not([hidden]), .settings-message:not([hidden]), .map-error:not([hidden]) {
+  animation: msg-in 0.25s var(--ease-out) both;
+}
+
+/* Map: highlighting and fading glide instead of snapping */
+.leaflet-overlay-pane path {
+  transition: stroke-width var(--t) ease, stroke-opacity var(--t) ease, fill-opacity var(--t) ease;
+}
+.leaflet-marker-icon { transition: opacity var(--t) ease; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip-container {
+  animation: pop-in 0.24s var(--ease-spring) both;
+  transform-origin: 50% 100%;
+}
+.destination-pin svg { animation: drop-in 0.55s var(--ease-out) both; }
+.leaflet-tooltip.destination-label { animation: msg-in 0.3s 0.2s var(--ease-out) both; }
+
+/* Key folds open/closed instead of popping */
+.map-key .key-list {
+  display: grid;
+  max-height: 260px;
+  transition: max-height 0.32s var(--ease-in-out), opacity 0.2s ease, padding 0.32s var(--ease-in-out);
+}
+.map-key.collapsed .key-list {
+  display: grid;
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.map-key .key-list li { transition: transform 0.4s var(--ease-spring), opacity 0.25s ease; }
+.map-key .key-list li:nth-child(2) { transition-delay: 0.03s; }
+.map-key .key-list li:nth-child(3) { transition-delay: 0.06s; }
+.map-key .key-list li:nth-child(4) { transition-delay: 0.09s; }
+.map-key.collapsed .key-list li { transform: translateY(10px); opacity: 0; transition-delay: 0s; }
+
+/* Settings */
+.settings > * { animation: rise-in 0.45s var(--ease-out) both; }
+.settings > :nth-child(2) { animation-delay: 0.03s; }
+.settings > :nth-child(3) { animation-delay: 0.07s; }
+.settings > :nth-child(4) { animation-delay: 0.11s; }
+.settings > :nth-child(5) { animation-delay: 0.15s; }
+.settings > :nth-child(n + 6) { animation-delay: 0.19s; }
+.avatar img, .avatar svg { animation: vt-fade-in 0.3s ease both; }
+.avatar { transition: background-color var(--t) ease; }
+
+/* ---------- Reduced motion: keep it calm ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+  }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

@@ -87,6 +87,9 @@ export const api = {
       body: JSON.stringify({ target_type: type, target_id: id, rating, comment }),
     }),
   deleteReview: (reviewId) => request(`/reviews/${reviewId}`, { method: "DELETE" }),
+  replyToReview: (reviewId, comment) =>
+    request(`/reviews/${reviewId}/replies`, { method: "POST", body: JSON.stringify({ comment }) }),
+  deleteReply: (replyId) => request(`/reviews/replies/${replyId}`, { method: "DELETE" }),
   route: (mode, from, to) =>
     request(
       `/route?mode=${mode}&from_lat=${from.lat}&from_lon=${from.lon}&to_lat=${to.lat}&to_lon=${to.lon}`,

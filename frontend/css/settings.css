@@ -117,3 +117,19 @@
 .settings-form .settings-message { margin: 0; }
 .settings-message.success { border-left-color: var(--a-blue); }
 .settings-message.error { border-left-color: #e06f68; background: #fdeeed; color: #9b2c26; }
+
+/* Hover: everything clickable grows a little and darkens slightly, so it's
+   obvious what you're over. (Pressing still shrinks it; see motion.css.) */
+.settings-page :is(.back-button, .secondary-button, .pill-button, .color-field, .file-button,
+  .settings-form button[type="submit"], #logout):hover:not(:disabled) {
+  transform: scale(1.04);
+}
+.settings-page :is(.back-button, .secondary-button, .pill-button, .color-field, .file-button,
+  .settings-form button[type="submit"], #logout):active:not(:disabled) {
+  transform: scale(0.97);
+}
+.settings-page .back-button:hover { background: var(--a-field); border-color: var(--a-gray); color: var(--a-ink); }
+.settings-page .secondary-button:hover,
+.settings-page .file-button:hover,
+.settings-page .color-field:hover { background: var(--a-line); border-color: var(--a-gray); }
+.settings-page .settings-form button[type="submit"]:hover:not(:disabled) { background: var(--a-blue-dark); }

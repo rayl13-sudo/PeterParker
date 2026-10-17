@@ -38,6 +38,15 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 CREATE INDEX IF NOT EXISTS reviews_target ON reviews(target_type, target_id);
 
+CREATE TABLE IF NOT EXISTS review_replies (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    review_id  INTEGER NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    comment    TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS review_replies_review ON review_replies(review_id);
+
 CREATE TABLE IF NOT EXISTS items (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

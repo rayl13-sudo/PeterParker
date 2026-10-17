@@ -4,10 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="js/open-from-disk.js"></script>
+    <script src="js/page-transitions.js"></script>
     <title>Free Parking · PeterParker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/map.css" />
+    <link rel="stylesheet" href="css/motion.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="js/config.js"></script>
     <script type="module" src="js/map.js"></script>
@@ -42,21 +44,31 @@
         <div class="panel-body">
           <div class="search" role="search">
             <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg>
-            <input id="search" type="text" placeholder="Search a building, place or lot" autocomplete="off" spellcheck="false"
+            <input id="search" type="text" placeholder="Search a place, lot, or “free parking”" autocomplete="off" spellcheck="false"
                    aria-label="Search for a building, place or parking lot" aria-controls="spot-list" />
             <button id="search-clear" type="button" aria-label="Clear search" hidden>
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
             </button>
           </div>
+          <div class="filters" aria-label="Filter parking">
+            <div class="filter-row" role="group" aria-label="Parking type">
+              <button type="button" class="chip-toggle" data-category="free" aria-pressed="false"><i class="swatch"></i>Free <span class="count"></span></button>
+              <button type="button" class="chip-toggle" data-category="permit" aria-pressed="false"><i class="swatch"></i>Permit <span class="count"></span></button>
+              <button type="button" class="chip-toggle" data-category="paid" aria-pressed="false"><i class="swatch"></i>Paid <span class="count"></span></button>
+              <button type="button" class="chip-toggle" data-category="limited" aria-pressed="false"><i class="swatch"></i>Limited <span class="count"></span></button>
+            </div>
+            <div class="filter-row" role="group" aria-label="Minimum rating">
+              <span class="filter-label">Rating</span>
+              <button type="button" class="chip-toggle star-chip" data-stars="0" aria-pressed="true">Any</button>
+              <button type="button" class="chip-toggle star-chip" data-stars="3" aria-pressed="false">3+ ★</button>
+              <button type="button" class="chip-toggle star-chip" data-stars="4" aria-pressed="false">4+ ★</button>
+              <button type="button" class="chip-toggle star-chip" data-stars="4.5" aria-pressed="false">4.5+ ★</button>
+            </div>
+          </div>
+
           <div id="list-view" class="panel-view">
             <h1 id="panel-title">Free parking near UCI</h1>
             <p id="spot-count" class="panel-sub">Loading…</p>
-            <div class="list-tabs" role="tablist" aria-label="Show lots">
-              <button type="button" role="tab" class="list-tab active" data-list="free" aria-selected="true">Free <span class="count"></span></button>
-              <button type="button" role="tab" class="list-tab" data-list="permit" aria-selected="false">Permit <span class="count"></span></button>
-              <button type="button" role="tab" class="list-tab" data-list="paid" aria-selected="false">Paid <span class="count"></span></button>
-              <button type="button" role="tab" class="list-tab" data-list="limited" aria-selected="false">Limited <span class="count"></span></button>
-            </div>
             <ul id="spot-list"></ul>
           </div>
 
@@ -96,8 +108,35 @@
               <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
               Back to results
             </button>
-            <h1 id="directions-title">Directions</h1>
+            <div class="trip-planner" role="group" aria-label="Trip">
+              <div class="trip-fields">
+                <label class="trip-field">
+                  <span class="trip-dot from" aria-hidden="true"></span>
+                  <span class="sr-only">From</span>
+                  <input id="trip-from" type="text" placeholder="Choose a starting point" autocomplete="off"
+                         spellcheck="false" aria-controls="trip-suggestions" aria-autocomplete="list" />
+                  <button type="button" class="trip-clear" data-end="from" aria-label="Clear starting point">
+                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                  </button>
+                </label>
+                <label class="trip-field">
+                  <span class="trip-dot to" aria-hidden="true"></span>
+                  <span class="sr-only">To</span>
+                  <input id="trip-to" type="text" placeholder="Choose a destination" autocomplete="off"
+                         spellcheck="false" aria-controls="trip-suggestions" aria-autocomplete="list" />
+                  <button type="button" class="trip-clear" data-end="to" aria-label="Clear destination">
+                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                  </button>
+                </label>
+              </div>
+              <button id="trip-swap" type="button" class="trip-swap" aria-label="Swap start and destination" title="Swap">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v15M8 4 4.5 7.5M8 4l3.5 3.5M16 20V5m0 15-3.5-3.5M16 20l3.5-3.5"/></svg>
+              </button>
+              <ul id="trip-suggestions" class="trip-suggestions" role="listbox" aria-label="Suggestions" hidden></ul>
+            </div>
             <p id="directions-status" class="panel-sub" role="status"></p>
+            <div id="trip-lots" class="trip-lots"></div>
+            <button id="directions-reroute" type="button" class="pill-button reroute" hidden>Re-route from where I am</button>
             <div id="directions-summary" class="directions-summary" hidden></div>
             <div id="directions-steps" class="directions-steps"></div>
             <p class="panel-note">
