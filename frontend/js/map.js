@@ -7,6 +7,7 @@ import { clearToken, getToken } from "./auth.js";
 import { renderAvatar } from "./avatar.js";
 import { averageRating, initReviews, openReviews, ratingLabel } from "./reviews.js";
 import { startMapTour } from "./map-tour.js";
+import { createMapHistory } from "./map-history.mjs";
 
 const SIGN_IN_PAGE = "index.html";
 const UCI_CENTER = [33.6461, -117.8427]; // Aldrich Park, middle of campus
@@ -26,6 +27,38 @@ const CATEGORY_ORDER = Object.keys(CATEGORIES);
 const isFree = (lot) => lot.category === "free";
 
 const $ = (id) => document.getElementById(id);
+let mapHistory = null;
+let savedView = false;
+
+function rememberTarget(type, id) {
+  mapHistory?.remember({ type, id });
+  renderRecentShortcuts();
+}
+
+function saveButton(type, id, name, compact = false) {
+  const button = el("button", "save-place");
+  button.type = "button";
+  const update = () => {
+    const saved = mapHistory?.isSaved({ type, id }) ?? false;
+    button.setAttribute("aria-pressed", String(saved));
+    button.setAttribute("aria-label", `${saved ? "Remove" : "Save"} ${name} ${saved ? "from" : "to"} saved places`);
+    button.title = saved ? "Remove from saved places" : "Save place";
+    button.textContent = compact ? (saved ? "★" : "☆") : (saved ? "★ Saved" : "☆ Save");
+  };
+  update();
+  button.addEventListener("click", () => {
+    mapHistory?.toggleSaved({ type, id });
+    update();
+    updateSavedButton();
+    renderList();
+  });
+  return button;
+}
+
+function updateSavedButton() {
+  $("saved-count").textContent = mapHistory?.saved().length ? `(${mapHistory.saved().length})` : "";
+  $("saved-toggle").setAttribute("aria-pressed", String(savedView));
+}
 
 function toSignIn() {
   clearToken();
@@ -146,6 +179,7 @@ function warningBox(lot) {
 }
 
 function popupContent(lot) {
+  rememberTarget("lot", lot.id);
   const cat = CATEGORIES[lot.category];
   const root = el("div", "popup");
 
@@ -199,7 +233,7 @@ function popupContent(lot) {
     map.closePopup();
     showLotReviews(lot);
   });
-  actions.append(go, reviews);
+  actions.append(go, reviews, saveButton("lot", lot.id, lot.name));
   root.append(actions);
   return root;
 }
@@ -282,13 +316,18 @@ function listItem({ lot, primary: layer }, walkMeters) {
   const rating = ratingLabel("lot", lot.id);
   if (rating) text.append(el("small", "rating-line", rating));
   btn.append(swatch, text);
+<<<<<<< Updated upstream
   btn.addEventListener("click", () => {
     if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
     map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
     map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
   });
+=======
+  btn.addEventListener("click", () => focusLot({ lot, primary: layer }));
+>>>>>>> Stashed changes
   const li = el("li");
-  li.append(btn);
+  li.className = "savable-row";
+  li.append(btn, saveButton("lot", lot.id, lot.name, true));
   if (walkMeters != null) {
     const actions = el("div", "item-actions");
     const go = el("button", "pill-button primary", "Directions");
@@ -316,7 +355,8 @@ function placeItem(place) {
   btn.append(text);
   btn.addEventListener("click", () => setDestination(place));
   const li = el("li");
-  li.append(btn);
+  li.className = "savable-row";
+  li.append(btn, saveButton("place", place.id, place.name, true));
   return li;
 }
 
@@ -326,6 +366,7 @@ const sectionHeading = (text) => el("li", "list-heading", text);
 function placeCard(place) {
   const li = el("li", "place-card");
   li.append(el("strong", null, place.name));
+  li.append(saveButton("place", place.id, place.name));
   if (place.kind) li.append(el("small", null, place.kind));
   const rating = ratingLabel("place", place.id);
   li.append(el("p", "rating-line", rating ?? "No reviews yet"));
@@ -344,6 +385,7 @@ function showPlaceReviews(place) {
   openReviews({ type: "place", id: place.id, name: place.name, kind: place.kind });
 }
 
+<<<<<<< Updated upstream
 function listTitle(cats, minStars) {
   const names = CATEGORY_ORDER.filter((c) => cats.has(c)).map((c) => FILTER_NAMES[c]);
   const what = names.length ? `${names.join(" & ")} parking` : "Parking";
@@ -368,21 +410,64 @@ function animateList() {
 
 function buildList() {
   const { categories: cats, minStars, text } = activeFilters();
+=======
+function renderList() {
+  const searching = searchResults !== null || destination !== null;
+  document.querySelector(".list-tabs").classList.toggle("searching", searching || savedView);
+  updateSavedButton();
+>>>>>>> Stashed changes
 
   if (destination) {
     $("panel-title").textContent = `Parking near ${destination.name}`;
     const usable = nearest.filter(({ entry }) => entry.lot.category !== "limited");
     const risky = nearest.filter(({ entry }) => entry.lot.category === "limited");
+<<<<<<< Updated upstream
     const filtered = cats.size || minStars;
     $("spot-count").textContent = filtered ? `Closest ${listTitle(cats, minStars).toLowerCase().replace(" near uci", "")}` : "Closest lots by walking distance";
     const items = [placeCard(destination)];
     if (usable.length) items.push(sectionHeading("Closest parking"), ...usable.map(({ entry, meters }) => listItem(entry, meters)));
     if (risky.length) items.push(sectionHeading(usable.length ? "Also nearby: may be towed" : "Closest (may be towed)"), ...risky.map(({ entry, meters }) => listItem(entry, meters)));
     if (!usable.length && !risky.length) items.push(el("li", "no-results", "No nearby lots match these filters."));
+=======
+    $("spot-count").textContent = "Closest lots by walking distance";
+    $("spot-list").replaceChildren(
+      placeCard(destination),
+      sectionHeading("Closest parking"),
+      ...usable.map(({ entry, meters }) => listItem(entry, meters)),
+      ...(risky.length ? [sectionHeading("Also nearby: may be towed")] : []),
+      ...risky.map(({ entry, meters }) => listItem(entry, meters)),
+    );
+  } else if (savedView) {
+    const saved = mapHistory?.saved() ?? [];
+    const items = saved.map((item) => {
+      if (item.type === "place") {
+        const place = places.find((candidate) => candidate.id === item.id);
+        return place ? placeItem(place) : null;
+      }
+      const entry = listEntries.find((candidate) => candidate.lot.id === item.id);
+      return entry ? listItem(entry) : null;
+    }).filter(Boolean);
+    $("panel-title").textContent = "Saved places";
+    $("spot-count").textContent = `${items.length} saved ${items.length === 1 ? "place" : "places"}`;
+    $("spot-list").replaceChildren(...(items.length ? items : [el("li", "no-results", "Use ☆ beside a place or parking lot to save it here.")]));
+  } else if (searching) {
+    const lots = searchResults;
+    const places = placeResults;
+    $("panel-title").textContent = "Search results";
+    const parts = [];
+    if (places.length) parts.push(`${places.length} ${places.length === 1 ? "place" : "places"}`);
+    parts.push(`${lots.length} ${lots.length === 1 ? "lot" : "lots"}`);
+    $("spot-count").textContent = `${parts.join(" and ")} for “${$("search").value.trim()}”`;
+    const items = [];
+    if (places.length) items.push(sectionHeading("Places: pick one to see the closest parking"), ...places.map(placeItem));
+    if (lots.length) items.push(...(places.length ? [sectionHeading("Parking lots")] : []), ...lots.map((e) => listItem(e)));
+    if (!items.length) items.push(el("li", "no-results", "Nothing matches. Try a shorter or different word."));
+>>>>>>> Stashed changes
     $("spot-list").replaceChildren(...items);
     return;
   }
 
+<<<<<<< Updated upstream
   const lots = filteredEntries;
   $("panel-title").textContent = text ? "Search results" : listTitle(cats, minStars);
   const parts = [];
@@ -398,6 +483,24 @@ function buildList() {
   }
   $("spot-list").replaceChildren(...items);
 }
+=======
+document.querySelectorAll(".list-tab").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    activeTab = btn.dataset.list;
+    savedView = false;
+    if (searchResults !== null || destination) clearSearch(); // picking a tab leaves search
+    renderList();
+  }),
+);
+>>>>>>> Stashed changes
+
+$("saved-toggle").addEventListener("click", () => {
+  const opening = !savedView;
+  clearSearch();
+  savedView = opening;
+  $("search-shortcuts").hidden = true;
+  renderList();
+});
 
 // ---------- Search: bold matching lots, fade the rest, as you type ----------
 
@@ -562,8 +665,56 @@ function findPlaces(tokens, minStars) {
     .slice(0, MAX_PLACE_RESULTS);
 }
 
+<<<<<<< Updated upstream
 // Re-applies search text + chips: highlights matching lots, fades the rest, refreshes the list.
 function applyFilters({ fit = true, animate = false } = {}) {
+=======
+function focusLot({ lot, primary: layer }) {
+  rememberTarget("lot", lot.id);
+  savedView = false;
+  $("search-shortcuts").hidden = true;
+  renderList();
+  map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
+  map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
+}
+
+function renderRecentShortcuts(showOnFocus = false) {
+  const box = $("search-shortcuts");
+  if (!mapHistory || document.activeElement !== $("search") || (!showOnFocus && $("search").value.trim())) {
+    box.hidden = true;
+    return;
+  }
+  const targets = mapHistory.recent().map((item) => {
+    const target = item.type === "place"
+      ? places.find((place) => place.id === item.id)
+      : listEntries.find((entry) => entry.lot.id === item.id);
+    return target ? { type: item.type, target } : null;
+  }).filter(Boolean);
+  if (!targets.length) { box.hidden = true; return; }
+  const title = el("strong", null, "Recent searches");
+  const buttons = targets.map(({ type, target }) => {
+    const name = type === "place" ? target.name : target.lot.name;
+    const button = el("button", null, name);
+    button.type = "button";
+    button.addEventListener("click", () => {
+      box.hidden = true;
+      if (type === "place") setDestination(target);
+      else focusLot(target);
+    });
+    return button;
+  });
+  box.replaceChildren(title, ...buttons);
+  box.hidden = false;
+}
+
+function runSearch() {
+  const raw = $("search").value;
+  const query = normalize(raw);
+  const tokens = query.split(" ").filter(Boolean);
+  $("search-clear").hidden = !raw;
+  if (raw.trim()) savedView = false;
+  renderRecentShortcuts();
+>>>>>>> Stashed changes
   clearTimeout(fitTimer);
   syncChips();
   if (destination) {
@@ -648,11 +799,19 @@ const destinationIcon = L.divIcon({
   tooltipAnchor: [0, -36],
 });
 
+<<<<<<< Updated upstream
 function setDestination(place) {
+=======
+function setDestination(place, { remember = true } = {}) {
+  clearTimeout(fitTimer);
+  savedView = false;
+>>>>>>> Stashed changes
   destination = place;
   placeResults = [];
   $("search").value = place.name;
   $("search-clear").hidden = false;
+  $("search-shortcuts").hidden = true;
+  if (remember) rememberTarget("place", place.id);
 
   showDestinationMarker(place);
 
@@ -695,9 +854,17 @@ function clearDestination() {
 }
 
 $("search").addEventListener("input", runSearch);
+$("search").addEventListener("focus", () => renderRecentShortcuts(true));
+document.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".search")) $("search-shortcuts").hidden = true;
+});
 $("search").addEventListener("keydown", (e) => {
-  if (e.key === "Escape") clearSearch();
+  if (e.key === "Escape") {
+    if (!$("search-shortcuts").hidden) $("search-shortcuts").hidden = true;
+    else clearSearch();
+  }
   if (e.key === "Enter" && placeResults.length) setDestination(placeResults[0]);
+  else if (e.key === "Enter" && searchResults?.length) focusLot(searchResults[0]);
 });
 $("search-clear").addEventListener("click", () => {
   clearSearch();
@@ -1433,6 +1600,7 @@ async function init() {
       ...place,
       search: normalize([place.name, place.kind ?? ""].join(" ")),
     }));
+    mapHistory = createMapHistory(user.id);
     $("user-name").textContent = user.username ?? user.email;
     $("user-name").title = user.email;
     renderAvatar($("user-avatar"), user.avatar);
@@ -1442,7 +1610,7 @@ async function init() {
       showExample: () => {
         const studentCenter = places.find((place) => place.name === "Student Center");
         if (!studentCenter) return false;
-        setDestination(studentCenter);
+        setDestination(studentCenter, { remember: false });
         return true;
       },
       clearExample: clearSearch,

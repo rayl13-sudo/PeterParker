@@ -141,7 +141,7 @@
 }
 
 /* Search box */
-.search { position: relative; margin-bottom: 1rem; }
+.search { position: relative; margin-bottom: 0.5rem; z-index: 3; }
 .search input {
   width: 100%;
   box-sizing: border-box;
@@ -168,6 +168,42 @@
   pointer-events: none;
 }
 .search:focus-within .search-icon { stroke: var(--a-blue); }
+.search-shortcuts {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 0.4rem;
+  border: 1px solid var(--a-line);
+  border-radius: 10px;
+  background: var(--a-white);
+  box-shadow: 0 12px 28px rgba(20, 24, 43, 0.18);
+}
+.search-shortcuts[hidden] { display: none; }
+.search-shortcuts strong { display: block; padding: 0.25rem 0.45rem; color: var(--a-muted); font-size: 0.72rem; }
+.search-shortcuts button {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  background: transparent;
+  color: var(--a-ink);
+  text-align: left;
+  font-size: 0.82rem;
+}
+.search-shortcuts button:hover, .search-shortcuts button:focus-visible { background: var(--a-field); }
+.saved-toggle {
+  align-self: flex-start;
+  margin-bottom: 0.65rem;
+  padding: 0.25rem 0.55rem;
+  background: var(--a-field);
+  color: var(--a-blue);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.saved-toggle[aria-pressed="true"] { background: var(--a-blue); color: var(--a-white); }
+.saved-toggle:focus-visible { outline: 2px solid var(--a-blue); outline-offset: 2px; }
 #search-clear {
   position: absolute;
   right: 0.4rem;
@@ -363,13 +399,34 @@
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  padding: 0.6rem 0.5rem;
+  padding: 0.6rem 2.35rem 0.6rem 0.5rem;
   background: transparent;
   color: var(--a-ink);
   border-radius: 10px;
   text-align: left;
 }
 #spot-list .spot-item:hover { background: var(--a-field); }
+#spot-list .savable-row { position: relative; }
+.save-place {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.25rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--a-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.save-place:hover, .save-place:focus-visible { background: var(--a-blue-tint); color: var(--a-blue); }
+.save-place[aria-pressed="true"] { color: var(--a-blue); }
+.popup .save-place, .place-card .save-place { position: static; }
+.popup .save-place { align-self: flex-start; width: auto; padding: 0.15rem 0.4rem; border-radius: 8px; font-size: 0.8rem; }
+.place-card .save-place { width: auto; height: auto; padding: 0.25rem 0.5rem; border-radius: 8px; font-size: 0.8rem; }
 #spot-list .swatch { margin-top: 0.4rem; }
 .spot-text { display: flex; flex-direction: column; min-width: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
 .spot-text small { color: var(--a-muted); font-size: 0.78rem; }

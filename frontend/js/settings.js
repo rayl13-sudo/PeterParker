@@ -4,6 +4,7 @@ import { clearToken, getToken } from "./auth.js";
 import { imageFileToAvatar, renderAvatar } from "./avatar.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
 import { clearTutorialState } from "./tutorial-state.js";
+import { clearMapHistory } from "./map-history.mjs";
 
 const SIGN_IN_PAGE = "index.html";
 const $ = (id) => document.getElementById(id);
@@ -191,6 +192,7 @@ deleteForm.addEventListener("submit", async (event) => {
     await api.deleteAccount({ currentPassword, confirmation });
     try {
       clearTutorialState(current);
+      clearMapHistory(current.id);
       sessionStorage.setItem("pp_account_deleted", "1");
     } catch {
       // Browser storage cleanup is best effort; the server has deleted the account.
