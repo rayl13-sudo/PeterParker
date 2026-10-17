@@ -1834,13 +1834,6 @@ document.addEventListener("keydown", (event) => {
 $("parking-tricks").addEventListener("click", () => $("parking-tricks-dialog").showModal());
 $("parking-tricks-dialog").addEventListener("close", () => menuTrigger.focus());
 
-$("logout").addEventListener("click", async () => {
-  try {
-    await api.logout();
-  } finally {
-    toSignIn();
-  }
-});
 
 async function init() {
   try {
