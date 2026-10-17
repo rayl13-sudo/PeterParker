@@ -148,3 +148,23 @@ def test_accessible_parking_counts_and_locations(client, auth_headers):
     # Lots without published counts show the ADA minimum, flagged as such
     tj = lots["Parking by Trader Joe's"]["spaces"]
     assert tj["accessible_is_minimum"] and tj["accessible"] >= 1
+
+
+def test_staff_lots_keep_their_paid_trait(client, auth_headers):
+    by_name = {lot["name"]: lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"]}
+    # Paid on OpenStreetMap, faculty & staff on UCI's map: both traits survive.
+    for name in ("Lot 12A", "Lot 12B", "Lot 16"):
+        assert by_name[name]["category"] == "staff" and "fee" in by_name[name]["pay"]
+    # UCI's ParkbyPlate / dispenser layers.
+    assert by_name["Lot 6"]["category"] == "staff" and by_name["Lot 6"]["pay"] == ["parkbyplate"]
+    assert "pay_by_space" in by_name["Mesa Parking Structure (MPS)"]["pay"]
+    assert by_name["Lot 8"]["pay"] == []
+
+
+def test_touching_pieces_of_one_lot_are_merged(client, auth_headers):
+    lots = client.get("/api/parking", headers=auth_headers).json()["lots"]
+    vista = [lot for lot in lots if lot["name"] == "Free parking by Sepulveda Vista Point"]
+    assert len(vista) == 1
+    assert vista[0]["merged_from"] == 3 and vista[0]["capacity"] == 9 and len(vista[0]["outline"]) == 3
+    # Same name but far apart: separate lots.
+    assert len([lot for lot in lots if lot["name"] == "Parking by Cambridge Court"]) == 5

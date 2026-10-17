@@ -288,6 +288,200 @@
    "Van-accessible ADA stall is located at the end of the service lot."
   ]
  },
+ "pay_stations": [
+  {
+   "lot": "Lot 14",
+   "kind": "dispenser",
+   "lat": 33.653336,
+   "lon": -117.845734
+  },
+  {
+   "lot": "MPS",
+   "kind": "dispenser",
+   "lat": 33.651066,
+   "lon": -117.846573
+  },
+  {
+   "lot": "MPS",
+   "kind": "pay_by_space",
+   "lat": 33.650482,
+   "lon": -117.846519
+  },
+  {
+   "lot": "SCPS",
+   "kind": "pay_by_space",
+   "lat": 33.650021,
+   "lon": -117.842232
+  },
+  {
+   "lot": "SCPS",
+   "kind": "dispenser",
+   "lat": 33.649708,
+   "lon": -117.841919
+  },
+  {
+   "lot": "SSPS",
+   "kind": "dispenser",
+   "lat": 33.64769,
+   "lon": -117.838226
+  },
+  {
+   "lot": "SSPS",
+   "kind": "pay_by_space",
+   "lat": 33.647507,
+   "lon": -117.838081
+  },
+  {
+   "lot": "EP",
+   "kind": "dispenser",
+   "lat": 33.646805,
+   "lon": -117.835342
+  },
+  {
+   "lot": "Lot 1C",
+   "kind": "dispenser",
+   "lat": 33.646675,
+   "lon": -117.834679
+  },
+  {
+   "lot": "APS",
+   "kind": "dispenser",
+   "lat": 33.64325,
+   "lon": -117.837204
+  },
+  {
+   "lot": "Lot 16H",
+   "kind": "pay_by_space",
+   "lat": 33.643013,
+   "lon": -117.84716
+  },
+  {
+   "lot": "Lot 16",
+   "kind": "pay_by_space",
+   "lat": 33.643116,
+   "lon": -117.846764
+  },
+  {
+   "lot": "Lot 16H",
+   "kind": "dispenser",
+   "lat": 33.642891,
+   "lon": -117.847519
+  },
+  {
+   "lot": "Lot 13",
+   "kind": "pay_by_space",
+   "lat": 33.644878,
+   "lon": -117.846008
+  },
+  {
+   "lot": "ARC",
+   "kind": "dispenser",
+   "lat": 33.644318,
+   "lon": -117.82798
+  },
+  {
+   "lot": "Lot 70",
+   "kind": "dispenser",
+   "lat": 33.640438,
+   "lon": -117.850502
+  },
+  {
+   "lot": "Lot 90",
+   "kind": "dispenser",
+   "lat": 33.665157,
+   "lon": -117.853951
+  },
+  {
+   "lot": "HSPS",
+   "kind": "pay_by_space",
+   "lat": 33.643017,
+   "lon": -117.853577
+  },
+  {
+   "lot": "HSPS",
+   "kind": "dispenser",
+   "lat": 33.642296,
+   "lon": -117.853485
+  },
+  {
+   "lot": "Lot 18B",
+   "kind": "pay_by_space",
+   "lat": 33.642754,
+   "lon": -117.842476
+  },
+  {
+   "lot": "Student Center Parking Structure",
+   "kind": "parkbyplate",
+   "lat": 33.649853,
+   "lon": -117.841911
+  },
+  {
+   "lot": "Mesa Parking Structure",
+   "kind": "parkbyplate",
+   "lat": 33.650501,
+   "lon": -117.846611
+  },
+  {
+   "lot": "Lot 1",
+   "kind": "parkbyplate",
+   "lat": 33.647869,
+   "lon": -117.839119
+  },
+  {
+   "lot": "Lot 6",
+   "kind": "parkbyplate",
+   "lat": 33.647091,
+   "lon": -117.848579
+  },
+  {
+   "lot": "Lot 5",
+   "kind": "parkbyplate",
+   "lat": 33.652065,
+   "lon": -117.842613
+  },
+  {
+   "lot": "Lot 14",
+   "kind": "parkbyplate",
+   "lat": 33.653152,
+   "lon": -117.845879
+  },
+  {
+   "lot": "Lot 14A",
+   "kind": "parkbyplate",
+   "lat": 33.651924,
+   "lon": -117.846695
+  },
+  {
+   "lot": "Lot 7",
+   "kind": "parkbyplate",
+   "lat": 33.647278,
+   "lon": -117.845856
+  },
+  {
+   "lot": "Lot 16H",
+   "kind": "parkbyplate",
+   "lat": 33.642422,
+   "lon": -117.847656
+  },
+  {
+   "lot": "Lot 70",
+   "kind": "parkbyplate",
+   "lat": 33.640099,
+   "lon": -117.851311
+  },
+  {
+   "lot": "Health Sciences Parking Structure",
+   "kind": "parkbyplate",
+   "lat": 33.642582,
+   "lon": -117.853882
+  },
+  {
+   "lot": "Verano Parking Structure",
+   "kind": "parkbyplate",
+   "lat": 33.645973,
+   "lon": -117.830086
+  }
+ ],
  "lots": {
   "Lot AV2": {
    "name": "Lot AV2",

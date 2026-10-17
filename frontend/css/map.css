@@ -591,6 +591,8 @@
   opacity: var(--swatch-fill);
 }
 .key-swatch.dashed { border-style: dashed; }
+.key-swatch.home { border: 2.5px dashed #13806a; }
+.key-swatch.home::before { display: none; }
 
 /* ---------- Pins & popups ---------- */
 
@@ -649,6 +651,7 @@
   font-size: 0.75rem;
   font-weight: 600;
 }
+.tag-also { margin-top: 0.25rem; border-style: dashed; color: var(--a-muted); }
 
 @media (prefers-reduced-motion: reduce) {
   .panel, .panel-toggle svg, .key-header svg { transition: none; }
@@ -1285,6 +1288,38 @@
 .permit-windows li b { color: var(--a-ink); font-weight: 600; }
 .permit-windows li.now { background: #e6f4ef; color: #0f5c4c; }
 .permit-windows li.now b { color: #0f5c4c; }
+
+/* Your zone / resident area: always listed under the permit banner */
+.permit-home {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(19, 128, 106, 0.18);
+}
+.permit-home-title { font-weight: 700; margin-right: 0.15rem; }
+.permit-home-lot {
+  padding: 0.1rem 0.45rem;
+  border: 1.5px dashed #13806a;
+  border-radius: 999px;
+  background: transparent;
+  color: #0f5c4c;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  animation: item-in 0.3s ease both;
+  transition: background-color 0.15s ease, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.permit-home-lot.now { border-style: solid; background: #13806a; color: #fff; }
+.permit-home-lot:hover { transform: scale(1.05); background: rgba(19, 128, 106, 0.12); }
+.permit-home-lot.now:hover { background: #0f6b58; }
+.permit-home-tag { margin: 0 0 0.3rem; font-size: 0.76rem; font-weight: 600; color: #0f6b58; }
+.permit-not-valid { margin: 0.4rem 0 0; font-size: 0.76rem; color: var(--a-muted); }
+.permit-not-valid summary { cursor: pointer; font-weight: 600; color: var(--a-ink); }
+.permit-not-valid ul { margin: 0.25rem 0 0; padding-left: 1.1rem; }
 
 /* ---------- Spaces in lot popups ---------- */
 

@@ -261,6 +261,19 @@ UCI's faculty & staff lots form their own **Faculty & staff** category (purple; 
 search "staff" or "faculty"), except lots that student zone permits also use (e.g. Lot 90).
 Students and visitors may use them weekdays after 5 pm and on weekends, per UCI's rules.
 
+**Paid overlaps.** A lot keeps its main category but also carries a `pay` trait when visitors can
+pay there: a permit dispenser, Pay-by-Space machine or ParkbyPlate area on UCI's map (layers
+35849 and 55161, saved as `pay_stations` in `uci_lots.json`), or OSM `fee=yes`. Such lots count
+under the Paid chip too, and their popups show an "Also paid" tag, the daily rates and how to pay.
+For example, staff Lots 1, 6 and 7 (ParkbyPlate) and Lots 12A, 12B, 13, 16 and 1C. A lot with a
+fee that your permit covers reads **"Paid lot · your permit covers it"** and isn't counted as free
+parking.
+
+**Merged pieces.** OpenStreetMap often maps one lot as several touching areas. Free and limited
+pieces with the same name and rules whose outlines come within 12 m of each other are combined
+into one lot (e.g. the three Sepulveda Vista Point areas become one 9-space lot). Separate lots
+nearby that share a name stay separate.
+
 ## Your parking permit
 
 In **Settings → Your parking permit**, pick the UCI permit you hold ("S" zone, "P" preferred zone,
@@ -268,6 +281,27 @@ In **Settings → Your parking permit**, pick the UCI permit you hold ("S" zone,
 that permit covers *right now* into **Free with your permit** (teal), counts them in a banner,
 includes them in the Free chip and "free parking" searches, and explains the hours in each lot's
 popup. It re-checks every minute, since coverage changes at 7 am, 3 pm, 5 pm and midnight.
+
+Your permit's **own zone or resident area** is outlined in green at all times: a solid edge while
+the permit is valid there and dashed while it isn't. The banner lists those lots as chips, which
+you can click to jump to each one. The areas are copied from UCI's 2026-27 tables:
+
+| Permit | Assigned area |
+|---|---|
+| S1 / P1 | MPS, Lot 14, Lot 14A, Lot 90, Lot ARC, ECPS white stalls |
+| S2 (no P2) | HSPS Level 5, Lot 90, Lot ARC, ECPS white stalls |
+| S3 / P3 | Lot 16H, Lot 70, Lot 90, Lot ARC, ECPS white stalls |
+| S4 / P4 | APS, Lot 90, Lot ARC, ECPS white stalls |
+| S5 / P5 | SSPS, Lot 90, Lot ARC, ECPS white stalls |
+| S6 / P6 | SCPS, Lot 5, Lot 90, Lot ARC, ECPS white stalls |
+| R-MC | Lot 5, Lot 14, Lot 14A |
+| R-ME | APS Levels 3–7, Lot 18R |
+| R-AV | Lot AV2, Lot AV3 |
+| R-CVGRAD | Lots 16AE/16AW, 16B, 70, Lot 13 "R" stalls, Lot ARC |
+| R-OC | ECPS white stalls |
+
+UCI's interactive map still shows older zone layers (Zone 2 = Lots 82–84, "All Zones" = Lot 36);
+the permit page above is newer, so it wins.
 
 Rules (`frontend/js/permit-rules.js`) follow UCI's student permit page
 (https://parking.uci.edu/permits/student), in campus time:
@@ -279,14 +313,17 @@ Rules (`frontend/js/permit-rules.js`) follow UCI's student permit page
 | S / P zone | any UCI lot (general, P, non-24h AR stalls) | Mon–Fri 5 pm–midnight, Sat–Sun |
 | R resident | your assigned area | 24/7 |
 | R resident (not R-CVGRAD) | UCI surface lots, not structures | Mon–Fri 5 pm–midnight, Sat–Sun |
+| R-MC / R-ME | Lot ARC + ECPS white stalls | while the ARC is open (Mon–Fri 6 am–midnight, Sat 8 am–9 pm, Sun 8 am–midnight) |
 | E evening | any UCI lot | Mon–Fri 5 pm–midnight, Sat–Sun |
 
 Choices made where UCI is ambiguous err toward *not* free: students can't park overnight, so
 weekend "All Day" is treated as 7 am–midnight. Only confirmed UCI Transportation lots count
 (named on UCI's permit pages, tagged as UCI-operated, or numbered "Lot __"); untagged campus lots
 and housing structures (Verano, Palo Verde, Campus Village…) are excluded, since UCI says housing
-parking "is valid only in your housing community". Popups note which stalls don't count
-(Pay-by-Space, R, X, service, yellow ECPS, "Enforced 24 Hours").
+parking "is valid only in your housing community". Popups and Settings list UCI's "not valid"
+stalls for your permit type: P/AR before 5 pm (S), R, X, exclusively reserved, service/E-plate,
+disabled without a placard, Pay-by-Space, yellow ECPS, and overnight. ARC hours come from
+campusrec.uci.edu and change over breaks.
 
 ## Reviews
 
