@@ -236,3 +236,4 @@ uploading a photo, the color controls give way to a single "Revert to default ic
 (`PUT`/`DELETE /api/auth/me/avatar`; `PUT` to choose or `POST` to shuffle
 `/api/auth/me/avatar/colors`). PostgreSQL deployments need `backend/migrations/002_avatars.sql`
 and `003_reviews.sql` applied; `init_db()` runs every migration in order.
+.
