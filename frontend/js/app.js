@@ -1,12 +1,12 @@
-import { api, setUnauthorizedHandler } from "./api.js";
+// Sign-in / sign-up page. On success the user is sent to the map page.
+import { api } from "./api.js";
 import { clearToken, getToken, saveToken } from "./auth.js";
+
+const MAP_PAGE = "map.html";
 
 const $ = (id) => document.getElementById(id);
 
 const authView = $("auth-view");
-const appView = $("app-view");
-
-// ---------- Auth view ----------
 
 const authForm = $("auth-form");
 const authIdentifier = $("auth-identifier");
@@ -110,11 +110,8 @@ authForm.addEventListener("submit", async (e) => {
       showAuthError(new Error(result.message));
       return;
     }
-    const { token, user } = result;
-    saveToken(token, rememberMe);
-    authForm.reset();
-    updatePasswordRules();
-    showApp(user);
+    saveToken(result.token, rememberMe);
+    location.replace(MAP_PAGE);
   } catch (err) {
     showAuthError(err);
   } finally {
@@ -122,100 +119,35 @@ authForm.addEventListener("submit", async (e) => {
   }
 });
 
+// Decorative, non-interactive campus map behind the card. Skipped if Leaflet
+// didn't load (e.g. offline); the page works the same without it.
+function showBackgroundMap() {
+  if (!window.L) return;
+  const map = L.map("auth-map", {
+    zoomControl: false,
+    attributionControl: false,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    touchZoom: false,
+  }).setView([33.6461, -117.8427], 16); // Aldrich Park, UC Irvine
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+}
+
 function showAuth() {
-  appView.hidden = true;
   authView.hidden = false;
+  showBackgroundMap();
   firstField().focus();
 }
 
-// ---------- App view ----------
-
-const statusEl = $("api-status");
-const itemForm = $("item-form");
-const itemInput = $("item-name");
-const list = $("item-list");
-const errorEl = $("error");
-
-function showError(err) {
-  errorEl.textContent = err ? err.message : "";
-  errorEl.hidden = !err;
-}
-
-function renderItems(items) {
-  list.replaceChildren(
-    ...items.map((item) => {
-      const li = document.createElement("li");
-      const label = document.createElement("span");
-      label.textContent = item.name;
-      const del = document.createElement("button");
-      del.textContent = "Delete";
-      del.className = "secondary";
-      del.addEventListener("click", async () => {
-        try {
-          await api.deleteItem(item.id);
-          await loadItems();
-        } catch (err) {
-          showError(err);
-        }
-      });
-      li.append(label, del);
-      return li;
-    }),
-  );
-}
-
-async function loadItems() {
-  renderItems(await api.listItems());
-  showError(null);
-}
-
-itemForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  try {
-    await api.createItem(itemInput.value.trim());
-    itemInput.value = "";
-    await loadItems();
-  } catch (err) {
-    showError(err);
-  }
-});
-
-$("logout").addEventListener("click", async () => {
-  try {
-    await api.logout();
-  } finally {
-    clearToken();
-    renderItems([]);
-    showAuth();
-  }
-});
-
-async function showApp(user) {
-  $("user-name").textContent = user.username ?? user.email;
-  $("user-name").title = user.email;
-  authView.hidden = true;
-  appView.hidden = false;
-
-  try {
-    await api.health();
-    statusEl.textContent = "online";
-    statusEl.className = "badge ok";
-    await loadItems();
-  } catch (err) {
-    statusEl.textContent = "offline";
-    statusEl.className = "badge down";
-    showError(err);
-  }
-}
-
-// ---------- Boot ----------
-
-setUnauthorizedHandler(showAuth);
-
+// Already signed in? Skip straight to the map.
 async function init() {
   if (!getToken()) return showAuth();
   try {
-    showApp(await api.me());
+    await api.me();
+    location.replace(MAP_PAGE);
   } catch {
     clearToken();
     showAuth();

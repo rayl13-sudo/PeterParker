@@ -1,7 +1,10 @@
+import logging
 import sqlite3
 from collections.abc import Iterator
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -61,3 +64,28 @@ def get_db() -> Iterator[sqlite3.Connection]:
         conn.commit()
     finally:
         conn.close()
+
+
+def seed_user() -> None:
+    """Make sure the temporary account exists and its password matches settings."""
+    from app.security import hash_password, verify_password  # avoid import cycle
+
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT id, password_hash FROM users WHERE username = ?", (settings.seed_username,)
+        ).fetchone()
+        if row is not None:
+            if not verify_password(settings.seed_password, row["password_hash"]):
+                conn.execute(
+                    "UPDATE users SET password_hash = ? WHERE id = ?",
+                    (hash_password(settings.seed_password), row["id"]),
+                )
+            return
+        if conn.execute("SELECT 1 FROM users WHERE email = ?", (settings.seed_email,)).fetchone():
+            logger.warning("Seed email %s belongs to another account; not creating %s",
+                           settings.seed_email, settings.seed_username)
+            return
+        conn.execute(
+            "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+            (settings.seed_username, settings.seed_email, hash_password(settings.seed_password)),
+        )
