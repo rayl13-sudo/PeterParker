@@ -241,22 +241,18 @@ class Avatar(BaseModel):
 
 class Me(User):
     avatar: Avatar
-<<<<<<< Updated upstream
     permit: str | None = None  # UCI permit code the user holds, e.g. "S4" or "R-ME"
-=======
     is_admin: bool = False
->>>>>>> Stashed changes
 
 
 def _me(db, user_id: int) -> Me:
     row = db.execute(
-<<<<<<< Updated upstream
-        "SELECT id, username, email, avatar_bg, avatar_fg, avatar_image, permit FROM users WHERE id = ?",
-=======
-        "SELECT id, username, email, avatar_bg, avatar_fg, avatar_image, is_admin FROM users WHERE id = ?",
->>>>>>> Stashed changes
+        "SELECT * FROM users WHERE id = ?",
         (user_id,),
     ).fetchone()
+    # Permit and admin migrations are applied separately on production PostgreSQL.
+    # Account reads remain available while those migrations are being rolled out.
+    row = dict(row)
     bg, fg = row["avatar_bg"], row["avatar_fg"]
     if not bg or not fg:
         # Accounts get their random colors the first time they're shown.
@@ -264,12 +260,8 @@ def _me(db, user_id: int) -> Me:
         db.execute("UPDATE users SET avatar_bg = ?, avatar_fg = ? WHERE id = ?", (bg, fg, user_id))
     return Me(
         id=row["id"], username=row["username"], email=row["email"],
-<<<<<<< Updated upstream
         avatar=Avatar(bg=bg, fg=fg, image=row["avatar_image"]),
-        permit=row["permit"],
-=======
-        avatar=Avatar(bg=bg, fg=fg, image=row["avatar_image"]), is_admin=bool(row["is_admin"]),
->>>>>>> Stashed changes
+        permit=row.get("permit"), is_admin=bool(row.get("is_admin", False)),
     )
 
 

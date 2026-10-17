@@ -74,11 +74,8 @@ MIGRATIONS = [
     ("users", "avatar_bg", "ALTER TABLE users ADD COLUMN avatar_bg TEXT"),
     ("users", "avatar_fg", "ALTER TABLE users ADD COLUMN avatar_fg TEXT"),
     ("users", "avatar_image", "ALTER TABLE users ADD COLUMN avatar_image TEXT"),
-<<<<<<< Updated upstream
     ("users", "permit", "ALTER TABLE users ADD COLUMN permit TEXT"),
-=======
     ("users", "is_admin", "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"),
->>>>>>> Stashed changes
 ]
 
 INDEXES = """
