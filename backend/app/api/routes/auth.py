@@ -1,4 +1,3 @@
-import hmac
 import re
 import sqlite3
 from datetime import datetime
@@ -10,24 +9,54 @@ from pydantic import BaseModel, Field, field_validator
 from app.config import settings
 from app.db import get_db
 from app import supabase_auth
+from app.avatar import random_colors, validate_image
 from app.security import (
     bearer,
     create_session,
     get_current_user,
     hash_password,
+    hash_token,
     revoke_session,
     verify_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# No "@" allowed, so a login identifier is unambiguously a username or an email.
-USERNAME_RE = re.compile(r"^[a-z0-9_.-]{3,32}$")
+# Any characters except whitespace and "@" ("@" is how sign-in tells emails apart).
+USERNAME_RE = re.compile(r"^[^\s@]{3,32}$")
 
 # Keep in sync with PASSWORD_RULES in frontend/js/app.js.
 PASSWORD_MIN_LENGTH = 8
 CAPITAL_RE = re.compile(r"[A-Z]")
 SPECIAL_CHAR_RE = re.compile(r"[^A-Za-z0-9\s]")
+
+
+def clean_username(v: str) -> str:
+    v = v.strip().lower()
+    if not USERNAME_RE.match(v):
+        raise ValueError("Username must be 3-32 characters with no spaces or '@'")
+    return v
+
+
+def clean_email(v: str) -> str:
+    v = v.strip().lower()
+    local, _, domain = v.partition("@")
+    if not local or "." not in domain:
+        raise ValueError("Enter a valid email address")
+    return v
+
+
+def check_password_strength(v: str) -> str:
+    missing = []
+    if len(v) < PASSWORD_MIN_LENGTH:
+        missing.append(f"at least {PASSWORD_MIN_LENGTH} characters")
+    if not CAPITAL_RE.search(v):
+        missing.append("one capital letter")
+    if not SPECIAL_CHAR_RE.search(v):
+        missing.append("one special character")
+    if missing:
+        raise ValueError("Password needs " + ", ".join(missing))
+    return v
 
 
 class SignupIn(BaseModel):
@@ -38,36 +67,44 @@ class SignupIn(BaseModel):
 
     @field_validator("username")
     @classmethod
-    def normalize_username(cls, v: str) -> str:
-        v = v.strip().lower()
-        if not USERNAME_RE.match(v):
-            raise ValueError(
-                "Username must be 3-32 characters: letters, numbers, '.', '_' or '-'"
-            )
-        return v
-
-    @field_validator("password")
-    @classmethod
-    def check_password_strength(cls, v: str) -> str:
-        missing = []
-        if len(v) < PASSWORD_MIN_LENGTH:
-            missing.append(f"at least {PASSWORD_MIN_LENGTH} characters")
-        if not CAPITAL_RE.search(v):
-            missing.append("one capital letter")
-        if not SPECIAL_CHAR_RE.search(v):
-            missing.append("one special character")
-        if missing:
-            raise ValueError("Password needs " + ", ".join(missing))
-        return v
+    def check_username(cls, v: str) -> str:
+        return clean_username(v)
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, v: str) -> str:
-        v = v.strip().lower()
-        local, _, domain = v.partition("@")
-        if not local or "." not in domain:
-            raise ValueError("Enter a valid email address")
-        return v
+    def check_email(cls, v: str) -> str:
+        return clean_email(v)
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        return check_password_strength(v)
+
+
+class AccountUpdateIn(BaseModel):
+    username: str | None = None
+    email: str | None = None
+    current_password: str
+
+    @field_validator("username")
+    @classmethod
+    def check_username(cls, v: str | None) -> str | None:
+        return v if v is None else clean_username(v)
+
+    @field_validator("email")
+    @classmethod
+    def check_email(cls, v: str | None) -> str | None:
+        return v if v is None else clean_email(v)
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str = Field(max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        return check_password_strength(v)
 
 
 class LoginIn(BaseModel):
@@ -133,10 +170,6 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse:
-    seeded = _seed_login(db, payload)
-    if seeded is not None:
-        return seeded
-
     if supabase_auth.enabled():
         email = payload.identifier
         if "@" not in email:
@@ -154,31 +187,6 @@ def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthRes
         f"SELECT id, username, email, password_hash FROM users WHERE {column} = ?",
         (payload.identifier,),
     ).fetchone()
-    if row is None or not verify_password(payload.password, row["password_hash"]):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
-    user = User(id=row["id"], username=row["username"], email=row["email"])
-    return _issue(db, user, payload.remember_me)
-
-
-def _seed_login(db: sqlite3.Connection, payload: LoginIn) -> AuthResponse | None:
-    """The temporary shared account always signs in locally, even with Supabase on."""
-    if not settings.seed_user or payload.identifier not in (
-        settings.seed_username.lower(),
-        settings.seed_email.lower(),
-    ):
-        return None
-    find = lambda: db.execute(  # noqa: E731
-        "SELECT id, username, email, password_hash FROM users WHERE username = ?",
-        (settings.seed_username,),
-    ).fetchone()
-    row = find()
-    if row is None and hmac.compare_digest(payload.password, settings.seed_password):
-        # Not created at startup (e.g. PostgreSQL deployments): create it now.
-        db.execute(
-            "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-            (settings.seed_username, settings.seed_email, hash_password(settings.seed_password)),
-        )
-        row = find()
     if row is None or not verify_password(payload.password, row["password_hash"]):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
     user = User(id=row["id"], username=row["username"], email=row["email"])
@@ -219,6 +227,119 @@ def logout(
         revoke_session(db, creds.credentials)
 
 
-@router.get("/me", response_model=User)
-def me(user: sqlite3.Row = Depends(get_current_user)) -> User:
-    return User(id=user["id"], username=user["username"], email=user["email"])
+class Avatar(BaseModel):
+    bg: str
+    fg: str
+    image: str | None = None  # uploaded photo as a data URL; replaces the silhouette
+
+
+class Me(User):
+    avatar: Avatar
+
+
+def _me(db, user_id: int) -> Me:
+    row = db.execute(
+        "SELECT id, username, email, avatar_bg, avatar_fg, avatar_image FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    bg, fg = row["avatar_bg"], row["avatar_fg"]
+    if not bg or not fg:
+        # Accounts get their random colors the first time they're shown.
+        bg, fg = random_colors()
+        db.execute("UPDATE users SET avatar_bg = ?, avatar_fg = ? WHERE id = ?", (bg, fg, user_id))
+    return Me(
+        id=row["id"], username=row["username"], email=row["email"],
+        avatar=Avatar(bg=bg, fg=fg, image=row["avatar_image"]),
+    )
+
+
+@router.get("/me", response_model=Me)
+def me(
+    user: sqlite3.Row = Depends(get_current_user), db: sqlite3.Connection = Depends(get_db)
+) -> Me:
+    return _me(db, user["id"])
+
+
+class AvatarImageIn(BaseModel):
+    image: str
+
+    @field_validator("image")
+    @classmethod
+    def check_image(cls, v: str) -> str:
+        return validate_image(v)
+
+
+@router.put("/me/avatar", response_model=Me)
+def set_avatar_image(
+    payload: AvatarImageIn,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> Me:
+    db.execute("UPDATE users SET avatar_image = ? WHERE id = ?", (payload.image, user["id"]))
+    return _me(db, user["id"])
+
+
+@router.delete("/me/avatar", response_model=Me)
+def remove_avatar_image(
+    user: sqlite3.Row = Depends(get_current_user), db: sqlite3.Connection = Depends(get_db)
+) -> Me:
+    db.execute("UPDATE users SET avatar_image = NULL WHERE id = ?", (user["id"],))
+    return _me(db, user["id"])
+
+
+@router.post("/me/avatar/colors", response_model=Me)
+def shuffle_avatar_colors(
+    user: sqlite3.Row = Depends(get_current_user), db: sqlite3.Connection = Depends(get_db)
+) -> Me:
+    bg, fg = random_colors()
+    db.execute("UPDATE users SET avatar_bg = ?, avatar_fg = ? WHERE id = ?", (bg, fg, user["id"]))
+    return _me(db, user["id"])
+
+
+def _editable_account(db, user, current_password: str) -> sqlite3.Row:
+    """Load the signed-in account for editing, after checking its current password."""
+    row = db.execute("SELECT id, password_hash FROM users WHERE id = ?", (user["id"],)).fetchone()
+    if row["password_hash"] == "supabase":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This account's sign-in is managed by Supabase")
+    if not verify_password(current_password, row["password_hash"]):
+        # Not 401: that means "session expired" and would sign the user out.
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
+    return row
+
+
+@router.patch("/me", response_model=Me)
+def update_me(
+    payload: AccountUpdateIn,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> Me:
+    _editable_account(db, user, payload.current_password)
+    username = payload.username or user["username"]
+    email = payload.email or user["email"]
+    for field, value in (("username", username), ("email", email)):
+        clash = db.execute(
+            f"SELECT 1 FROM users WHERE {field} = ? AND id != ?", (value, user["id"])
+        ).fetchone()
+        if clash:
+            raise HTTPException(status.HTTP_409_CONFLICT, f"That {field} is already taken")
+    db.execute("UPDATE users SET username = ?, email = ? WHERE id = ?", (username, email, user["id"]))
+    return _me(db, user["id"])
+
+
+@router.post("/password", status_code=204)
+def change_password(
+    payload: PasswordChangeIn,
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> None:
+    _editable_account(db, user, payload.current_password)
+    db.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (hash_password(payload.new_password), user["id"]),
+    )
+    # Sign out every other device; this one stays signed in.
+    db.execute(
+        "DELETE FROM sessions WHERE user_id = ? AND token_hash != ?",
+        (user["id"], hash_token(creds.credentials)),
+    )

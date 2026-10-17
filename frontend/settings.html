@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="js/open-from-disk.js"></script>
+    <title>Settings · PeterParker</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/map.css" />
+    <link rel="stylesheet" href="css/settings.css" />
+    <script src="js/config.js"></script>
+    <script type="module" src="js/settings.js"></script>
+  </head>
+  <body class="map-page settings-page">
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>PeterParker</span>
+        <img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" />
+      </div>
+      <div class="account">
+        <span class="user-chip">
+          <span id="user-avatar" class="avatar" aria-hidden="true"></span>
+          <span id="user-name"></span>
+        </span>
+      </div>
+    </header>
+
+    <main class="settings">
+      <a class="back-button" href="map.html">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+        Back to map
+      </a>
+      <h1>Settings</h1>
+
+      <section class="settings-card">
+        <div class="profile-card">
+          <span id="profile-avatar" class="avatar large" aria-hidden="true"></span>
+          <div>
+            <p id="profile-name" class="profile-name">Loading…</p>
+            <p id="profile-email" class="profile-email"></p>
+          </div>
+        </div>
+        <div class="photo-actions">
+          <label class="secondary-button file-button">
+            <input id="photo-input" type="file" accept="image/*" />
+            Upload photo
+          </label>
+          <button id="photo-remove" type="button" class="secondary-button" hidden>Remove photo</button>
+          <button id="photo-colors" type="button" class="secondary-button">Shuffle colors</button>
+        </div>
+        <p id="photo-message" class="settings-message" role="status" hidden></p>
+      </section>
+
+      <section class="settings-card">
+        <h2>Account details</h2>
+        <form id="details-form" class="settings-form" novalidate>
+          <label>
+            Username
+            <input id="details-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" />
+            <small>3-32 characters; special characters are fine, but no spaces or "@".</small>
+          </label>
+          <label>
+            Email
+            <input id="details-email" type="email" autocomplete="email" />
+          </label>
+          <label>
+            Current password
+            <input id="details-password" type="password" autocomplete="current-password" />
+            <small>Needed to save changes.</small>
+          </label>
+          <p id="details-message" class="settings-message" role="status" hidden></p>
+          <button type="submit">Save changes</button>
+        </form>
+      </section>
+
+      <section class="settings-card">
+        <h2>Change password</h2>
+        <form id="password-form" class="settings-form" novalidate>
+          <label>
+            Current password
+            <input id="password-current" type="password" autocomplete="current-password" />
+          </label>
+          <label>
+            New password
+            <input id="password-new" type="password" autocomplete="new-password" aria-describedby="new-password-rules" />
+          </label>
+          <ul id="new-password-rules" class="rules" aria-label="Password requirements">
+            <li data-rule="length">At least 8 characters</li>
+            <li data-rule="capital">One capital letter</li>
+            <li data-rule="special">One special character (e.g. ! @ # $)</li>
+          </ul>
+          <label>
+            Confirm new password
+            <input id="password-confirm" type="password" autocomplete="new-password" />
+          </label>
+          <p id="password-message" class="settings-message" role="status" hidden></p>
+          <button type="submit">Update password</button>
+          <small class="form-footnote">Changing your password signs you out on your other devices.</small>
+        </form>
+      </section>
+
+      <section class="settings-card">
+        <h2>Switch account</h2>
+        <p class="card-text">Sign out of <b id="switch-name">this account</b> and sign in with a different one.</p>
+        <button id="switch-account" type="button" class="secondary-button">Sign out and switch account</button>
+      </section>
+    </main>
+  </body>
+</html>

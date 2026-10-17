@@ -146,7 +146,7 @@ Sign-up rules (enforced by the API, mirrored in the UI):
 
 - **Password:** at least 8 characters, one capital letter, one special character.
   The sign-up form shows a checklist that ticks off each rule as you type.
-- **Username:** 3-32 characters (letters, numbers, `.`, `_`, `-`). Accounts, sessions and items
+- **Username:** 3-32 characters; special characters are fine, but no spaces or `@`. Accounts, sessions and items
 are stored in SQLite (`backend/app.db`, created on first run). Passwords are hashed
 with PBKDF2, and the API issues an opaque bearer token; only its hash is stored.
 
@@ -185,9 +185,18 @@ Lots come from `GET /api/parking`, which serves a snapshot in
 cd backend && .venv/bin/python scripts/fetch_parking.py
 ```
 
-## Temporary account
+## Settings
 
-The backend keeps a shared account: username `peter` (email `peter@example.com`), password
-`parking`. It's created on startup, its password is reset to `parking` on every startup, and
-it always signs in locally, even when Supabase is configured. It skips the sign-up password rules. Change or disable it with the `SEED_*` settings in
-`backend/.env.example`.
+The gear button next to your name on the map opens `frontend/settings.html`, where you can
+change your username and email (`PATCH /api/auth/me`), change your password
+(`POST /api/auth/password`, which signs out your other devices), or sign out to switch
+accounts. Both changes require your current password.
+
+Every account has a profile picture: by default a silhouette in a random color on a random
+background color of a clearly different hue, assigned the first time the account is shown.
+In settings you can upload a photo (cropped to a square and shrunk to 256 px in the browser,
+then stored with the account), remove it, or shuffle the colors
+(`PUT`/`DELETE /api/auth/me/avatar`, `POST /api/auth/me/avatar/colors`). PostgreSQL
+deployments need `backend/migrations/002_avatars.sql` applied; `init_db()` runs every
+migration in order.
+

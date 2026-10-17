@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import api_router
 from app.config import settings
-from app.db import init_db, seed_user
+from app.db import init_db
 
 
 @asynccontextmanager
@@ -17,9 +17,6 @@ async def lifespan(app: FastAPI):
     # PostgreSQL schema is installed explicitly before deployment, not on cold starts.
     if not settings.database_url:
         init_db()
-        # PostgreSQL deployments create the temporary account on its first sign-in instead.
-        if settings.seed_user:
-            seed_user()
     yield
 
 

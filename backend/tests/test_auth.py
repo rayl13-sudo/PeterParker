@@ -36,8 +36,18 @@ def test_duplicate_username_or_email_rejected(client):
     assert "email" in dup_email.json()["detail"]
 
 
+def test_username_allows_special_characters(client):
+    for i, name in enumerate(["sp!dey#1", "peter_p$rker", "web*slinger&", "m.j.~(watson)", "ünïcødé"]):
+        res = client.post(
+            "/api/auth/signup",
+            json={**SIGNUP, "username": name, "email": f"user{i}@example.com"},
+        )
+        assert res.status_code == 201, (name, res.json())
+        assert login(client, name.upper() if name.isascii() else name, SIGNUP["password"]).status_code == 200, name
+
+
 def test_invalid_username_rejected(client):
-    for bad in ["ab", "has space", "at@sign"]:
+    for bad in ["ab", "has space", "at@sign", "tab\there", "x" * 33]:
         res = client.post("/api/auth/signup", json={**SIGNUP, "username": bad})
         assert res.status_code == 422, bad
 

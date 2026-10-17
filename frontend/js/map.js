@@ -4,6 +4,7 @@
 // Leaflet is loaded as a global (L) by map.html.
 import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
+import { renderAvatar } from "./avatar.js";
 
 const SIGN_IN_PAGE = "index.html";
 const UCI_CENTER = [33.6461, -117.8427]; // Aldrich Park, middle of campus
@@ -383,6 +384,7 @@ async function init() {
     const [user, parking] = await Promise.all([api.me(), api.parking()]);
     $("user-name").textContent = user.username ?? user.email;
     $("user-name").title = user.email;
+    renderAvatar($("user-avatar"), user.avatar);
     permitInfo = parking.permit_info;
     renderLots(parking.lots);
   } catch (err) {

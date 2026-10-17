@@ -1,6 +1,7 @@
 // Sign-in / sign-up page. On success the user is sent to the map page.
 import { api } from "./api.js";
 import { clearToken, getToken, saveToken } from "./auth.js";
+import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
 
 const MAP_PAGE = "map.html";
 
@@ -21,30 +22,7 @@ const modeFields = document.querySelectorAll("[data-show]");
 
 let mode = "login";
 
-// Keep in sync with the password validator in backend/app/api/routes/auth.py.
-const PASSWORD_RULES = {
-  length: (pw) => pw.length >= 8,
-  capital: (pw) => /[A-Z]/.test(pw),
-  special: (pw) => /[^A-Za-z0-9\s]/.test(pw),
-};
-const ruleItems = document.querySelectorAll("#password-rules [data-rule]");
-
-function updatePasswordRules() {
-  const pw = authPassword.value;
-  ruleItems.forEach((li) => {
-    const met = PASSWORD_RULES[li.dataset.rule](pw);
-    li.classList.toggle("met", met);
-    li.setAttribute("aria-checked", String(met));
-  });
-}
-
-function passwordMeetsRules(pw) {
-  return Object.values(PASSWORD_RULES).every((rule) => rule(pw));
-}
-
-authPassword.addEventListener("input", updatePasswordRules);
-ruleItems.forEach((li) => li.setAttribute("role", "checkbox"));
-updatePasswordRules();
+const updatePasswordRules = bindRuleChecklist(authPassword, $("password-rules"));
 
 function setMode(next) {
   mode = next;

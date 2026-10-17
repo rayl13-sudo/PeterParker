@@ -1,0 +1,93 @@
+/* Settings page. Uses the palette (--a-*) and top bar from styles.css/map.css. */
+
+.settings-page {
+  height: auto;
+  min-height: 100vh;
+}
+
+.settings {
+  width: 100%;
+  max-width: 560px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+.settings h1 { margin: 0.75rem 0 1.25rem; font-size: 1.6rem; letter-spacing: -0.02em; }
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem 0.45rem 0.6rem;
+  background: var(--a-white);
+  border: 1px solid var(--a-line);
+  border-radius: 999px;
+  color: var(--a-ink);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.back-button svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.back-button:hover { border-color: var(--a-blue-soft); color: var(--a-blue); }
+.back-button:focus-visible { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }
+
+.settings-card {
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.4rem;
+  background: var(--a-white);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(20, 24, 43, 0.06), 0 8px 24px -12px rgba(20, 24, 43, 0.18);
+}
+.settings-card h2 { margin: 0 0 1rem; font-size: 1.05rem; }
+.card-text { margin: 0 0 1rem; color: var(--a-muted); font-size: 0.92rem; }
+
+.profile-card { display: flex; align-items: center; gap: 1rem; }
+.photo-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.photo-actions .secondary-button { padding: 0.5rem 0.9rem; font-size: 0.85rem; }
+.photo-actions + .settings-message { margin: 0.75rem 0 0; }
+.file-button { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+.file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-button:focus-within { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }
+.profile-name { margin: 0; font-size: 1.15rem; font-weight: 600; }
+.profile-email { margin: 0.1rem 0 0; color: var(--a-muted); font-size: 0.9rem; }
+
+.settings-form { display: flex; flex-direction: column; gap: 0.9rem; }
+.settings-form label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; font-weight: 500; }
+.settings-form input {
+  padding: 0.7rem 0.85rem;
+  background: var(--a-field);
+  color: var(--a-ink);
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.95rem;
+}
+.settings-form input:focus { outline: none; background: var(--a-white); border-color: var(--a-blue); }
+.settings-form input:disabled { opacity: 0.6; cursor: not-allowed; }
+.settings-form small, .form-footnote { color: var(--a-muted); font-size: 0.78rem; font-weight: 400; }
+.settings-form .rules { margin: -0.4rem 0 0; }
+
+.settings-form button[type="submit"], .secondary-button {
+  align-self: flex-start;
+  padding: 0.65rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.settings-form button[type="submit"] { background: var(--a-blue); color: var(--a-white); }
+.settings-form button[type="submit"]:hover:not(:disabled) { background: var(--a-blue-dark); }
+.settings-form button:disabled { opacity: 0.55; cursor: not-allowed; }
+.secondary-button { background: var(--a-field); color: var(--a-ink); border: 1px solid var(--a-line); }
+.secondary-button:hover { background: var(--a-line); }
+
+.settings-message {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--a-blue);
+  background: var(--a-blue-tint);
+  color: var(--a-blue-dark);
+  font-size: 0.88rem;
+}
+.settings-form .settings-message { margin: 0; }
+.settings-message.success { border-left-color: var(--a-blue); }
+.settings-message.error { border-left-color: #e06f68; background: #fdeeed; color: #9b2c26; }

@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS items (
 MIGRATIONS = [
     ("users", "supabase_id", "ALTER TABLE users ADD COLUMN supabase_id TEXT"),
     ("users", "username", "ALTER TABLE users ADD COLUMN username TEXT"),
+    ("users", "avatar_bg", "ALTER TABLE users ADD COLUMN avatar_bg TEXT"),
+    ("users", "avatar_fg", "ALTER TABLE users ADD COLUMN avatar_fg TEXT"),
+    ("users", "avatar_image", "ALTER TABLE users ADD COLUMN avatar_image TEXT"),
 ]
 
 INDEXES = """
@@ -92,7 +95,9 @@ def init_db() -> None:
     if settings.database_url:
         conn = connect()
         try:
-            conn.execute((Path(__file__).parent.parent / "migrations" / "001_postgres.sql").read_text())
+            # Every migration is idempotent (IF NOT EXISTS), so run them all in order.
+            for migration in sorted((Path(__file__).parent.parent / "migrations").glob("*.sql")):
+                conn.execute(migration.read_text())
             conn.commit()
         finally:
             conn.close()
@@ -113,28 +118,3 @@ def get_db() -> Iterator[sqlite3.Connection | PostgresConnection]:
         conn.commit()
     finally:
         conn.close()
-
-
-def seed_user() -> None:
-    """Make sure the temporary account exists and its password matches settings."""
-    from app.security import hash_password, verify_password  # avoid import cycle
-
-    with connect() as conn:
-        row = conn.execute(
-            "SELECT id, password_hash FROM users WHERE username = ?", (settings.seed_username,)
-        ).fetchone()
-        if row is not None:
-            if not verify_password(settings.seed_password, row["password_hash"]):
-                conn.execute(
-                    "UPDATE users SET password_hash = ? WHERE id = ?",
-                    (hash_password(settings.seed_password), row["id"]),
-                )
-            return
-        if conn.execute("SELECT 1 FROM users WHERE email = ?", (settings.seed_email,)).fetchone():
-            logger.warning("Seed email %s belongs to another account; not creating %s",
-                           settings.seed_email, settings.seed_username)
-            return
-        conn.execute(
-            "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-            (settings.seed_username, settings.seed_email, hash_password(settings.seed_password)),
-        )

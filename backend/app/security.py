@@ -31,7 +31,7 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(digest.hex(), digest_hex)
 
 
-def _hash_token(token: str) -> str:
+def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
@@ -46,13 +46,13 @@ def create_session(db: sqlite3.Connection, user_id: int, remember_me: bool) -> t
     expires_at = datetime.now(UTC) + lifetime
     db.execute(
         "INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)",
-        (_hash_token(token), user_id, expires_at.isoformat()),
+        (hash_token(token), user_id, expires_at.isoformat()),
     )
     return token, expires_at
 
 
 def revoke_session(db: sqlite3.Connection, token: str) -> None:
-    db.execute("DELETE FROM sessions WHERE token_hash = ?", (_hash_token(token),))
+    db.execute("DELETE FROM sessions WHERE token_hash = ?", (hash_token(token),))
 
 
 def get_current_user(
@@ -73,7 +73,7 @@ def get_current_user(
         FROM sessions JOIN users ON users.id = sessions.user_id
         WHERE sessions.token_hash = ?
         """,
-        (_hash_token(creds.credentials),),
+        (hash_token(creds.credentials),),
     ).fetchone()
     if row is None:
         raise unauthorized

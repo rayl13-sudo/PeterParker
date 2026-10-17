@@ -262,6 +262,23 @@ li {
   background: var(--a-white);
   border-color: var(--a-blue);
 }
+/* Round icons inside the fields (person, email, lock) so the boxes line up */
+.input-with-icon { position: relative; display: block; }
+.input-with-icon input { width: 100%; box-sizing: border-box; padding-left: 2.6rem !important; }
+.field-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.field-icon circle:first-child { fill: var(--a-blue-tint); stroke: var(--a-blue-soft); stroke-width: 1; }
+.field-icon .cut { fill: var(--a-blue); }
+.field-icon .stroke { fill: none; stroke: var(--a-blue); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.input-with-icon:focus-within .field-icon circle:first-child { stroke: var(--a-blue); }
+
 #auth-form label.checkbox {
   flex-direction: row;
   align-items: center;
