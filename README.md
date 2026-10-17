@@ -58,6 +58,28 @@ Backend settings come from environment variables or `backend/.env` (see `backend
 
 ## Existing authentication
 
+### Supabase setup
+
+Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `backend/.env`
+(see `backend/.env.example`), then restart the backend. Both settings are required
+to enable Supabase authentication. Without either setting, local authentication
+remains available. The root `.env.local` is not loaded by this FastAPI app.
+
+In Supabase Authentication settings, enable email/password login and set the
+Site URL to `http://localhost:5173` for local development (use your actual frontend
+URL in production). If email confirmation is enabled, signup displays a prompt
+to check email. After confirming, use email for the first sign-in; subsequent
+sign-ins also accept the username. Usernames must be unique among linked accounts;
+if a username becomes unavailable before confirmation, email sign-in still works.
+
+Supabase checks credentials; SQLite stores the local profile, items and revocable
+app sessions with the existing Remember Me lifetimes. Supabase sign-out or account
+changes do not revoke these local sessions automatically. Existing local accounts
+need a Supabase account with the same verified email to link their data on login.
+Passwords are not migrated. Never use a service-role or secret key here.
+
+### Local authentication
+
 Opening the app shows a sign-in / sign-up screen. Sign-up asks for a username and
 email; sign-in accepts either one in a single "Username or email" field.
 

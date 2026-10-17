@@ -7,6 +7,11 @@ from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator
 
 from app.db import get_db
+<<<<<<< Updated upstream
+=======
+from app.moderation import is_username_allowed
+from app import supabase_auth
+>>>>>>> Stashed changes
 from app.security import (
     bearer,
     create_session,
@@ -90,13 +95,18 @@ class AuthResponse(BaseModel):
     user: User
 
 
+class ConfirmationResponse(BaseModel):
+    confirmation_required: bool = True
+    message: str = "Check your email to confirm your account, then sign in."
+
+
 def _issue(db: sqlite3.Connection, user: User, remember_me: bool) -> AuthResponse:
     token, expires_at = create_session(db, user.id, remember_me)
     return AuthResponse(token=token, expires_at=expires_at, user=user)
 
 
-@router.post("/signup", response_model=AuthResponse, status_code=201)
-def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse:
+@router.post("/signup", response_model=AuthResponse | ConfirmationResponse, status_code=201)
+def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse | ConfirmationResponse:
     taken = db.execute(
         "SELECT username = ? AS username_taken FROM users WHERE username = ? OR email = ?",
         (payload.username, payload.username, payload.email),
@@ -104,6 +114,16 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
     if taken is not None:
         field = "username" if taken["username_taken"] else "email"
         raise HTTPException(status.HTTP_409_CONFLICT, f"That {field} is already taken")
+
+    if supabase_auth.enabled():
+        result = supabase_auth.request("signup", {
+            "email": payload.email, "password": payload.password,
+            "data": {"username": payload.username},
+        })
+        # Confirmation-required accounts are linked only after a verified login.
+        if not result.get("access_token"):
+            return ConfirmationResponse()
+        return _supabase_session(db, result["user"], payload.remember_me)
 
     cur = db.execute(
         "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
@@ -115,6 +135,18 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse:
+    if supabase_auth.enabled():
+        email = payload.identifier
+        if "@" not in email:
+            account = db.execute("SELECT email FROM users WHERE username = ?", (email,)).fetchone()
+            if account is None:
+                raise HTTPException(401, "Use your email for your first sign-in after confirming your account")
+            email = account["email"]
+        result = supabase_auth.request("token?grant_type=password", {
+            "email": email, "password": payload.password,
+        })
+        return _supabase_session(db, result["user"], payload.remember_me)
+
     column = "email" if "@" in payload.identifier else "username"
     row = db.execute(
         f"SELECT id, username, email, password_hash FROM users WHERE {column} = ?",
@@ -124,6 +156,31 @@ def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthRes
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
     user = User(id=row["id"], username=row["username"], email=row["email"])
     return _issue(db, user, payload.remember_me)
+
+
+def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -> AuthResponse:
+    remote_id, email = remote["id"], remote["email"].strip().lower()
+    row = db.execute("SELECT * FROM users WHERE supabase_id = ?", (remote_id,)).fetchone()
+    if row is None:
+        existing = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        if existing is not None:
+            # Never link an unverified external identity to an existing account.
+            if existing["supabase_id"] or not remote.get("email_confirmed_at"):
+                raise HTTPException(409, "This email is already associated with an account")
+            db.execute("UPDATE users SET supabase_id = ? WHERE id = ?", (remote_id, existing["id"]))
+            row = existing
+        else:
+            username = (remote.get("user_metadata") or {}).get("username")
+            if not isinstance(username, str) or not USERNAME_RE.fullmatch(username) or not is_username_allowed(username):
+                username = None
+            if username and db.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
+                username = None
+            cur = db.execute(
+                "INSERT INTO users (username, email, password_hash, supabase_id) VALUES (?, ?, ?, ?)",
+                (username, email, "supabase", remote_id),
+            )
+            row = db.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return _issue(db, User(id=row["id"], username=row["username"], email=row["email"]), remember_me)
 
 
 @router.post("/logout", status_code=204)

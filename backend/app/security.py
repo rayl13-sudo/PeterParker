@@ -22,6 +22,8 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, stored: str) -> bool:
+    if stored == "supabase":
+        return False
     _, iterations, salt_hex, digest_hex = stored.split("$")
     digest = hashlib.pbkdf2_hmac(
         "sha256", password.encode(), bytes.fromhex(salt_hex), int(iterations)

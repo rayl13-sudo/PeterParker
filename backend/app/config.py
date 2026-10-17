@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     # Session lifetimes: a normal sign-in vs. "Remember Me".
     session_hours: int = 12
     remember_me_days: int = 30
+    supabase_url: str = ""
+    supabase_publishable_key: str = ""
 
 
 settings = Settings()

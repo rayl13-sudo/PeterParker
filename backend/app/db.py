@@ -27,10 +27,12 @@ CREATE TABLE IF NOT EXISTS items (
 
 # Applied after SCHEMA so databases created before a column existed catch up.
 MIGRATIONS = [
+    ("users", "supabase_id", "ALTER TABLE users ADD COLUMN supabase_id TEXT"),
     ("users", "username", "ALTER TABLE users ADD COLUMN username TEXT"),
 ]
 
 INDEXES = """
+CREATE UNIQUE INDEX IF NOT EXISTS users_supabase_id ON users(supabase_id);
 CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username);
 """
 

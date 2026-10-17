@@ -94,7 +94,7 @@ authForm.addEventListener("submit", async (e) => {
 
   authSubmit.disabled = true;
   try {
-    const { token, user } =
+    const result =
       mode === "login"
         ? await api.login({ identifier: authIdentifier.value.trim(), password, rememberMe })
         : await api.signup({
@@ -103,6 +103,14 @@ authForm.addEventListener("submit", async (e) => {
             password,
             rememberMe,
           });
+    if (result.confirmation_required) {
+      authForm.reset();
+      updatePasswordRules();
+      setMode("login");
+      showAuthError(new Error(result.message));
+      return;
+    }
+    const { token, user } = result;
     saveToken(token, rememberMe);
     authForm.reset();
     updatePasswordRules();
