@@ -334,22 +334,104 @@ function permitSectionForYou(lot) {
   return section;
 }
 
+// The banner's permit badge doubles as a compact picker for switching permits.
+const PERMIT_MENU_GROUPS = [
+  { label: "Commuter “S”", test: (c) => /^S\d$/.test(c) },
+  { label: "Preferred “P”", test: (c) => /^P\d$/.test(c) },
+  { label: "Resident", test: (c) => c.startsWith("R-") },
+  { label: "Evening", test: (c) => c === "E" },
+];
+
 function renderPermitBanner() {
   const banner = $("permit-banner");
-  banner.replaceChildren();
-  if (!userPermit) {
-    banner.className = "permit-banner empty";
-    const link = el("a", null, "Add it in Settings");
-    link.href = "settings.html";
-    banner.append(el("span", null, "Have a UCI parking permit? "), link, el("span", null, " to see where you park free."));
-    return;
-  }
   const count = listEntries.filter(({ lot }) => lot.category === "mine").length;
-  banner.className = "permit-banner";
-  banner.append(
-    el("span", "permit-badge", userPermit),
-    el("span", null, count ? `${count} ${count === 1 ? "lot is" : "lots are"} free with your permit right now` : "Your permit isn't valid in any lot right now"),
-  );
+  banner.className = userPermit ? "permit-banner" : "permit-banner empty";
+
+  const picker = el("div", "permit-picker");
+  const toggle = el("button", "permit-badge");
+  toggle.type = "button";
+  toggle.id = "permit-toggle";
+  toggle.setAttribute("aria-haspopup", "true");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.setAttribute("aria-label", userPermit ? `Your permit: ${permitName(userPermit)}. Change permit` : "Choose your permit");
+  toggle.append(el("span", null, userPermit ?? "Add permit"));
+  toggle.insertAdjacentHTML("beforeend", '<svg class="chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>');
+  toggle.addEventListener("click", () => (picker.querySelector(".permit-menu") ? closePermitMenu() : openPermitMenu(picker)));
+  picker.append(toggle);
+
+  const text = userPermit
+    ? count
+      ? `${count} ${count === 1 ? "lot is" : "lots are"} free with your permit right now`
+      : "Your permit isn't valid in any lot right now"
+    : "Have a UCI permit? Pick it to see where you park free.";
+  banner.replaceChildren(picker, el("span", "permit-banner-text", text));
+}
+
+function openPermitMenu(picker) {
+  if (!permitInfo?.holdable_permits) return;
+  const menu = el("div", "permit-menu");
+  menu.setAttribute("role", "menu");
+  for (const { label, test } of PERMIT_MENU_GROUPS) {
+    const codes = permitInfo.holdable_permits.filter(test);
+    if (!codes.length) continue;
+    const row = el("div", "permit-menu-group");
+    row.append(el("span", "permit-menu-label", label));
+    const options = el("div", "permit-menu-options");
+    for (const code of codes) {
+      const btn = el("button", `permit-option${code === userPermit ? " current" : ""}`, code);
+      btn.type = "button";
+      btn.setAttribute("role", "menuitemradio");
+      btn.setAttribute("aria-checked", String(code === userPermit));
+      btn.title = `${permitName(code).replaceAll('"', "")}: ${permitInfo.permits[code]?.who ?? ""}`;
+      btn.addEventListener("click", () => choosePermit(code));
+      options.append(btn);
+    }
+    row.append(options);
+    menu.append(row);
+  }
+  const none = el("button", `permit-option none${userPermit ? "" : " current"}`, "No permit");
+  none.type = "button";
+  none.setAttribute("role", "menuitemradio");
+  none.setAttribute("aria-checked", String(!userPermit));
+  none.addEventListener("click", () => choosePermit(null));
+  menu.append(none);
+  menu.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePermitMenu({ refocus: true });
+  });
+  picker.append(menu);
+  $("permit-toggle").setAttribute("aria-expanded", "true");
+  (menu.querySelector(".permit-option.current") ?? menu.querySelector(".permit-option"))?.focus();
+}
+
+function closePermitMenu({ refocus = false } = {}) {
+  const menu = document.querySelector(".permit-menu");
+  if (!menu) return;
+  menu.classList.add("closing");
+  setTimeout(() => menu.remove(), 140);
+  $("permit-toggle")?.setAttribute("aria-expanded", "false");
+  if (refocus) $("permit-toggle")?.focus();
+}
+
+document.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest(".permit-picker")) closePermitMenu();
+});
+
+async function choosePermit(code) {
+  closePermitMenu();
+  if (code === userPermit) return;
+  const previous = userPermit;
+  userPermit = code; // update the map right away; undo if saving fails
+  applyPermit(allLots);
+  buildLotLayers();
+  try {
+    await api.setPermit(code);
+  } catch (err) {
+    userPermit = previous;
+    applyPermit(allLots);
+    buildLotLayers();
+    $("map-error").textContent = `Couldn't save your permit: ${err.message}`;
+    $("map-error").hidden = false;
+  }
 }
 
 // ---------- Side list ----------
