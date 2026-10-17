@@ -54,6 +54,8 @@ class Review(BaseModel):
     author: Author
     mine: bool
     replies: list[Reply] = []  # oldest first
+    like_count: int = 0
+    liked: bool = False
 
 
 class ReviewList(BaseModel):
@@ -153,13 +155,15 @@ def list_reviews(
         """
         SELECT reviews.id, reviews.user_id, reviews.rating, reviews.comment,
                reviews.created_at, reviews.updated_at,
+               (SELECT COUNT(*) FROM review_likes WHERE review_id = reviews.id) AS like_count,
+               EXISTS(SELECT 1 FROM review_likes WHERE review_id = reviews.id AND user_id = ?) AS liked,
                users.username, users.avatar_bg, users.avatar_fg, users.avatar_image
         FROM reviews JOIN users ON users.id = reviews.user_id
         WHERE reviews.target_type = ? AND reviews.target_id = ?
         ORDER BY reviews.user_id = ? DESC, reviews.updated_at DESC
         LIMIT ?
         """,
-        (target_type, target_id, user["id"], PAGE),
+        (user["id"], target_type, target_id, user["id"], PAGE),
     ).fetchall()
     replies = _replies(db, [r["id"] for r in rows], user["id"])
     reviews = [
@@ -168,6 +172,7 @@ def list_reviews(
             created_at=r["created_at"], updated_at=r["updated_at"],
             author=_author(r), mine=r["user_id"] == user["id"],
             replies=replies.get(r["id"], []),
+            like_count=r["like_count"], liked=bool(r["liked"]),
         )
         for r in rows
     ]
@@ -217,6 +222,38 @@ def _target_of(db, review_id: int):
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found")
     return row
+
+
+class LikeState(BaseModel):
+    like_count: int
+    liked: bool
+
+
+@router.put("/{review_id}/like", response_model=LikeState)
+def like_review(
+    review_id: int,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> LikeState:
+    _target_of(db, review_id)
+    db.execute(
+        "INSERT INTO review_likes (review_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+        (review_id, user["id"]),
+    )
+    count = db.execute("SELECT COUNT(*) AS count FROM review_likes WHERE review_id = ?", (review_id,)).fetchone()
+    return LikeState(like_count=count["count"], liked=True)
+
+
+@router.delete("/{review_id}/like", response_model=LikeState)
+def unlike_review(
+    review_id: int,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> LikeState:
+    _target_of(db, review_id)
+    db.execute("DELETE FROM review_likes WHERE review_id = ? AND user_id = ?", (review_id, user["id"]))
+    count = db.execute("SELECT COUNT(*) AS count FROM review_likes WHERE review_id = ?", (review_id,)).fetchone()
+    return LikeState(like_count=count["count"], liked=False)
 
 
 @router.post("/{review_id}/replies", response_model=ReviewList, status_code=201)

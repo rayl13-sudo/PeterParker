@@ -32,6 +32,30 @@ def review(client, headers, rating, comment="", target_type="lot", target_id=MPS
 def test_reviews_require_sign_in(client):
     assert client.get("/api/reviews", params={"target_type": "lot", "target_id": MPS}).status_code == 401
     assert client.get("/api/reviews/summary").status_code == 401
+    assert client.put("/api/reviews/1/like").status_code == 401
+    assert client.delete("/api/reviews/1/like").status_code == 401
+
+
+def test_likes_are_unique_persisted_and_scoped_to_user(client, auth_headers):
+    review_id = review(client, auth_headers, 4).json()["reviews"][0]["id"]
+    url = f"/api/reviews/{review_id}/like"
+    gwen = other_user(client)
+    for _ in range(2):
+        result = client.put(url, headers=gwen)
+        assert result.status_code == 200
+        assert result.json() == {"like_count": 1, "liked": True}
+    params = {"target_type": "lot", "target_id": MPS}
+    for headers, liked in [(gwen, True), (auth_headers, False)]:
+        saved = client.get("/api/reviews", params=params, headers=headers).json()["reviews"][0]
+        assert saved["like_count"] == 1 and saved["liked"] is liked
+    assert client.put(url, headers=auth_headers).json()["like_count"] == 2
+    for _ in range(2):
+        assert client.delete(url, headers=gwen).json() == {"like_count": 1, "liked": False}
+    assert client.delete(url, headers=auth_headers).json()["like_count"] == 0
+    client.put(url, headers=gwen)
+    assert client.delete(f"/api/reviews/{review_id}", headers=auth_headers).status_code == 204
+    assert client.put(url, headers=gwen).status_code == 404
+    assert client.delete(url, headers=gwen).status_code == 404
 
 
 def test_post_list_and_average(client, auth_headers):

@@ -186,11 +186,6 @@ li {
 }
 .partner-logo { height: 22px; width: auto; display: block; }
 .mascot-logo { height: 48px; width: 44px; object-fit: contain; display: block; }
-.mark { display: inline-flex; gap: 4px; }
-.mark i { width: 10px; height: 10px; border-radius: 50%; }
-.mark i:nth-child(1) { background: var(--a-blue); }
-.mark i:nth-child(2) { background: var(--a-blue-soft); }
-.mark i:nth-child(3) { background: var(--a-gray); }
 
 .auth-card h1 {
   margin: 0;
