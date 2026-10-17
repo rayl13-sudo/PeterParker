@@ -1,47 +1,45 @@
 # PeterParker
 
-PeterParker is a UCI parking finder. Enter a campus location and see nearby parking options on a map and in a short list. Each result should explain where it is and what kind of parking is allowed there.
+PeterParker helps people find parking near a searched UCI location. The demo has four screens: **login/sign-up, map/search, parking details, and profile**. Selecting a color-coded place on the map opens its distance, permit/type information, rating, and community reports.
 
-## 12-hour MVP
+## 12-hour feature plan
 
-The main flow is **search → compare nearby parking → open a parking location**. Build this before polishing the other prototype screens.
+| Screen | Must work in the demo | Backend support |
+| --- | --- | --- |
+| Login/sign-up | Create an account, sign in, sign out, and keep the session. | Repair and reuse the existing `/api/auth/*` routes. |
+| Main map | Search a supported UCI landmark, see nearby parking pins and a matching list, filter by parking type, and select a place. | Return a small verified parking catalog with coordinates, type, address, and permit notes. A short landmark list and straight-line distance calculation can live in the frontend; label the distance accordingly. |
+| Parking details | Show name, distance from the search point, parking rules, rating, community reports, and a directions link. | Return place details and stored ratings/reports. Show “No ratings yet” when none exist. |
+| Profile | Show username, email, selected permit type, and saved parking places. Let the user update the permit type and save/unsave a place. | Reuse `/api/auth/me`; add profile and saved-place routes scoped to the signed-in user. |
 
-1. Open the map and show parking locations as pins, with a matching result list.
-2. Search for a UCI building, landmark, or address. Recenter the map and sort results by distance from the selected location. If full address search is unavailable, ship a small set of searchable UCI landmarks first.
-3. Select a pin or result to see the parking name, address, distance, parking type (student, visitor, paid, etc.), and known permit restrictions. Add a directions link.
-4. Filter results by parking type. Use the same colors for pins, filters, and result labels.
-5. Let people use parking search as guests; keep account features optional. Make the layout usable on a phone and desktop, with clear empty, loading, and error states.
+The map colors represent **parking/permit types**, with a legend and the same labels in result cards. Search is limited to a small, known UCI area for this demo. Do not promise live spot availability or invent spot counts, ratings, or community reports.
 
-Start with a small, checked set of UCI parking locations and coordinates. Show only information backed by that data. **Do not display invented live spot counts, availability, ratings, or reviews.** If availability is added later, label its source and update time.
+### Backend work split
 
-### What the repository has today
+Agree on the place JSON shape and database fields first. Assign one owner to `backend/app/db.py` migrations and `backend/app/api/__init__.py` router registration so separate workstreams do not edit those files at the same time.
 
-- `frontend/` is plain HTML, CSS, and JavaScript with no build step.
-- The current UI has sign-in and sign-up forms, a signed-in header, and a generic add/delete **Items** list. It has no parking map, location search, parking dataset, filters, or parking detail view yet.
-- `backend/` is a FastAPI app with SQLite-backed accounts, sessions, and user-scoped generic items. It has no parking or location API yet.
-- The existing email/password account flow can be reused later. Google sign-in, guest access, profile editing, saved places, and permit management are not implemented.
+| Workstream | Files/routes to own | Deliverable |
+| --- | --- | --- |
+| **1. Auth + profile** | Existing `routes/auth.py`; new `routes/profile.py` | First fix the committed conflict markers and missing moderation import in `auth.py` so the API starts. Preserve login/sign-up/logout/`me`. Add `GET /api/profile`, `PATCH /api/profile` for a simple permit type, and `GET/POST/DELETE /api/profile/saved/{place_id}` for saved places. Keep email/password changes out of this sprint. |
+| **2. Parking catalog + search data** | New `routes/parking.py`; checked seed data | Add `parking_places` with ID, name, latitude, longitude, address, parking type, permit note, and optional source URL. Expose `GET /api/parking` and `GET /api/parking/{id}`. The frontend can filter and calculate distance for a small catalog, so no geocoding service is required. |
+| **3. Community ratings/reports** | New `routes/reviews.py` | Add reviews linked to a real user and place, with a 1–5 rating, short report, and timestamp. Expose `GET /api/parking/{id}/reviews` and authenticated `POST /api/parking/{id}/reviews`; return the average rating and count from stored reviews. No review means no rating. |
+| **4. Integration** | DB schema/router registration, API checks | Connect the routes, confirm anonymous reads versus signed-in writes, check error responses, and run one end-to-end flow across all four screens. |
 
-### Scope from the prototypes
+Suggested tables: `parking_places`, `reviews(place_id, user_id, rating, report, created_at)`, and `saved_places(user_id, place_id)`. Add `permit_type` to the user profile. Keep the existing `items` API untouched until the new flow is working; the Items UI is a scaffold, not parking data.
 
-| Prototype idea | MVP decision |
-| --- | --- |
-| Map, search bar, colored parking pins, and result cards | Build now; these are the core product. |
-| Parking type and permit information | Show for verified locations; filter by type. |
-| Sign-in and sign-up | Keep the existing email/password flow, but let guests search for parking without an account. |
-| Profile and saved places | Later; the current Items feature is only a generic scaffold. |
-| Real-time availability and spot counts | Later, only with a reliable data source. |
-| Ratings, reviews, cautions, messaging, Google sign-in, admin dashboard | Later. |
+### Build order and cut line
 
-### Suggested 12-hour order
+1. **Hours 0–2:** Repair auth startup, agree on the API contract, and verify a small parking dataset.
+2. **Hours 2–6:** Ship the parking API and connect search, pins, list, filters, and details.
+3. **Hours 6–9:** Add persisted reviews/ratings, profile permit type, and saved places.
+4. **Hours 9–12:** Integrate the four screens and check mobile layout, empty states, authentication, and the main flow.
 
-| Time | Work |
-| --- | --- |
-| Hours 0–2 | Verify a small parking dataset: name, coordinates, address, type, and permit notes. |
-| Hours 2–6 | Replace the generic Items screen with the map, pins, and matching list. |
-| Hours 6–9 | Add location search, distance ordering, filters, and parking details/directions. |
-| Hours 9–12 | Check mobile layout, keyboard use, empty/error states, and the main flow end to end. |
+If time slips, keep the four screens but simplify profile to read-only account details and show ratings/reports as an empty state until real entries exist. Protect the core **search → select parking → inspect details** flow. Live availability, Google sign-in, admin tools, messaging, and email/password changes are outside this sprint.
 
-The MVP is done when a guest can enter a supported location, see nearby parking on both the map and list, filter by type, open a result, and understand its parking restrictions. A selected result and its pin should stay in sync.
+### Current repository status
+
+- The frontend is plain HTML/CSS/JavaScript with no build step. It currently contains the login/sign-up screen and a generic signed-in Items screen; the parking map, details, and profile screens still need to be built.
+- FastAPI and SQLite already support users, sessions, and generic user-scoped items. Supabase authentication has been added as an option, but the current `auth.py` has committed conflict markers and imports a missing `app.moderation` module. Repair that before testing the login flow.
+- The backend has no parking, profile, saved-place, or review endpoints yet.
 
 ## Run the current scaffold
 
@@ -143,4 +141,3 @@ with PBKDF2, and the API issues an opaque bearer token; only its hash is stored.
 
 Endpoints: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`,
 `GET /api/auth/me`. The `/api/items` routes require a token and are scoped per user.
-The current scaffold requires sign-in to reach its Items screen. Sign-up collects a username and email; sign-in accepts either. Passwords need at least eight characters, one capital letter, and one special character. `Remember Me` stores the token in `localStorage` for the configured long session; otherwise it uses `sessionStorage`. The API exposes `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, and `GET /api/auth/me`.
