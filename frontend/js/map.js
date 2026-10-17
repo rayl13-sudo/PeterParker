@@ -245,7 +245,56 @@ function popupContent(lot) {
   return root;
 }
 
-const POPUP_OPTIONS = { maxWidth: 300, maxHeight: 380 };
+const POPUP_OPTIONS = { maxWidth: 300, maxHeight: 380, autoPan: false };
+let nextParkingPopupZoom = null;
+
+function centerParkingPopup({ popup, zoom = map.getZoom() }) {
+  map.stop();
+  const frame = map.getContainer().getBoundingClientRect();
+  const mobile = window.matchMedia("(max-width: 640px)").matches;
+  const panel = $("panel");
+  const panelRect = panel.getBoundingClientRect();
+  const keyRect = $("map-key").getBoundingClientRect();
+  const controls = map.getContainer().querySelector(".leaflet-top.leaflet-right");
+  const controlWidth = controls?.getBoundingClientRect().width ?? 0;
+  const panelOpen = !panel.classList.contains("collapsed");
+  const left = !mobile && panelOpen ? Math.max(frame.left, panelRect.right) + 16 : frame.left + 16;
+  const right = frame.right - controlWidth - 24;
+  const top = mobile ? Math.max(frame.top + 16, keyRect.bottom + 12) : frame.top + 16;
+  const bottom = mobile && panelOpen ? panelRect.top - 16
+    : Math.min(frame.bottom - 24, mobile ? frame.bottom - 24 : keyRect.top - 16);
+  const availableHeight = bottom - top;
+  // Long descriptions scroll within the space above the mobile results sheet.
+  popup.options.maxHeight = Math.max(80, Math.min(380, availableHeight - 64));
+  popup.options.maxWidth = Math.max(180, Math.min(300, right - left - 48));
+  popup.update();
+  const box = popup.getElement().getBoundingClientRect();
+  const offset = L.point(
+    (box.left + box.right - left - right) / 2,
+    (box.top + box.bottom - top - bottom) / 2,
+  );
+  // Compute the final center at the target zoom, keeping the popup's pixel offset.
+  const anchor = map.latLngToContainerPoint(popup.getLatLng());
+  const center = map.unproject(
+    map.project(popup.getLatLng(), zoom).add(map.getSize().divideBy(2)).add(offset).subtract(anchor),
+    zoom,
+  );
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    map.setView(center, zoom, { animate: false, reset: true });
+  } else if (zoom !== map.getZoom()) {
+    map.flyTo(center, zoom, { duration: 0.7, easeLinearity: 0.35 });
+  } else {
+    map.panTo(center, { animate: true, duration: 0.7, easeLinearity: 0.35 });
+  }
+}
+
+map.on("popupopen", ({ popup }) => {
+  const zoom = nextParkingPopupZoom ?? map.getZoom();
+  nextParkingPopupZoom = null;
+  requestAnimationFrame(() => {
+    if (map.hasLayer(popup)) centerParkingPopup({ popup, zoom });
+  });
+});
 
 function dot(lot) {
   const cat = CATEGORIES[lot.category];
@@ -780,8 +829,10 @@ function focusLot({ lot, primary: layer }) {
   $("search-shortcuts").hidden = true;
   renderList();
   if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
-  map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
-  map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
+  map.stop();
+  map.closePopup();
+  nextParkingPopupZoom = 18;
+  layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) });
 }
 
 function renderRecentShortcuts(showOnFocus = false) {
