@@ -283,6 +283,7 @@ function listItem({ lot, primary: layer }, walkMeters) {
   if (rating) text.append(el("small", "rating-line", rating));
   btn.append(swatch, text);
   btn.addEventListener("click", () => {
+    if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
     map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
     map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
   });
@@ -746,7 +747,8 @@ function setupCollapsible({ container, toggle, storageKey, labels }) {
     toggle.setAttribute("aria-expanded", String(!collapsed));
     if (labels) toggle.setAttribute("aria-label", collapsed ? labels.show : labels.hide);
   };
-  apply(loadFlag(storageKey));
+  apply(container.id === "panel" && window.matchMedia("(max-width: 640px)").matches
+    ? false : loadFlag(storageKey));
   toggle.addEventListener("click", () => {
     const collapsed = !container.classList.contains("collapsed");
     apply(collapsed);
@@ -761,6 +763,67 @@ setupCollapsible({
   labels: { show: "Show free parking list", hide: "Hide free parking list" },
 });
 setupCollapsible({ container: $("map-key"), toggle: $("key-toggle"), storageKey: "pp_key_collapsed" });
+
+// Four mobile snap points, including a handle-only position to reveal the map.
+const panelHandle = $("panel-handle");
+const panel = $("panel");
+const sheetLevels = [0, 0.42, 0.7, 1];
+const sheetNames = ["Minimized", "Preview", "Medium height", "Full height"];
+let sheetLevel = 1;
+function setPanelLevel(level) {
+  sheetLevel = Math.max(0, Math.min(sheetLevels.length - 1, level));
+  panel.dataset.level = String(sheetLevel);
+  panel.classList.toggle("expanded", sheetLevel === 3);
+  panel.style.removeProperty("--sheet-height");
+  panel.querySelector(".panel-body").inert = sheetLevel === 0 && window.matchMedia("(max-width: 640px)").matches;
+  panelHandle.setAttribute("aria-valuenow", String(sheetLevel + 1));
+  panelHandle.setAttribute("aria-valuetext", sheetNames[sheetLevel]);
+}
+function setPanelExpanded(expanded) {
+  setPanelLevel(expanded ? 3 : 1);
+}
+panelHandle.addEventListener("keydown", (event) => {
+  const levels = { ArrowUp: sheetLevel + 1, ArrowDown: sheetLevel - 1, Home: 0, End: 3 };
+  if (!(event.key in levels)) return;
+  event.preventDefault();
+  setPanelLevel(levels[event.key]);
+});
+let sheetDrag = null;
+panelHandle.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || !window.matchMedia("(max-width: 640px)").matches) return;
+  sheetDrag = { id: event.pointerId, y: event.clientY, height: panel.getBoundingClientRect().height,
+    available: panel.parentElement.clientHeight, level: sheetLevel };
+  panelHandle.setPointerCapture(event.pointerId);
+});
+panelHandle.addEventListener("pointermove", (event) => {
+  if (!sheetDrag || event.pointerId !== sheetDrag.id) return;
+  const fraction = (sheetDrag.height + sheetDrag.y - event.clientY) / sheetDrag.available;
+  sheetDrag.fraction = Math.max(sheetLevels[0], Math.min(1, fraction));
+  // Keep the handle reachable while dragging toward the full-screen snap point.
+  panel.classList.add("dragging");
+  panel.classList.remove("expanded");
+  panel.style.setProperty("--sheet-height", `${Math.min(0.92, sheetDrag.fraction) * 100}%`);
+});
+function finishSheetDrag(event) {
+  if (!sheetDrag || event.pointerId !== sheetDrag.id) return;
+  const drag = sheetDrag;
+  sheetDrag = null;
+  panel.classList.remove("dragging");
+  const fraction = event.type === "pointercancel" ? sheetLevels[drag.level]
+    : drag.fraction ?? sheetLevels[drag.level];
+  const nearest = sheetLevels.reduce((best, point, index) =>
+    Math.abs(point - fraction) < Math.abs(sheetLevels[best] - fraction) ? index : best, 0);
+  setPanelLevel(nearest);
+  if (panelHandle.hasPointerCapture(event.pointerId)) panelHandle.releasePointerCapture(event.pointerId);
+}
+panelHandle.addEventListener("pointerup", finishSheetDrag);
+panelHandle.addEventListener("pointercancel", finishSheetDrag);
+panelHandle.addEventListener("lostpointercapture", finishSheetDrag);
+setPanelLevel(1);
+window.matchMedia("(max-width: 640px)").addEventListener("change", (event) => {
+  if (event.matches && panel.classList.contains("collapsed")) $("panel-toggle").click();
+  setPanelLevel(sheetLevel);
+});
 
 function renderKey() {
   $("key-list").replaceChildren(

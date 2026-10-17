@@ -41,6 +41,12 @@
       <div id="map" aria-label="Map of UC Irvine showing parking"></div>
 
       <aside id="panel" class="panel">
+        <div id="panel-handle" class="panel-handle" role="slider" tabindex="0"
+             aria-label="Parking list height" aria-orientation="vertical"
+             aria-valuemin="1" aria-valuemax="4" aria-valuenow="2"
+             aria-valuetext="Preview" title="Drag up or down to resize the parking list">
+          <span aria-hidden="true"></span>
+        </div>
         <button id="panel-toggle" class="panel-toggle" type="button"
                 aria-controls="panel" aria-expanded="true" aria-label="Hide free parking list">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>

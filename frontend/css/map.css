@@ -3,6 +3,7 @@
 .map-page {
   margin: 0;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: #f6f7fa;
@@ -339,6 +340,7 @@
   transition: transform 0.3s;
 }
 .panel.collapsed .panel-toggle svg { transform: rotate(180deg); }
+.panel-handle { display: none; }
 
 .swatch {
   display: inline-block;
@@ -533,19 +535,54 @@
     right: 0.75rem;
     bottom: 0.75rem;
     width: auto;
-    height: 42%;
+    height: var(--sheet-height, 42%);
+    min-height: 2.75rem;
   }
+  .panel[data-level="0"] { --sheet-height: 2.75rem; }
+  .panel[data-level="0"]:not(.dragging) .panel-body { visibility: hidden; }
+  .panel[data-level="2"] { --sheet-height: 70%; }
+  .panel .panel-body { padding-top: 2.75rem; }
+  .panel-handle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    place-items: center;
+    width: 6rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    background: transparent;
+    touch-action: none;
+    cursor: ns-resize;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .panel-handle span {
+    position: relative;
+    width: 1.75rem;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--a-blue-fade);
+    transition: width 0.18s, background 0.18s;
+    pointer-events: none;
+  }
+  .panel-handle:active span, .panel.dragging .panel-handle span {
+    width: 2.25rem;
+    background: var(--a-blue);
+  }
+  .panel-handle:focus-visible { outline: 2px solid var(--a-blue); outline-offset: -6px; }
+  .panel.collapsed .panel-handle { display: none; }
+  .panel.dragging { transition: none; }
   .panel.collapsed { transform: translateY(calc(100% + 0.75rem)); }
-  /* Tab sits on the sheet's top edge */
-  .panel-toggle {
-    top: -2.25rem;
-    right: auto;
-    left: 1rem; /* clear of the map attribution on the right */
-    width: 2.75rem;
-    height: 2.25rem;
-    border-radius: 10px 10px 0 0;
-    box-shadow: 0 -4px 10px -4px rgba(20, 24, 43, 0.25);
+  .panel-toggle { display: none; }
+  .panel.expanded:not(.collapsed) {
+    inset: 0;
+    height: 100%;
+    border-radius: 0;
+    z-index: 1001;
   }
+<<<<<<< Updated upstream
   .panel-toggle svg { transform: rotate(-90deg); }
   .panel.collapsed .panel-toggle svg { transform: rotate(90deg); }
   /* On phones the key sits at the top, so it opens downward under its header. */
@@ -553,6 +590,19 @@
   .map-key .key-list { padding: 0.15rem 0.85rem 0.8rem; }
   .key-header svg { transform: none; }
   .map-key.collapsed .key-header svg { transform: rotate(180deg); }
+=======
+  .panel.expanded:not(.collapsed) .panel-body {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  .panel-body > .search, .panel-body > .panel-note,
+  .panel-view > :not(#spot-list):not(.reviews-scroll):not(.directions-steps) { flex-shrink: 0; }
+  #spot-list { overscroll-behavior-y: contain; }
+  .map-key { top: 0.75rem; bottom: auto; left: 0.75rem; right: auto; }
+>>>>>>> Stashed changes
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-handle span { transition: none; }
 }
 
 /* ---------- Ratings & reviews ---------- */
