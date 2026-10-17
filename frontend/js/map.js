@@ -316,15 +316,7 @@ function listItem({ lot, primary: layer }, walkMeters) {
   const rating = ratingLabel("lot", lot.id);
   if (rating) text.append(el("small", "rating-line", rating));
   btn.append(swatch, text);
-<<<<<<< Updated upstream
-  btn.addEventListener("click", () => {
-    if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
-    map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
-    map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
-  });
-=======
   btn.addEventListener("click", () => focusLot({ lot, primary: layer }));
->>>>>>> Stashed changes
   const li = el("li");
   li.className = "savable-row";
   li.append(btn, saveButton("lot", lot.id, lot.name, true));
@@ -385,7 +377,6 @@ function showPlaceReviews(place) {
   openReviews({ type: "place", id: place.id, name: place.name, kind: place.kind });
 }
 
-<<<<<<< Updated upstream
 function listTitle(cats, minStars) {
   const names = CATEGORY_ORDER.filter((c) => cats.has(c)).map((c) => FILTER_NAMES[c]);
   const what = names.length ? `${names.join(" & ")} parking` : "Parking";
@@ -396,6 +387,7 @@ function listTitle(cats, minStars) {
 // Rebuilds the side list. With `animate`, items cascade in (used for chip clicks,
 // picking a destination, first load; not on every keystroke).
 function renderList({ animate = false } = {}) {
+  if (!animate) $("spot-list").classList.remove("enter");
   buildList();
   if (animate) animateList();
 }
@@ -410,36 +402,10 @@ function animateList() {
 
 function buildList() {
   const { categories: cats, minStars, text } = activeFilters();
-=======
-function renderList() {
-  const searching = searchResults !== null || destination !== null;
-  document.querySelector(".list-tabs").classList.toggle("searching", searching || savedView);
   updateSavedButton();
->>>>>>> Stashed changes
 
-  if (destination) {
-    $("panel-title").textContent = `Parking near ${destination.name}`;
-    const usable = nearest.filter(({ entry }) => entry.lot.category !== "limited");
-    const risky = nearest.filter(({ entry }) => entry.lot.category === "limited");
-<<<<<<< Updated upstream
-    const filtered = cats.size || minStars;
-    $("spot-count").textContent = filtered ? `Closest ${listTitle(cats, minStars).toLowerCase().replace(" near uci", "")}` : "Closest lots by walking distance";
-    const items = [placeCard(destination)];
-    if (usable.length) items.push(sectionHeading("Closest parking"), ...usable.map(({ entry, meters }) => listItem(entry, meters)));
-    if (risky.length) items.push(sectionHeading(usable.length ? "Also nearby: may be towed" : "Closest (may be towed)"), ...risky.map(({ entry, meters }) => listItem(entry, meters)));
-    if (!usable.length && !risky.length) items.push(el("li", "no-results", "No nearby lots match these filters."));
-=======
-    $("spot-count").textContent = "Closest lots by walking distance";
-    $("spot-list").replaceChildren(
-      placeCard(destination),
-      sectionHeading("Closest parking"),
-      ...usable.map(({ entry, meters }) => listItem(entry, meters)),
-      ...(risky.length ? [sectionHeading("Also nearby: may be towed")] : []),
-      ...risky.map(({ entry, meters }) => listItem(entry, meters)),
-    );
-  } else if (savedView) {
-    const saved = mapHistory?.saved() ?? [];
-    const items = saved.map((item) => {
+  if (savedView && !destination) {
+    const items = (mapHistory?.saved() ?? []).map((item) => {
       if (item.type === "place") {
         const place = places.find((candidate) => candidate.id === item.id);
         return place ? placeItem(place) : null;
@@ -450,24 +416,23 @@ function renderList() {
     $("panel-title").textContent = "Saved places";
     $("spot-count").textContent = `${items.length} saved ${items.length === 1 ? "place" : "places"}`;
     $("spot-list").replaceChildren(...(items.length ? items : [el("li", "no-results", "Use ☆ beside a place or parking lot to save it here.")]));
-  } else if (searching) {
-    const lots = searchResults;
-    const places = placeResults;
-    $("panel-title").textContent = "Search results";
-    const parts = [];
-    if (places.length) parts.push(`${places.length} ${places.length === 1 ? "place" : "places"}`);
-    parts.push(`${lots.length} ${lots.length === 1 ? "lot" : "lots"}`);
-    $("spot-count").textContent = `${parts.join(" and ")} for “${$("search").value.trim()}”`;
-    const items = [];
-    if (places.length) items.push(sectionHeading("Places: pick one to see the closest parking"), ...places.map(placeItem));
-    if (lots.length) items.push(...(places.length ? [sectionHeading("Parking lots")] : []), ...lots.map((e) => listItem(e)));
-    if (!items.length) items.push(el("li", "no-results", "Nothing matches. Try a shorter or different word."));
->>>>>>> Stashed changes
+    return;
+  }
+
+  if (destination) {
+    $("panel-title").textContent = `Parking near ${destination.name}`;
+    const usable = nearest.filter(({ entry }) => entry.lot.category !== "limited");
+    const risky = nearest.filter(({ entry }) => entry.lot.category === "limited");
+    const filtered = cats.size || minStars;
+    $("spot-count").textContent = filtered ? `Closest ${listTitle(cats, minStars).toLowerCase().replace(" near uci", "")}` : "Closest lots by walking distance";
+    const items = [placeCard(destination)];
+    if (usable.length) items.push(sectionHeading("Closest parking"), ...usable.map(({ entry, meters }) => listItem(entry, meters)));
+    if (risky.length) items.push(sectionHeading(usable.length ? "Also nearby: may be towed" : "Closest (may be towed)"), ...risky.map(({ entry, meters }) => listItem(entry, meters)));
+    if (!usable.length && !risky.length) items.push(el("li", "no-results", "No nearby lots match these filters."));
     $("spot-list").replaceChildren(...items);
     return;
   }
 
-<<<<<<< Updated upstream
   const lots = filteredEntries;
   $("panel-title").textContent = text ? "Search results" : listTitle(cats, minStars);
   const parts = [];
@@ -483,16 +448,6 @@ function renderList() {
   }
   $("spot-list").replaceChildren(...items);
 }
-=======
-document.querySelectorAll(".list-tab").forEach((btn) =>
-  btn.addEventListener("click", () => {
-    activeTab = btn.dataset.list;
-    savedView = false;
-    if (searchResults !== null || destination) clearSearch(); // picking a tab leaves search
-    renderList();
-  }),
-);
->>>>>>> Stashed changes
 
 $("saved-toggle").addEventListener("click", () => {
   const opening = !savedView;
@@ -665,15 +620,12 @@ function findPlaces(tokens, minStars) {
     .slice(0, MAX_PLACE_RESULTS);
 }
 
-<<<<<<< Updated upstream
-// Re-applies search text + chips: highlights matching lots, fades the rest, refreshes the list.
-function applyFilters({ fit = true, animate = false } = {}) {
-=======
 function focusLot({ lot, primary: layer }) {
   rememberTarget("lot", lot.id);
   savedView = false;
   $("search-shortcuts").hidden = true;
   renderList();
+  if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
   map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
   map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
 }
@@ -707,14 +659,8 @@ function renderRecentShortcuts(showOnFocus = false) {
   box.hidden = false;
 }
 
-function runSearch() {
-  const raw = $("search").value;
-  const query = normalize(raw);
-  const tokens = query.split(" ").filter(Boolean);
-  $("search-clear").hidden = !raw;
-  if (raw.trim()) savedView = false;
-  renderRecentShortcuts();
->>>>>>> Stashed changes
+// Re-applies search text + chips: highlights matching lots, fades the rest, refreshes the list.
+function applyFilters({ fit = true, animate = false } = {}) {
   clearTimeout(fitTimer);
   syncChips();
   if (destination) {
@@ -737,6 +683,8 @@ function runSearch() {
 function runSearch() {
   const raw = $("search").value;
   $("search-clear").hidden = !raw;
+  if (raw.trim()) savedView = false;
+  renderRecentShortcuts();
   clearDestination(); // typing again means looking for something new
   parsedQuery = parseQuery(raw);
   applyFilters();
@@ -744,6 +692,7 @@ function runSearch() {
 
 document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) =>
   chip.addEventListener("click", () => {
+    savedView = false;
     const c = chip.dataset.category;
     if (parsedQuery.categories.has(c) && !chipFilters.categories.has(c)) {
       // Turning off a filter that came from the search text: remove those words.
@@ -756,6 +705,7 @@ document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) =>
 );
 document.querySelectorAll(".star-chip").forEach((chip) =>
   chip.addEventListener("click", () => {
+    savedView = false;
     const value = Number(chip.dataset.stars);
     const current = Math.max(chipFilters.minStars, parsedQuery.minStars);
     // Clicking the rating that's already on turns it off, like the type chips.
@@ -799,13 +749,9 @@ const destinationIcon = L.divIcon({
   tooltipAnchor: [0, -36],
 });
 
-<<<<<<< Updated upstream
-function setDestination(place) {
-=======
 function setDestination(place, { remember = true } = {}) {
   clearTimeout(fitTimer);
   savedView = false;
->>>>>>> Stashed changes
   destination = place;
   placeResults = [];
   $("search").value = place.name;
@@ -864,7 +810,7 @@ $("search").addEventListener("keydown", (e) => {
     else clearSearch();
   }
   if (e.key === "Enter" && placeResults.length) setDestination(placeResults[0]);
-  else if (e.key === "Enter" && searchResults?.length) focusLot(searchResults[0]);
+  else if (e.key === "Enter" && $("search").value.trim() && filteredEntries.length) focusLot(filteredEntries[0]);
 });
 $("search-clear").addEventListener("click", () => {
   clearSearch();

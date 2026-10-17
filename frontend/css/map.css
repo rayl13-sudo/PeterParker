@@ -639,23 +639,17 @@
     border-radius: 0;
     z-index: 1001;
   }
-<<<<<<< Updated upstream
-  .panel-toggle svg { transform: rotate(-90deg); }
-  .panel.collapsed .panel-toggle svg { transform: rotate(90deg); }
+  .panel.expanded:not(.collapsed) .panel-body {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  .panel-body > .search, .panel-body > .filters, .panel-body > .saved-toggle, .panel-body > .panel-note,
+  .panel-view > :not(#spot-list):not(.reviews-scroll):not(.directions-steps) { flex-shrink: 0; }
+  #spot-list { overscroll-behavior-y: contain; }
   /* On phones the key sits at the top, so it opens downward under its header. */
   .map-key { top: 0.75rem; bottom: auto; left: 0.75rem; right: auto; flex-direction: column; }
   .map-key .key-list { padding: 0.15rem 0.85rem 0.8rem; }
   .key-header svg { transform: none; }
   .map-key.collapsed .key-header svg { transform: rotate(180deg); }
-=======
-  .panel.expanded:not(.collapsed) .panel-body {
-    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
-  }
-  .panel-body > .search, .panel-body > .panel-note,
-  .panel-view > :not(#spot-list):not(.reviews-scroll):not(.directions-steps) { flex-shrink: 0; }
-  #spot-list { overscroll-behavior-y: contain; }
-  .map-key { top: 0.75rem; bottom: auto; left: 0.75rem; right: auto; }
->>>>>>> Stashed changes
 }
 
 @media (prefers-reduced-motion: reduce) {
