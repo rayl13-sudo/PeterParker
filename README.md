@@ -157,3 +157,4 @@ with PBKDF2, and the API issues an opaque bearer token; only its hash is stored.
 
 Endpoints: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`,
 `GET /api/auth/me`. The `/api/items` routes require a token and are scoped per user.
+.
