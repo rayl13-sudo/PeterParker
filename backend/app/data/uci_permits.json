@@ -131,7 +131,7 @@
     }
   ],
   "visitor_hours": {
-    "weekday": "One-day General: Mon-Fri 7 a.m.-midnight in general unassigned stalls of Zones 1-6 and Lot 1.",
+    "weekday": "One-day General: Mon-Fri 7 a.m.-Midnight in general unassigned stalls of Zones 1-6 and Lot 1.",
     "evening_weekend": "Mon-Fri after 5 p.m. and all day Sat-Sun: one-day General works in general, \"P\" and \"AR\" stalls not marked \"Enforced 24 Hours\" in all UCI parking areas."
   },
   "lots": {
