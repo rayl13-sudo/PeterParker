@@ -17,8 +17,9 @@ async def lifespan(app: FastAPI):
     # PostgreSQL schema is installed explicitly before deployment, not on cold starts.
     if not settings.database_url:
         init_db()
-    if settings.seed_user:
-        seed_user()
+        # PostgreSQL deployments create the temporary account on its first sign-in instead.
+        if settings.seed_user:
+            seed_user()
     yield
 
 

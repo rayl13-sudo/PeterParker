@@ -1,6 +1,6 @@
-// Map page: OpenStreetMap of UC Irvine with parking lots shaded by category
-// (free, free for customers, permit, paid), pins on the free ones, and UCI
-// permit and daily-pass details in each lot's popup.
+// Map page: OpenStreetMap of UC Irvine with every parking lot shaded by category
+// (free, permit, paid, limited/tow risk) and marked, with UCI permit and
+// daily-pass details, what each lot is for, and tow/time-limit warnings in popups.
 // Leaflet is loaded as a global (L) by map.html.
 import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
@@ -10,17 +10,17 @@ const UCI_CENTER = [33.6461, -117.8427]; // Aldrich Park, middle of campus
 // Start this many zoom levels past the fit-all-lots view. Each level is 2x, so 2 = 4x.
 const EXTRA_ZOOM = 2;
 
-// One entry per lot category: drives the map shading, pins, popups, the key and
-// the list order. Blue = free, gray = costs something. Paid lots are outlined
-// with a dashed edge so they read differently from permit lots at a glance.
+// One entry per lot category: drives the map shading, markers, popups, the key and
+// the list order. Blue = free, gray = costs something, light red = you might be
+// ticketed or towed. Paid lots get a dashed edge to read differently from permit lots.
 const CATEGORIES = {
-  free: { label: "Free", color: "#3f5fae", fillOpacity: 0.55, pin: true },
-  customers: { label: "Free for customers", color: "#93a8de", fillOpacity: 0.5, pin: true },
+  free: { label: "Free", color: "#3f5fae", fillOpacity: 0.55, marker: "pin" },
   permit: { label: "Permit required", color: "#3d4457", fillOpacity: 0.4 },
   paid: { label: "Paid", color: "#6b7184", fillOpacity: 0.12, dashArray: "5 4", weight: 2 },
+  limited: { label: "Limited / may be towed", color: "#e06f68", fillOpacity: 0.3, marker: "dot" },
 };
 const CATEGORY_ORDER = Object.keys(CATEGORIES);
-const isFree = (lot) => CATEGORIES[lot.category].pin;
+const isFree = (lot) => lot.category === "free";
 
 const $ = (id) => document.getElementById(id);
 
@@ -128,6 +128,20 @@ function dailyPassSection(lot) {
   return section;
 }
 
+function warningBox(lot) {
+  const box = el("div", "popup-warning");
+  box.append(el("b", null, lot.time_limit ? `⚠ ${lot.time_limit} max · tow risk` : "⚠ May be ticketed or towed"));
+  box.append(el("p", null, lot.warning ?? "This isn't public parking. Park only if you're visiting what it serves, and check the posted signs."));
+  if (lot.warning_source) {
+    const src = el("a", null, "Source");
+    src.href = lot.warning_source;
+    src.target = "_blank";
+    src.rel = "noopener";
+    box.append(src);
+  }
+  return box;
+}
+
 function popupContent(lot) {
   const cat = CATEGORIES[lot.category];
   const root = el("div", "popup");
@@ -136,13 +150,23 @@ function popupContent(lot) {
   tag.style.setProperty("--tag-color", cat.color);
   root.append(el("strong", null, lot.name), tag);
 
+  if (lot.serves.length) {
+    const serves = el("p", "popup-serves");
+    serves.append(el("b", null, "For: "), document.createTextNode(lot.serves.join(" · ")));
+    root.append(serves);
+  }
+
   const details = [
+    lot.restriction && `Who can park: ${lot.restriction}`,
+    lot.time_limit && `Time limit: ${lot.time_limit}`,
     lot.permit_accepted && "UCI permits also accepted",
-    lot.inferred && "Run by UCI Transportation; permit assumed (not tagged in OpenStreetMap)",
+    lot.inferred,
     lot.capacity && `${lot.capacity.toLocaleString()} spaces`,
     lot.opening_hours && `Hours: ${lot.opening_hours}`,
   ].filter(Boolean);
   for (const text of details) root.append(el("p", null, text));
+
+  if (lot.category === "limited") root.append(warningBox(lot));
 
   if (lot.uci && (lot.category === "permit" || lot.category === "paid")) {
     root.append(permitSection(lot));
@@ -166,31 +190,56 @@ function popupContent(lot) {
   return root;
 }
 
-function addLot(lot) {
-  const cat = CATEGORIES[lot.category];
-  const area = L.polygon(lot.outline, {
-    color: cat.color,
-    weight: cat.weight ?? 1.5,
-    fillColor: cat.color,
-    fillOpacity: cat.fillOpacity,
-    dashArray: cat.dashArray,
-  })
-    .bindPopup(popupContent(lot), { maxWidth: 300, maxHeight: 380 })
-    .addTo(map);
+const POPUP_OPTIONS = { maxWidth: 300, maxHeight: 380 };
 
-  if (!cat.pin) return area;
-  // Free lots also get a pin so they stand out; it shares the area's popup.
-  return L.marker([lot.lat, lot.lon], { icon: pinIcon(lot), title: lot.name, zIndexOffset: 500 })
-    .on("click", () => area.openPopup([lot.lat, lot.lon]))
-    .addTo(map);
+function dot(lot) {
+  const cat = CATEGORIES[lot.category];
+  return L.circleMarker([lot.lat, lot.lon], {
+    radius: 6,
+    color: "#fff",
+    weight: 2,
+    fillColor: cat.color,
+    fillOpacity: 1,
+  });
 }
 
-// ---------- Side list: Free / Permit / Paid tabs ----------
+// Each lot is shaded by its outline; free lots also get a pin and limited lots a dot
+// so every spot is easy to find. Lots mapped as a single point only get the marker.
+function addLot(lot) {
+  const cat = CATEGORIES[lot.category];
+  const content = popupContent(lot);
+  const area = lot.outline.length
+    ? L.polygon(lot.outline, {
+        color: cat.color,
+        weight: cat.weight ?? 1.5,
+        fillColor: cat.color,
+        fillOpacity: cat.fillOpacity,
+        dashArray: cat.dashArray,
+      })
+        .bindPopup(content, POPUP_OPTIONS)
+        .addTo(map)
+    : null;
+
+  const marker =
+    cat.marker === "pin"
+      ? L.marker([lot.lat, lot.lon], { icon: pinIcon(lot), title: lot.name, zIndexOffset: 500 })
+      : cat.marker === "dot" || !area
+        ? dot(lot)
+        : null;
+  if (!marker) return area;
+  marker.addTo(map);
+  if (area) marker.on("click", () => area.openPopup([lot.lat, lot.lon]));
+  else marker.bindPopup(content, POPUP_OPTIONS);
+  return marker;
+}
+
+// ---------- Side list: Free / Permit / Paid / Limited tabs ----------
 
 const LIST_TABS = {
   free: { title: "Free parking", match: (lot) => isFree(lot) },
   permit: { title: "Permit parking", match: (lot) => lot.category === "permit" },
   paid: { title: "Paid parking", match: (lot) => lot.category === "paid" },
+  limited: { title: "Limited / tow-risk parking", match: (lot) => lot.category === "limited" },
 };
 let listEntries = []; // [{ lot, layer }]
 let activeTab = "free";
@@ -198,6 +247,10 @@ let activeTab = "free";
 function listMeta(lot) {
   const cat = CATEGORIES[lot.category];
   if (lot.category === "paid") return "One-day pass $16 · Reserved $20 · Hourly $4–$5";
+  if (lot.category === "limited") {
+    if (lot.utc) return `University Town Center · ${lot.time_limit} max · tow risk`;
+    return [lot.restriction.split(":")[0].split(";")[0], lot.serves[0]?.split(" (")[0]].filter(Boolean).join(" · ");
+  }
   if (lot.category === "permit") {
     const codes = memberPermits(lot).map((p) => (p.code === "S-ANY" ? "any S/P zone" : p.code));
     const visitors = takesVisitorPass(lot) ? "Visitors $16/day" : null;

@@ -1,3 +1,4 @@
+import hmac
 import re
 import sqlite3
 from datetime import datetime
@@ -166,10 +167,18 @@ def _seed_login(db: sqlite3.Connection, payload: LoginIn) -> AuthResponse | None
         settings.seed_email.lower(),
     ):
         return None
-    row = db.execute(
+    find = lambda: db.execute(  # noqa: E731
         "SELECT id, username, email, password_hash FROM users WHERE username = ?",
         (settings.seed_username,),
     ).fetchone()
+    row = find()
+    if row is None and hmac.compare_digest(payload.password, settings.seed_password):
+        # Not created at startup (e.g. PostgreSQL deployments): create it now.
+        db.execute(
+            "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+            (settings.seed_username, settings.seed_email, hash_password(settings.seed_password)),
+        )
+        row = find()
     if row is None or not verify_password(payload.password, row["password_hash"]):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
     user = User(id=row["id"], username=row["username"], email=row["email"])

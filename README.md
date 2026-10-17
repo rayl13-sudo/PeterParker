@@ -165,19 +165,15 @@ Endpoints: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logo
 After signing in, users land on `frontend/map.html`: an OpenStreetMap view of UC Irvine
 (via Leaflet). Every parking lot is shaded by category, explained in a key you can minimize:
 
-| Category | Look | From OpenStreetMap tags |
+| Category | Look | How it's decided |
 |---|---|---|
-| Free | blue area + pin | `fee=no` |
-| Free for customers | light-blue area + pin | `fee=no` + `access=customers` |
-| Permit required | dark-gray area | `access=permit` (or UCI Transportation lot with no access tag, marked as inferred) |
+| Free | blue area + pin | `fee=no`, open to anyone |
+| Permit required | dark-gray area | `access=permit`, a UCI Transportation lot, or an untagged lot on UCI's campus (marked as inferred) |
 | Paid | dashed gray outline | `fee=yes` (UCI paid lots also accept permits) |
+| Limited / may be towed | light-red area + dot | private, customers-only, time-limited, any University Town Center lot (2-hour limit and tow warning), or untagged off campus |
 
-Clicking a UCI permit or paid lot shows which UCI permits it accepts (with who they're for
-and their price) and, where a visitor pass applies, the daily-pass prices. These come from
-`backend/app/data/uci_permits.json`, transcribed by hand from parking.uci.edu for 2026-2027;
-update it when UCI publishes new rates (the tests check every lot name in it still matches the
-map data). Lots that UCI's public pages don't assign to a permit say so rather than guessing.
-UCI doesn't publish live space availability, so the map can't show open spaces.
+Every lot's popup lists the named places next to it ("For: Trader Joe's · Target ..."), so
+you can see what a lot is for. Limited lots carry a tow/ticket warning.
 
 The side list (Free / Permit / Paid tabs) slides in and out with the tab on its edge. Both the list and
 the key remember whether they were open.

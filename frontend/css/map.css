@@ -100,7 +100,7 @@
 /* Free / Permit / Paid list switcher */
 .list-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 3px;
   padding: 3px;
   margin-bottom: 0.75rem;
@@ -121,7 +121,7 @@
   color: var(--a-ink);
   box-shadow: 0 1px 3px rgba(20, 24, 43, 0.12);
 }
-.list-tab .count { color: var(--a-muted); font-weight: 400; }
+.list-tab .count { display: block; color: var(--a-muted); font-size: 0.72rem; font-weight: 400; }
 .list-tab:focus-visible { outline: 2px solid var(--a-blue-soft); outline-offset: 1px; }
 
 /* Tab on the panel's outer edge; stays visible when the panel is pushed in. */
@@ -294,6 +294,20 @@
 .rate-list li { justify-content: space-between; gap: 1rem; font-size: 0.83rem; color: var(--a-muted); }
 .rate-list b { color: var(--a-ink); white-space: nowrap; }
 .popup .popup-note { margin-top: 0.35rem; font-size: 0.76rem; line-height: 1.4; }
+.popup .popup-serves { color: var(--a-ink); font-size: 0.82rem; line-height: 1.4; }
+.popup .popup-serves b { color: var(--a-muted); font-weight: 600; }
+.popup-warning {
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  background: #fdeeed;
+  border-left: 3px solid #e06f68;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.popup-warning b { color: #9b2c26; }
+.popup .popup-warning p { margin: 0.2rem 0 0; color: #5c2a27; }
+.popup .popup-warning a { font-size: 0.75rem; font-weight: 500; color: #9b2c26; }
 .popup .popup-source { font-size: 0.75rem; font-weight: 500; color: var(--a-muted); }
 .panel-note a { color: inherit; }
 .tag {

@@ -15,7 +15,7 @@ def test_parking_returns_categorized_lots(client, auth_headers):
     body = res.json()
     assert "OpenStreetMap" in body["source"]
     categories = {lot["category"] for lot in body["lots"]}
-    assert {"free", "permit", "paid"} <= categories
+    assert categories == {"free", "permit", "paid", "limited"}
     for lot in body["lots"]:
         # Everything should be in the UCI area, with a closed outline.
         assert 33.62 < lot["lat"] < 33.67
@@ -40,6 +40,21 @@ def test_parking_includes_uci_permits_and_prices(client, auth_headers):
     assert info["academic_year"] == "2026-2027"
     assert {"name": "One-day General", "price": "$16/day"}.items() <= info["visitor_rates"][0].items()
     assert all(src.startswith("https://parking.uci.edu/") for src in info["sources"])
+
+
+def test_limited_lots_warn_and_say_what_they_serve(client, auth_headers):
+    lots = client.get("/api/parking", headers=auth_headers).json()["lots"]
+    limited = [lot for lot in lots if lot["category"] == "limited"]
+    assert limited and all(lot["restriction"] for lot in limited)
+
+    utc = [lot for lot in lots if lot["utc"]]
+    assert utc, "University Town Center lots should be on the map"
+    for lot in utc:
+        assert lot["category"] == "limited"
+        assert lot["time_limit"] == "2 hours"
+        assert "tow" in lot["warning"]
+        assert lot["warning_source"].startswith("https://")
+        assert lot["serves"], f"{lot['name']} should list the stores it serves"
 
 
 def test_every_permit_assignment_matches_a_lot():
@@ -97,4 +112,13 @@ def test_seeded_user_bypasses_supabase(tmp_path, monkeypatch):
         supabase_url="https://example.supabase.co", supabase_publishable_key="test-key",
     ) as client:
         monkeypatch.setattr(supabase_auth, "request", fail)
+        assert login(client, "peter").status_code == 200
+
+
+def test_seed_account_is_created_on_first_sign_in_if_missing(tmp_path, monkeypatch):
+    # e.g. a PostgreSQL deployment, where startup doesn't seed.
+    with seeded_client(tmp_path, monkeypatch, seed_user=False) as client:
+        monkeypatch.setattr(settings, "seed_user", True)
+        assert login(client, "peter", "wrong").status_code == 401
+        assert login(client, "peter").status_code == 200
         assert login(client, "peter").status_code == 200

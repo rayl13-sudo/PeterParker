@@ -24,7 +24,7 @@ UCI_OPERATORS = {
     "UC Irvine",
 }
 
-Category = Literal["free", "customers", "permit", "paid"]
+Category = Literal["free", "permit", "paid", "limited"]
 
 
 class Permit(BaseModel):
@@ -52,11 +52,18 @@ class ParkingLot(BaseModel):
     id: str
     name: str
     category: Category
-    inferred: bool = False  # category guessed (e.g. UCI-run lot with no access tag)
+    inferred: str | None = None  # why the category was guessed, if it was
     permit_accepted: bool = False  # paid lots that also take UCI permits
+    # "limited" lots: who may park, any time limit, and a tow/ticket warning
+    restriction: str | None = None
+    time_limit: str | None = None
+    warning: str | None = None
+    warning_source: str | None = None
+    utc: bool = False  # University Town Center
+    serves: list[str] = []  # named places next to the lot: what it's for
     lat: float
     lon: float
-    outline: list[list[list[float]]]  # rings of [lat, lon]
+    outline: list[list[list[float]]]  # rings of [lat, lon]; empty for lots mapped as a point
     access: str | None = None
     capacity: int | None = None
     parking: str | None = None
@@ -79,7 +86,8 @@ def _load() -> ParkingResponse:
     uci = json.loads(PERMITS_FILE.read_text())
     for lot in data["lots"]:
         assigned = uci["lots"].get(lot["name"], {})
-        lot["uci"] = lot.get("operator") in UCI_OPERATORS or bool(assigned)
+        on_campus = lot["category"] == "permit" and "UCI's campus" in (lot.get("inferred") or "")
+        lot["uci"] = lot.get("operator") in UCI_OPERATORS or bool(assigned) or on_campus
         lot["permits"] = [{"code": code, **uci["permits"][code]} for code in assigned.get("permits", [])]
         lot["permit_note"] = assigned.get("note")
     data["permit_info"] = {

@@ -3,10 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script>
-      // Opened from disk (file://)? Browsers block this app's scripts there, so go to the server.
-      if (location.protocol === "file:") location.replace("http://localhost:8000/map.html");
-    </script>
+    <script src="js/open-from-disk.js"></script>
     <title>Free Parking · PeterParker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
@@ -43,6 +40,7 @@
             <button type="button" role="tab" class="list-tab active" data-list="free" aria-selected="true">Free <span class="count"></span></button>
             <button type="button" role="tab" class="list-tab" data-list="permit" aria-selected="false">Permit <span class="count"></span></button>
             <button type="button" role="tab" class="list-tab" data-list="paid" aria-selected="false">Paid <span class="count"></span></button>
+            <button type="button" role="tab" class="list-tab" data-list="limited" aria-selected="false">Limited <span class="count"></span></button>
           </div>
           <ul id="spot-list"></ul>
           <p id="map-error" class="map-error" hidden></p>

@@ -3,10 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script>
-      // Opened from disk (file://)? Browsers block this app's scripts there, so go to the server.
-      if (location.protocol === "file:") location.replace("http://localhost:8000/");
-    </script>
+    <script src="js/open-from-disk.js"></script>
     <title>PeterParker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
