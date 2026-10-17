@@ -4,6 +4,33 @@ def test_parking_requires_auth(client):
     assert client.get("/api/parking").status_code == 401
 
 
+def test_red_lot_source_labels_are_clean():
+    import json
+    import re
+    from app.api.routes.parking import DATA_FILE
+
+    lots = json.loads(DATA_FILE.read_text())["lots"]
+    red = [lot for lot in lots if lot["category"] == "limited"]
+    assert red
+    assert all(not re.search(r"\s+\([a-z][a-z ]*\)$", name) for lot in red for name in lot["serves"])
+    for lot in red:
+        if lot.get("utc"):
+            assert "(" not in lot["warning"]
+            assert all(text in lot["warning"] for text in ("2 hours", "45 minutes", "3 hours", "towed"))
+
+
+def test_served_place_labels_are_cleaned_without_losing_abbreviations(client, auth_headers):
+    import re
+
+    lots = client.get("/api/parking", headers=auth_headers).json()["lots"]
+    by_name = {lot["name"]: lot for lot in lots}
+    assert "Anteater Recreation Center" in by_name["Permit parking by Anteater Recreation Center"]["serves"]
+    assert "Laundry Room" in by_name["Lot 13"]["serves"]
+    assert "Starbucks" in by_name["Lot 13"]["serves"]
+    assert "Anteater Instruction and Research Building (AIRB)" in by_name["Anteater Parking Structure"]["serves"]
+    assert all(not re.search(r"\s+\([a-z][a-z ]*\)$", name) for lot in lots for name in lot["serves"])
+
+
 def test_parking_returns_categorized_lots(client, auth_headers):
     res = client.get("/api/parking", headers=auth_headers)
     assert res.status_code == 200

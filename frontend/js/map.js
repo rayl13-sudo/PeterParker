@@ -192,7 +192,9 @@ function popupContent(lot) {
 
   if (lot.serves.length) {
     const serves = el("p", "popup-serves");
-    serves.append(el("b", null, "For: "), document.createTextNode(lot.serves.join(" · ")));
+    // OSM adds lowercase place types such as "(cafe)"; keep actual name qualifiers like "(AIRB)".
+    const names = lot.serves.map((name) => name.replace(/\s+\([a-z][a-z ]*\)$/, ""));
+    serves.append(el("b", null, "For: "), document.createTextNode(names.join(" · ")));
     root.append(serves);
   }
 
