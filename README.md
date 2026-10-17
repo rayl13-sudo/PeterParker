@@ -200,3 +200,4 @@ then stored with the account), remove it, or shuffle the colors
 deployments need `backend/migrations/002_avatars.sql` applied; `init_db()` runs every
 migration in order.
 
+.
