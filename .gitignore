@@ -218,6 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-
+.env*
 # Local SQLite database
 backend/*.db
