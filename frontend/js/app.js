@@ -48,6 +48,7 @@ updatePasswordRules();
 
 function setMode(next) {
   mode = next;
+  document.querySelector(".tabs").dataset.mode = mode;
   tabs.forEach((tab) => {
     const active = tab.dataset.mode === mode;
     tab.classList.toggle("active", active);
@@ -55,6 +56,9 @@ function setMode(next) {
   });
   modeFields.forEach((el) => (el.hidden = el.dataset.show !== mode));
   authSubmit.textContent = mode === "login" ? "Sign in" : "Create account";
+  $("auth-title").textContent = mode === "login" ? "Welcome back" : "Create your account";
+  $("auth-subtitle").textContent =
+    mode === "login" ? "Sign in to continue." : "It only takes a minute.";
   authPassword.autocomplete = mode === "login" ? "current-password" : "new-password";
   showAuthError(null);
   firstField().focus();

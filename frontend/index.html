@@ -11,10 +11,26 @@
   <body>
     <!-- Auth view: shown until the user has a valid session -->
     <main id="auth-view" class="auth" hidden>
-      <section class="card auth-card">
-        <h1>PeterParker</h1>
+      <!-- Decorative background shapes -->
+      <div class="backdrop" aria-hidden="true">
+        <span class="shape circle-lg"></span>
+        <span class="shape circle-md"></span>
+        <span class="shape square"></span>
+        <span class="shape ring"></span>
+        <span class="shape dot"></span>
+        <span class="shape bar"></span>
+      </div>
 
-        <div class="tabs" role="tablist">
+      <section class="auth-card">
+        <div class="brand">
+          <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>PeterParker</span>
+        </div>
+        <h1 id="auth-title">Welcome back</h1>
+        <p id="auth-subtitle" class="subtitle">Sign in to continue.</p>
+
+        <div class="tabs" role="tablist" data-mode="login">
+          <span class="tab-thumb" aria-hidden="true"></span>
           <button type="button" role="tab" class="tab active" data-mode="login" aria-selected="true">Sign in</button>
           <button type="button" role="tab" class="tab" data-mode="signup" aria-selected="false">Sign up</button>
         </div>

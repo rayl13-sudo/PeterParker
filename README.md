@@ -53,8 +53,7 @@ Sign-up rules (enforced by the API, mirrored in the UI):
 
 - **Password:** at least 8 characters, one capital letter, one special character.
   The sign-up form shows a checklist that ticks off each rule as you type.
-- **Username:** 3-32 characters (letters, numbers, `.`, `_`, `-`), and must not contain
-  slurs or profanity. The blocklist lives in `backend/app/moderation.py`. Accounts, sessions and items
+- **Username:** 3-32 characters (letters, numbers, `.`, `_`, `-`). Accounts, sessions and items
 are stored in SQLite (`backend/app.db`, created on first run). Passwords are hashed
 with PBKDF2, and the API issues an opaque bearer token; only its hash is stored.
 
