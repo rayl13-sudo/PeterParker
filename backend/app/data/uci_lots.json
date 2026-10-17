@@ -1,0 +1,1072 @@
+{
+ "source": "UCI campus map (map.uci.edu), Parking and Electric Vehicle Charging layers",
+ "source_url": "https://map.uci.edu/?id=463",
+ "retrieved": "2026-10-17",
+ "faculty_staff_lots": [
+  "EHS",
+  "Hitachi Lot",
+  "Lot 1",
+  "Lot 12A",
+  "Lot 12B",
+  "Lot 13",
+  "Lot 16",
+  "Lot 17A",
+  "Lot 18C",
+  "Lot 18D",
+  "Lot 1C",
+  "Lot 2",
+  "Lot 3A",
+  "Lot 6",
+  "Lot 6A",
+  "Lot 7",
+  "Lot 8",
+  "Lot 80",
+  "Lot 81",
+  "Lot 82",
+  "Lot 83",
+  "Lot 84",
+  "Lot 90",
+  "Lot 91",
+  "Lot BP"
+ ],
+ "ev_charging": {
+  "Lot 70": {
+   "level1": 0,
+   "level2": 20
+  },
+  "Lot 16": {
+   "level1": 0,
+   "level2": 6
+  },
+  "Anteater Parking Structure": {
+   "level1": 10,
+   "level2": 12
+  },
+  "Lot 1C": {
+   "level1": 0,
+   "level2": 2
+  },
+  "Social Science Parking Structure": {
+   "level1": 32,
+   "level2": 8
+  },
+  "East Campus Parking Structure": {
+   "level1": 0,
+   "level2": 50
+  },
+  "Student Center Parking Structure": {
+   "level1": 6,
+   "level2": 6
+  },
+  "Mesa Parking Structure": {
+   "level1": 6,
+   "level2": 8
+  },
+  "Health Sciences Parking Structure": {
+   "level1": 0,
+   "level2": 50
+  },
+  "Lot 5": {
+   "level1": 0,
+   "level2": 1
+  }
+ },
+ "accessible_locations": {
+  "Lot 1": [
+   "Van-accessible ADA parking stalls are located at both ends of the first aisle in Lot 1.",
+   "ADA parking stalls are located at the end of the first aisle in Lot 1."
+  ],
+  "Lot ARC": [
+   "Van-accessible ADA parking stall is located at the end of the last aisle in Lot ARC.",
+   "ADA parking stalls are located along the last aisle in Lot ARC."
+  ],
+  "Lot AV2": [
+   "ADA stalls are located along the first drive aisle of Lot AV2."
+  ],
+  "Lot AV3": [
+   "ADA stalls are located at three points along Lot AV3, in the west, northeast, and southwest portions of the lot."
+  ],
+  "Lot EHS": [
+   "ADA stalls are located in the second drive aisle of Lot EHS, in the southeast portion.",
+   "Van-accessible ADA stalls are located in the second drive aisle of Lot EHS, in the southeast portion."
+  ],
+  "Lot 12A": [
+   "Van-accessible ADA stalls are located at the beginning of the lot and at the end of the third drive aisle, in the northwest and southeast corners of Lot 12A.",
+   "ADA stalls are located at the beginning of the lot and at the end of the third drive aisle, in the northwest and southeast corners of Lot 12A."
+  ],
+  "Lot 12B": [
+   "ADA stalls are located at the beginning of the first drive aisle and at the end of the second drive aisle of Lot 12B.",
+   "Van-accessible ADA stalls are located at the beginning of the first drive aisle and at the end of the second drive aisle of Lot 12B."
+  ],
+  "Lot 13": [
+   "ADA stalls are located at the beginning of the second and third drive aisles of Lot 13, and at the end of the fourth drive aisle.",
+   "Van-accessible ADA stalls are located in the first drive aisle, at the beginning of the second and third drive aisles, and at the end of the fourth drive aisle of Lot 13."
+  ],
+  "Lot 14": [
+   "ADA stalls are located at the end of the first drive aisle of Lot 14, in the southwest corner of the lot. Additional ADA stalls are located near the Newkirk Alumni Center and Mesa Court buildings.",
+   "Van-accessible ADA stall is located at the end of the first drive aisle of Lot 14, in the southwest corner of the lot. Additional van-accessible ADA stalls are located near the Newkirk Alumni Center and Mesa Court buildings."
+  ],
+  "Lot 16": [
+   "ADA stalls are located at the end of the first drive aisle, next to the administrative modular building, and next to the Multipurpose Science and Technology building, in the northeast and southeast portions of Lot 16.",
+   "Van-accessible ADA stalls are located next to the Administrative Modular building and next to the Multipurpose Science and Technology building, in the southwest and southeast portions of Lot 16."
+  ],
+  "Lot 16AW": [
+   "Van-accessible ADA stalls are located in the middle and at the beginning of Lot 16AW."
+  ],
+  "Lot 16AE": [
+   "ADA stalls are located down the first drive aisle, in the northwest portion of Lot 16AE.",
+   "Van-accessible ADA stalls are located down the first drive aisle, in the northwest portion of Lot 16AE."
+  ],
+  "Lot 16B": [
+   "ADA stalls are located down the first drive aisle and at the end of Lot 16B, in the southwest and southeast of the lot.",
+   "Van-accessible ADA stalls are located at the end of the first drive aisle of Lot 16B."
+  ],
+  "Lot 17A": [
+   "ADA stalls are located in the north and south of the lot, at the first and last drive aisle of Lot 17A.",
+   "Van-accessible ADA stalls are located in the north in the first drive aisle of Lot 17A."
+  ],
+  "Lot 18B": [
+   "ADA stalls are located in the middle of the first drive aisle of Lot 18B, near the entrance to the University Club.",
+   "Van-accessible ADA stalls are located in the middle of the first drive aisle of Lot 18B, near the entrance to the University Club."
+  ],
+  "Lot 18C": [
+   "ADA stalls are located at the end of Lot 18C, in the southeast corner of the lot."
+  ],
+  "Lot 18D": [
+   "ADA stalls are located on the south side of Lot 18D, at the beginning of the drive aisle.",
+   "Van-accessible ADA stalls are located on the south side of Lot 18D, at the beginning of the drive aisle."
+  ],
+  "Lot 18R": [
+   "ADA stalls are located along the north side of Lot 18R.",
+   "Van-accessible ADA stall is located along the north side of Lot 18R."
+  ],
+  "Lot 19A": [
+   "Van-accessible ADA stalls are located in the middle of the drive aisle of Lot 19A, near the entrance to the Student Health Center.",
+   "ADA stalls are located in the middle of the drive aisle of Lot 19A, near the entrance to the Student Health Center."
+  ],
+  "Lot 1C": [
+   "ADA Stalls are located in the south side of Lot 1C, along the first drive aisle and next to the Public Services Building.",
+   "Van-accessible ADA Stalls are located in the south side of Lot 1C, along the first drive aisle and next to the Public Services Building."
+  ],
+  "Lot 2": [
+   "ADA stalls are located in the last drive aisle along the southwest side of Lot 2.",
+   "Van-accessible ADA stalls are located in the last drive aisle along the southwest side of Lot 2."
+  ],
+  "Lot 3A": [
+   "Van-accessible ADA stalls are located at the end of Lot 3A, in the southeast corner of the lot.",
+   "ADA stalls are located at the end of Lot 3A, in the southeast corner of the lot."
+  ],
+  "Lot 5": [
+   "ADA stalls are located at the end of the first drive aisle of lot 5.",
+   "Van-accessible ADA stalls are located at the end of the first drive aisle of lot 5."
+  ],
+  "Lot 6": [
+   "Van-accessible ADA stalls are located in the last drive aisle along the northeast corner of Lot 6.",
+   "ADA stalls are located in the last drive aisle along the northeast corner of Lot 6."
+  ],
+  "Lot 6A": [
+   "ADA stalls are located at the end of Lot 6A."
+  ],
+  "Lot 7": [
+   "ADA Stalls are located at the end of drive aisle 3 and the beginning of drive aisle 4 in Lot 7.",
+   "Van-accessible ADA Stalls are located at the end of drive aisle 3 and the beginning of drive aisle 4 in Lot 7."
+  ],
+  "Lot 70": [
+   "ADA stalls are located at both ends of the first drive aisle of Lot 70.",
+   "Van-accessible ADA stalls are located at both ends of the first drive aisle of Lot 70."
+  ],
+  "Lot 8": [
+   "Van-accessible ADA stalls are located next to the Center for Neurobiology of Learning and both sides of the end of Lot 8.",
+   "ADA stalls are located next to the Center for Neurobiology of Learning and at the end of Lot 8."
+  ],
+  "Lot BP": [
+   "Van-accessible ADA stalls are located in the last drive aisle, on the southeast side of Lot BP.",
+   "ADA stalls are located in the last drive aisle, on the southeast side of Lot BP, and in the upper portion of the lot on the northeast side."
+  ],
+  "Lot 80": [
+   "ADA Stalls in Lot 80 are located at the end of the second drive aisle and at the end of the lot.",
+   "Van-accessible ADA Stalls in Lot 80 are located in the southeast portion of the lot, at the end of the last drive aisle."
+  ],
+  "Lot 81": [
+   "ADA Stalls are located in the first and second drive aisles of Lot 81.",
+   "Van-accessible ADA Stalls are located in the first aisle of Lot 81."
+  ],
+  "Lot 82": [
+   "ADA stalls are located on the first drive aisle of Lot 82.",
+   "Van-accessible ADA stalls are located on the first drive aisle of Lot 82."
+  ],
+  "Lot 83": [
+   "Van-accessible ADA stalls are located down the third drive aisle of Lot 83.",
+   "ADA stalls are located down the second drive aisle of Lot 83."
+  ],
+  "Lot 83A": [
+   "ADA stalls are located at the end of Lot 83A, in the southwest corner of the lot."
+  ],
+  "Lot 84": [
+   "ADA stalls are located in the last drive aisle of Lot 84, next to the entrance to the Bekman Lasser Institute.",
+   "Van-accessible ADA stalls are located in the last drive aisle of Lot 84, next to the entrance to the Bekman Lasser Institute."
+  ],
+  "Lot 85": [
+   "Van-accessible ADA stalls are located down the first drive aisle of Lot 85, at the beginning and end of the aisle.",
+   "ADA stalls are located down the first drive aisle of Lot 85."
+  ],
+  "Lot 90": [
+   "Van-accessible ADA stalls are located at the beginning and middle of the first drive aisle of Lot 90.",
+   "ADA stalls are located along the first drive aisle of Lot 90."
+  ],
+  "Lot AHA": [
+   "ADA stalls are located in the middle of the first drive aisle of Lot AHA."
+  ],
+  "Student Center Parking Structure": [
+   "Van-accessible and standard ADA stalls are located on level 2 in the southeast corner and near the entrance to Pereira of SSPS parking structure."
+  ],
+  "Anteater Parking Structure": [
+   "Van-accessible and standard ADA stalls are located on level 1 in the west and next to the corner, and levels 2 and 3 along the west wall of the building, next to the elevator."
+  ],
+  "Mesa Parking Structure": [
+   "Van-accessible and standard ADA stalls are located in the northeast, south, and in front of the elevator on the ground floor, and next to the elevator on all other floors."
+  ],
+  "Social Science Parking Structure": [
+   "Van-accessible and standard ADA stalls are located on all levels next to the elevator, to the east of the entrance to Pereira."
+  ],
+  "Health Sciences Parking Structure": [
+   "Van-accessible and standard ADA stalls are located on all levels in the Northeast and Southeast corners of the building, next to the elevators."
+  ],
+  "East Campus Parking Structure": [
+   "Van-accessible and standard ADA stalls are located on the south and north walls of floor 1, and on the south wall for floors 2 through 7."
+  ],
+  "Verano Parking Structure": [
+   "Van-accessible and standard ADA stalls are located along the north wall of level 1 of VPS parking structure."
+  ],
+  "Service Lot (Medical Sciences)": [
+   "ADA stalls are located in both drive aisles, at the south and north sides of the Medical Sciences Service Lot.",
+   "Van-accessible ADA stalls are located in both drive aisles, at the south and north sides of the Medical Sciences Service Lot."
+  ],
+  "Service Lot (Fine Arts)": [
+   "ADA stalls are located at the end of Service Lot (ACT)."
+  ],
+  "Service Lot (Aldrich Hall)": [
+   "ADA stalls are located in the middle of the Service Lot (Aldrich Hall)."
+  ],
+  "Service Lot (Berk Hall)": [
+   "Van-accessible ADA stalls are located at the beginning of Service Lot (Berk Hall)."
+  ],
+  "Service Lot (E. Peltason)": [
+   "Van-accessible ADA stalls are located at the beginning and end of the Service Lot (E. Peltason)."
+  ],
+  "Service Lot (Engineering Tower)": [
+   "Van-accessible ADA stalls are located in the middle of the Service Lot (Engineering Tower)."
+  ],
+  "Service Lot (Engineering)": [
+   "Van-accessible ADA stalls are located in the south portion of the Service Lot (Engineering)."
+  ],
+  "Service Lot (HG)": [
+   "ADA stalls are located at the entrance to the Service Lot (HG).",
+   "Van-accessible ADA stalls are located at the entrance to the Service Lot (HG)."
+  ],
+  "Service Lot (IBT)": [
+   "Van-accessible ADA stalls are located at the far side of Service Lot (IBT), near the southwest portion of the lot."
+  ],
+  "Service Lot (Langson Library)": [
+   "Van-accessible ADA stalls are located at both sides of the entrance to Service Lot (Langson Library).",
+   "ADA stalls are located at the south side of the entrance to Service Lot (Langson Library)."
+  ],
+  "Service Lot (McGaugh Hall)": [
+   "Van-accessible ADA stalls are located at the end of the Service Lot (McGaugh Hall)."
+  ],
+  "Service Lot (Mesa Towers)": [
+   "ADA stalls are located on the far side of the Service Lot (Mesa Towers), in the southeast side."
+  ],
+  "Service Lot (SSL)": [
+   "Van-accessible ADA stalls are located on the south side of the Service Lot (SSL)."
+  ],
+  "Service Lot (Irvine Hall)": [
+   "Van-accessible ADA stall is located in the southeast corner of the service lot.",
+   "ADA stalls are located along the south side of the service lot."
+  ],
+  "Service Lot (Crawford)": [
+   "Van-accessible ADA stall is located at the end of the service lot."
+  ]
+ },
+ "lots": {
+  "Lot AV2": {
+   "name": "Lot AV2",
+   "lat": 33.647758,
+   "lon": -117.826607,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 6,
+    "Resident": 340,
+    "MX Motorcycle": 6,
+    "Other": 16
+   },
+   "uci_map_id": 83322
+  },
+  "Lot AV3": {
+   "name": "Lot AV3",
+   "lat": 33.646832,
+   "lon": -117.824982,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 9,
+    "ADA (Van)": 1,
+    "Resident": 102,
+    "MX Motorcycle": 2,
+    "Other": 7
+   },
+   "uci_map_id": 83323
+  },
+  "Lot 18B": {
+   "name": "Lot 18B",
+   "lat": 33.642567,
+   "lon": -117.842461,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 3,
+    "ADA (Van)": 1,
+    "X Executive": 1,
+    "Pay-by-Space": 95,
+    "Service": 2,
+    "Other": 1
+   },
+   "uci_map_id": 83331
+  },
+  "Lot 16AW": {
+   "name": "Lot 16AW",
+   "lat": 33.643452,
+   "lon": -117.848145,
+   "levels": null,
+   "stalls": {
+    "ADA (Van)": 4,
+    "Resident": 91,
+    "Other": 5
+   },
+   "uci_map_id": 83336
+  },
+  "Lot 19A": {
+   "name": "Lot 19A",
+   "lat": 33.645512,
+   "lon": -117.836456,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 1,
+    "ADA (Van)": 1,
+    "Patient": 23,
+    "Service": 2,
+    "Other": 1
+   },
+   "uci_map_id": 83344
+  },
+  "Lot 90": {
+   "name": "Lot 90",
+   "lat": 33.665146,
+   "lon": -117.854355,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 4,
+    "ADA (Van)": 2,
+    "AR Reserved (7am-5pm)": 4,
+    "AR Reserved (24 Hr)": 2,
+    "General": 96,
+    "Service": 15,
+    "Other": 10
+   },
+   "uci_map_id": 83349
+  },
+  "Lot 91": {
+   "name": "Lot 91",
+   "lat": 33.664341,
+   "lon": -117.855431,
+   "levels": null,
+   "stalls": {
+    "Service": 7
+   },
+   "uci_map_id": 83350
+  },
+  "Lot 16B": {
+   "name": "Lot 16B",
+   "lat": 33.644608,
+   "lon": -117.848541,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 2,
+    "ADA (Van)": 1,
+    "Resident": 51,
+    "MX Motorcycle": 2,
+    "Other": 3
+   },
+   "uci_map_id": 83355
+  },
+  "Lot 18R": {
+   "name": "Lot 18R",
+   "lat": 33.643547,
+   "lon": -117.838669,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 1,
+    "ADA (Van)": 1,
+    "AR Reserved (7am-5pm)": 1,
+    "AR Reserved (24 Hr)": 1,
+    "Resident": 20,
+    "Other": 1
+   },
+   "uci_map_id": 259350
+  },
+  "Lot 16AE": {
+   "name": "Lot 16AE",
+   "lat": 33.64365,
+   "lon": -117.846848,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 1,
+    "ADA (Van)": 1,
+    "Resident": 78,
+    "Service": 2,
+    "Other": 3
+   },
+   "uci_map_id": 259359
+  },
+  "Lot 83D": {
+   "name": "Lot 83D",
+   "lat": 33.643467,
+   "lon": -117.85305,
+   "levels": null,
+   "stalls": {
+    "General": 101,
+    "AR Reserved (7am-5pm)": 36,
+    "X Executive": 10,
+    "Service": 1
+   },
+   "uci_map_id": 367490
+  },
+  "Lot 1": {
+   "name": "Lot 1",
+   "lat": 33.64817,
+   "lon": -117.839157,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 3,
+    "ADA (Van)": 5,
+    "General": 177,
+    "AR Reserved (7am-5pm)": 142,
+    "Zipcar": 6,
+    "Service": 1,
+    "Other": 4
+   },
+   "uci_map_id": 367491
+  },
+  "Lot 1C": {
+   "name": "Lot 1C",
+   "lat": 33.647217,
+   "lon": -117.834755,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 5,
+    "ADA (Van)": 1,
+    "General": 78,
+    "AR Reserved (7am-5pm)": 15,
+    "Resident": 15,
+    "Visitor": 12,
+    "Electric Vehicle": 2,
+    "Service": 2,
+    "Other": 53
+   },
+   "uci_map_id": 367492
+  },
+  "Lot 2": {
+   "name": "Lot 2",
+   "lat": 33.6478,
+   "lon": -117.840141,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 4,
+    "ADA (Van)": 1,
+    "AR Reserved (7am-5pm)": 59,
+    "X Executive": 10,
+    "MX Motorcycle": 8,
+    "Service": 3,
+    "Other": 3
+   },
+   "uci_map_id": 367493
+  },
+  "Lot 3A": {
+   "name": "Lot 3A",
+   "lat": 33.646717,
+   "lon": -117.837212,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 1,
+    "ADA (Van)": 1,
+    "AR Reserved (24 Hr)": 30,
+    "Service": 2,
+    "Other": 2
+   },
+   "uci_map_id": 367494
+  },
+  "Lot 6": {
+   "name": "Lot 6",
+   "lat": 33.647228,
+   "lon": -117.848618,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 5,
+    "ADA (Van)": 1,
+    "AR Reserved (7am-5pm)": 126,
+    "MX Motorcycle": 7,
+    "Service": 4,
+    "Other": 8
+   },
+   "uci_map_id": 367495
+  },
+  "Lot 6A": {
+   "name": "Lot 6A",
+   "lat": 33.648823,
+   "lon": -117.846741,
+   "levels": null,
+   "stalls": {
+    "ADA (Van)": 3,
+    "General": 45,
+    "MX Motorcycle": 2,
+    "Service": 3,
+    "Other": 1
+   },
+   "uci_map_id": 367496
+  },
+  "Lot 7": {
+   "name": "Lot 7",
+   "lat": 33.647591,
+   "lon": -117.845879,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 3,
+    "ADA (Van)": 4,
+    "AR Reserved (7am-5pm)": 185,
+    "AR Reserved (24 Hr)": 35,
+    "MX Motorcycle": 4,
+    "X Executive": 2,
+    "Service": 11,
+    "Other": 11
+   },
+   "uci_map_id": 367497
+  },
+  "Lot 8": {
+   "name": "Lot 8",
+   "lat": 33.646729,
+   "lon": -117.846649,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 6,
+    "ADA (Van)": 2,
+    "AR Reserved (7am-5pm)": 17,
+    "MX Motorcycle": 3,
+    "Service": 2,
+    "Other": 7
+   },
+   "uci_map_id": 367498
+  },
+  "Lot 12A": {
+   "name": "Lot 12A",
+   "lat": 33.643253,
+   "lon": -117.845329,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 9,
+    "ADA (Van)": 2,
+    "AR Reserved (7am-5pm)": 193,
+    "X Executive": 8,
+    "MX Motorcycle": 2,
+    "Service": 1,
+    "Other": 3
+   },
+   "uci_map_id": 367499
+  },
+  "Lot 12B": {
+   "name": "Lot 12B",
+   "lat": 33.642593,
+   "lon": -117.844231,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 5,
+    "ADA (Van)": 2,
+    "AR Reserved (7am-5pm)": 102,
+    "MX Motorcycle": 1,
+    "X Executive": 1,
+    "Other": 4
+   },
+   "uci_map_id": 367500
+  },
+  "Lot 13": {
+   "name": "Lot 13",
+   "lat": 33.644703,
+   "lon": -117.846405,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 8,
+    "ADA (Van)": 7,
+    "AR Reserved (7am-5pm)": 87,
+    "Resident": 12,
+    "X Executive": 4,
+    "MX Motorcycle": 9,
+    "Pay-by-Space": 12,
+    "Service": 7,
+    "Other": 1
+   },
+   "uci_map_id": 367501
+  },
+  "Lot 16": {
+   "name": "Lot 16",
+   "lat": 33.642574,
+   "lon": -117.846039,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 4,
+    "ADA (Van)": 3,
+    "General": 281,
+    "AR Reserved (7am-5pm)": 294,
+    "Electric Vehicle": 6,
+    "Pay-by-Space": 18,
+    "Zipcar": 6,
+    "Service": 1,
+    "E-Plate": 6
+   },
+   "uci_map_id": 367502
+  },
+  "Lot 17A": {
+   "name": "Lot 17A",
+   "lat": 33.643848,
+   "lon": -117.835129,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 3,
+    "Specialty": 4,
+    "AR Reserved (7am-5pm)": 107,
+    "X Executive": 4,
+    "Zipcar": 3
+   },
+   "uci_map_id": 367503
+  },
+  "Lot 18C": {
+   "name": "Lot 18C",
+   "lat": 33.643147,
+   "lon": -117.838806,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 2,
+    "AR Reserved (7am-5pm)": 33,
+    "X Executive": 2,
+    "MX Motorcycle": 5,
+    "Service": 2
+   },
+   "uci_map_id": 367504
+  },
+  "Lot 18D": {
+   "name": "Lot 18D",
+   "lat": 33.644234,
+   "lon": -117.839149,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 1,
+    "ADA (Van)": 1,
+    "AR Reserved (7am-5pm)": 31,
+    "AR Reserved (24 Hr)": 19,
+    "Zipcar": 2,
+    "Other": 4
+   },
+   "uci_map_id": 367505
+  },
+  "Lot 80": {
+   "name": "Lot 80",
+   "lat": 33.646488,
+   "lon": -117.851227,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 13,
+    "ADA (Van)": 3,
+    "AR Reserved (7am-5pm)": 38,
+    "AR Reserved (24 Hr)": 37,
+    "MX Motorcycle": 6,
+    "Patient": 87,
+    "Service": 2,
+    "E-Plate": 3,
+    "Other": 4
+   },
+   "uci_map_id": 367506
+  },
+  "Lot BP": {
+   "name": "Lot BP",
+   "lat": 33.646511,
+   "lon": -117.836113,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 6,
+    "ADA (Van)": 2,
+    "AR Reserved (7am-5pm)": 147,
+    "MX Motorcycle": 1,
+    "X Executive": 2,
+    "Service": 5
+   },
+   "uci_map_id": 367507
+  },
+  "Lot EHS": {
+   "name": "Lot EHS",
+   "lat": 33.639214,
+   "lon": -117.850449,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 2,
+    "ADA (Van)": 1,
+    "General": 26,
+    "AR Reserved (7am-5pm)": 8,
+    "AR Reserved (24 Hr)": 1,
+    "MX Motorcycle": 2,
+    "X Executive": 2,
+    "Service": 1,
+    "Other": 11
+   },
+   "uci_map_id": 367508
+  },
+  "Lot ARC": {
+   "name": "Lot ARC",
+   "lat": 33.644077,
+   "lon": -117.828316,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 8,
+    "ADA (Van)": 1,
+    "General": 68
+   },
+   "uci_map_id": 367509
+  },
+  "East Campus Parking Structure (ECPS)": {
+   "name": "East Campus Parking Structure (ECPS)",
+   "lat": 33.64529,
+   "lon": -117.828194,
+   "levels": 8,
+   "stalls": {
+    "ADA (Standard)": 35,
+    "ADA (Van)": 5,
+    "General": 696,
+    "AR Reserved (7am-5pm)": 20,
+    "X Executive": 3,
+    "CDS/PDS Resident": 1198,
+    "Electric Vehicle": 69,
+    "Electric Veh. (ADA)": 1,
+    "Service": 2,
+    "Other": 3
+   },
+   "uci_map_id": 367510
+  },
+  "Lot 14": {
+   "name": "Lot 14",
+   "lat": 33.653278,
+   "lon": -117.845993,
+   "levels": null,
+   "stalls": {
+    "Service": 3,
+    "Other": 7
+   },
+   "uci_map_id": 367512
+  },
+  "Lot 14A": {
+   "name": "Lot 14A",
+   "lat": 33.652184,
+   "lon": -117.846771,
+   "levels": null,
+   "stalls": {
+    "General": 162
+   },
+   "uci_map_id": 367513
+  },
+  "Lot 81": {
+   "name": "Lot 81",
+   "lat": 33.64407,
+   "lon": -117.850571,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 4,
+    "ADA (Van)": 4,
+    "AR Reserved (7am-5pm)": 56,
+    "AR Reserved (24 Hr)": 3,
+    "MX Motorcycle": 5,
+    "Service": 4
+   },
+   "uci_map_id": 367515
+  },
+  "Lot 82": {
+   "name": "Lot 82",
+   "lat": 33.643024,
+   "lon": -117.850349,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 10,
+    "ADA (Van)": 2,
+    "General": 45,
+    "AR Reserved (7am-5pm)": 69
+   },
+   "uci_map_id": 367516
+  },
+  "Lot 84": {
+   "name": "Lot 84",
+   "lat": 33.643703,
+   "lon": -117.850098,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 2,
+    "ADA (Van)": 2,
+    "General": 40,
+    "Patient": 10,
+    "AR Reserved (7am-5pm)": 41,
+    "Service": 1
+   },
+   "uci_map_id": 367518
+  },
+  "Lot 16H": {
+   "name": "Lot 16H",
+   "lat": 33.642586,
+   "lon": -117.847656,
+   "levels": null,
+   "stalls": {
+    "General": 184,
+    "P Preferred": 247,
+    "Pay-by-Space": 16,
+    "Service": 2
+   },
+   "uci_map_id": 367519
+  },
+  "Lot 70": {
+   "name": "Lot 70",
+   "lat": 33.64053,
+   "lon": -117.851418,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 17,
+    "ADA (Van)": 3,
+    "General": 921,
+    "MX Motorcycle": 5,
+    "Electric Vehicle": 20,
+    "Other": 13
+   },
+   "uci_map_id": 367520
+  },
+  "Anteater Parking Structure (APS)": {
+   "name": "Anteater Parking Structure (APS)",
+   "lat": 33.643345,
+   "lon": -117.837746,
+   "levels": 7,
+   "stalls": {
+    "ADA (Standard)": 31,
+    "ADA (Van)": 3,
+    "General": 1586,
+    "AR Reserved (7am-5pm)": 189,
+    "P Preferred": 170,
+    "MX Motorcycle": 12,
+    "Electric Vehicle": 30,
+    "Service": 3,
+    "Other": 7
+   },
+   "uci_map_id": 367521
+  },
+  "Social Science Parking Structure (SSPS)": {
+   "name": "Social Science Parking Structure (SSPS)",
+   "lat": 33.647568,
+   "lon": -117.837395,
+   "levels": 7,
+   "stalls": {
+    "ADA (Standard)": 25,
+    "ADA (Van)": 3,
+    "General": 1127,
+    "AR Reserved (7am-5pm)": 249,
+    "P Preferred": 379,
+    "MX Motorcycle": 2,
+    "Pay-by-Space": 13,
+    "Electric Vehicle": 42,
+    "Service": 7,
+    "Other": 11
+   },
+   "uci_map_id": 367522
+  },
+  "Lot 5": {
+   "name": "Lot 5",
+   "lat": 33.652114,
+   "lon": -117.842594,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 7,
+    "ADA (Van)": 2,
+    "General": 307,
+    "Resident": 23,
+    "Zipcar": 2,
+    "Electric Vehicle": 1,
+    "Other": 6
+   },
+   "uci_map_id": 367523
+  },
+  "Student Center Parking Structure (SCPS)": {
+   "name": "Student Center Parking Structure (SCPS)",
+   "lat": 33.650204,
+   "lon": -117.841873,
+   "levels": 5,
+   "stalls": {
+    "ADA (Standard)": 17,
+    "ADA (Van)": 3,
+    "General": 542,
+    "AR Reserved (7am-5pm)": 267,
+    "P Preferred": 80,
+    "MX Motorcycle": 12,
+    "Pay-by-Space": 21,
+    "Electric Vehicle": 9,
+    "Service": 10,
+    "E-Plate": 2,
+    "Other": 7
+   },
+   "uci_map_id": 367524
+  },
+  "Plaza Verde Parking Structure (PLZVPS)": {
+   "name": "Plaza Verde Parking Structure (PLZVPS)",
+   "lat": 33.648628,
+   "lon": -117.827698,
+   "levels": 5,
+   "stalls": {
+    "ADA (Standard)": 10,
+    "ADA (Van)": 2,
+    "PLZV Resident": 441,
+    "Zipcar": 1,
+    "Electric Vehicle": 12,
+    "Other": 58
+   },
+   "uci_map_id": 584946
+  },
+  "Mesa Parking Structure (MPS)": {
+   "name": "Mesa Parking Structure (MPS)",
+   "lat": 33.650742,
+   "lon": -117.846603,
+   "levels": 5,
+   "stalls": {
+    "ADA (Standard)": 17,
+    "ADA (Van)": 8,
+    "General": 1031,
+    "AR Reserved (7am-5pm)": 177,
+    "AR Reserved (24 Hr)": 3,
+    "P Preferred": 78,
+    "MX Motorcycle": 5,
+    "Pay-by-Space": 16,
+    "Electric Vehicle": 12,
+    "Service": 5
+   },
+   "uci_map_id": 621484
+  },
+  "Lot 85": {
+   "name": "Lot 85",
+   "lat": 33.64164,
+   "lon": -117.853592,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 11,
+    "ADA (Van)": 3,
+    "AR Reserved": 1,
+    "Patient": 29,
+    "X Executive": 4,
+    "Other": 4
+   },
+   "uci_map_id": 651919
+  },
+  "Verano Parking Structure (VPS)": {
+   "name": "Verano Parking Structure (VPS)",
+   "lat": 33.646095,
+   "lon": -117.830063,
+   "levels": 5,
+   "stalls": {
+    "ADA (Standard)": 15,
+    "ADA (Van)": 3,
+    "General": 260,
+    "VP Resident": 525,
+    "VP Visitor": 35,
+    "Service": 30
+   },
+   "uci_map_id": 668975
+  },
+  "Lot 83": {
+   "name": "Lot 83",
+   "lat": 33.642994,
+   "lon": -117.852295,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 7,
+    "ADA (Van)": 2,
+    "General": 40,
+    "Patient": 9,
+    "AR Reserved (7am-5pm)": 109,
+    "Other": 2
+   },
+   "uci_map_id": 672208
+  },
+  "Lot 83A": {
+   "name": "Lot 83A",
+   "lat": 33.642159,
+   "lon": -117.851898,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 2,
+    "ADA (Van)": 1,
+    "Patient": 25
+   },
+   "uci_map_id": 960743
+  },
+  "Gold Parking Structure (UCI Health-Irvine)": {
+   "name": "Gold Parking Structure (UCI Health-Irvine)",
+   "lat": 33.662758,
+   "lon": -117.855812,
+   "levels": null,
+   "stalls": {},
+   "uci_map_id": 1116379
+  },
+  "Blue Parking Structure (UCI Health-Irvine)": {
+   "name": "Blue Parking Structure (UCI Health-Irvine)",
+   "lat": 33.662987,
+   "lon": -117.856598,
+   "levels": null,
+   "stalls": {},
+   "uci_map_id": 1116380
+  },
+  "Lot 86": {
+   "name": "Lot 86",
+   "lat": 33.642433,
+   "lon": -117.85276,
+   "levels": null,
+   "stalls": {
+    "ADA (Standard)": 4,
+    "Patient": 49
+   },
+   "uci_map_id": 1126483
+  },
+  "Lot 90H": {
+   "name": "Lot 90H",
+   "lat": 33.665562,
+   "lon": -117.854073,
+   "levels": null,
+   "stalls": {
+    "General": 27
+   },
+   "uci_map_id": 1148237
+  },
+  "Health Sciences Parking Structure (HSPS)": {
+   "name": "Health Sciences Parking Structure (HSPS)",
+   "lat": 33.642658,
+   "lon": -117.853867,
+   "levels": 7,
+   "stalls": {
+    "ADA (Standard)": 33,
+    "General": 1617,
+    "AR Reserved (7am-5pm)": 92,
+    "AR-CAV Reserved": 41,
+    "Zipcar": 3,
+    "Patient": 160,
+    "Pay-by-Space": 33,
+    "Electric Vehicle": 43,
+    "Electric Veh. (ADA)": 7,
+    "Service": 14
+   },
+   "uci_map_id": 1213197
+  }
+ }
+}

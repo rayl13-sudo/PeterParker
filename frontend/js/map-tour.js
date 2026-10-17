@@ -14,7 +14,7 @@ const STEPS = [
   {
     target: "#map-key",
     title: "Understand the colors",
-    body: "The map key explains each colored area. Blue is free, dark gray needs a permit, dashed gray is paid, and red warns of limits or tow risk.",
+    body: "The map key explains each colored area. Blue is free, dark gray needs a permit, purple is faculty & staff, dashed gray is paid, and red warns of limits or tow risk.",
   },
   {
     target: "#spot-list .spot-item .spot-text",

@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from app.config import settings
 from app.db import init_db
 
-SIGNUP = {"username": "Spidey", "email": "Peter@Example.com", "password": "Webslinger!"}
+SIGNUP = {"username": "Spidey", "email": "Peter@uci.edu", "password": "Webslinger!"}
 
 
 def login(client, identifier, password=SIGNUP["password"], **extra):
@@ -18,7 +18,7 @@ def test_signup_then_me(client):
     assert res.status_code == 201
     body = res.json()
     assert body["user"]["username"] == "spidey"
-    assert body["user"]["email"] == "peter@example.com"
+    assert body["user"]["email"] == "peter@uci.edu"
 
     me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {body['token']}"})
     assert me.status_code == 200
@@ -27,7 +27,7 @@ def test_signup_then_me(client):
 
 def test_duplicate_username_or_email_rejected(client):
     client.post("/api/auth/signup", json=SIGNUP)
-    dup_user = client.post("/api/auth/signup", json={**SIGNUP, "email": "other@example.com"})
+    dup_user = client.post("/api/auth/signup", json={**SIGNUP, "email": "other@uci.edu"})
     assert dup_user.status_code == 409
     assert "username" in dup_user.json()["detail"]
 
@@ -40,10 +40,11 @@ def test_username_allows_special_characters(client):
     for i, name in enumerate(["sp!dey#1", "peter_p$rker", "web*slinger&", "m.j.~(watson)", "ünïcødé"]):
         res = client.post(
             "/api/auth/signup",
-            json={**SIGNUP, "username": name, "email": f"user{i}@example.com"},
+            json={**SIGNUP, "username": name, "email": f"user{i}@uci.edu"},
         )
         assert res.status_code == 201, (name, res.json())
-        assert login(client, name.upper() if name.isascii() else name, SIGNUP["password"]).status_code == 200, name
+        assert res.json()["user"]["username"] == name.lower(), name
+        assert login(client, f"user{i}@uci.edu", SIGNUP["password"]).status_code == 200, name
 
 
 def test_invalid_username_rejected(client):
@@ -52,13 +53,27 @@ def test_invalid_username_rejected(client):
         assert res.status_code == 422, bad
 
 
-def test_login_with_username_or_email(client):
+def test_login_with_uci_email_only(client):
     client.post("/api/auth/signup", json=SIGNUP)
-    assert login(client, "spidey").status_code == 200
-    assert login(client, "SPIDEY").status_code == 200
-    assert login(client, "peter@example.com").status_code == 200
-    assert login(client, "spidey", "wrong-password").status_code == 401
-    assert login(client, "nobody").status_code == 401
+    assert login(client, "peter@uci.edu").status_code == 200
+    assert login(client, "  PETER@UCI.EDU ").status_code == 200
+    assert login(client, "peter@uci.edu", "wrong-password").status_code == 401
+    assert login(client, "nobody@uci.edu").status_code == 401
+    # Usernames and non-UCI emails are rejected outright.
+    for bad in ["spidey", "peter@gmail.com"]:
+        res = login(client, bad)
+        assert res.status_code == 422, bad
+        assert "UCI email" in res.json()["detail"][0]["msg"]
+
+
+def test_signup_requires_uci_email(client):
+    for ok in ["anteater@uci.edu", "Zot@ICS.UCI.EDU"]:
+        res = client.post("/api/auth/signup", json={**SIGNUP, "username": ok.split("@")[0].lower(), "email": ok})
+        assert res.status_code == 201, (ok, res.json())
+    for bad in ["peter@gmail.com", "peter@fakeuci.edu", "peter@uci.edu.evil.com", "peter@ucla.edu"]:
+        res = client.post("/api/auth/signup", json={**SIGNUP, "username": "someone", "email": bad})
+        assert res.status_code == 422, bad
+        assert "uci.edu" in res.json()["detail"][0]["msg"]
 
 
 def test_short_password_rejected(client):
@@ -69,8 +84,8 @@ def test_short_password_rejected(client):
 def test_remember_me_extends_session(client):
     client.post("/api/auth/signup", json=SIGNUP)
     now = datetime.now(UTC)
-    short = login(client, "spidey").json()
-    long = login(client, "spidey", remember_me=True).json()
+    short = login(client, "peter@uci.edu").json()
+    long = login(client, "peter@uci.edu", remember_me=True).json()
 
     assert datetime.fromisoformat(short["expires_at"]) < now + timedelta(days=1)
     assert datetime.fromisoformat(long["expires_at"]) > now + timedelta(days=29)
@@ -111,7 +126,7 @@ def test_delete_account_requires_explicit_yes_and_password_then_revokes_every_se
     signed_up = client.post("/api/auth/signup", json=SIGNUP).json()
     user_id = signed_up["user"]["id"]
     headers = {"Authorization": f"Bearer {signed_up['token']}"}
-    other_token = login(client, "spidey").json()["token"]
+    other_token = login(client, "peter@uci.edu").json()["token"]
     other_headers = {"Authorization": f"Bearer {other_token}"}
 
     with sqlite3.connect(settings.database_path) as conn:
@@ -133,7 +148,7 @@ def test_delete_account_requires_explicit_yes_and_password_then_revokes_every_se
     assert deleted.status_code == 204
     assert client.get(path, headers=headers).status_code == 401
     assert client.get(path, headers=other_headers).status_code == 401
-    assert login(client, "spidey").status_code == 401
+    assert login(client, "peter@uci.edu").status_code == 401
     with sqlite3.connect(settings.database_path) as conn:
         for table in ("users", "sessions", "items", "reviews"):
             assert conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {('id' if table == 'users' else 'user_id')} = ?", (user_id,)).fetchone()[0] == 0

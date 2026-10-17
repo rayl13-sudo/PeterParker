@@ -37,7 +37,7 @@ def test_parking_returns_categorized_lots(client, auth_headers):
     body = res.json()
     assert "OpenStreetMap" in body["source"]
     categories = {lot["category"] for lot in body["lots"]}
-    assert categories == {"free", "permit", "paid", "limited"}
+    assert categories == {"free", "permit", "paid", "limited", "staff"}
     for lot in body["lots"]:
         # Everything should be in the UCI area, with a closed outline.
         assert 33.62 < lot["lat"] < 33.67
@@ -81,9 +81,9 @@ def test_limited_lots_warn_and_say_what_they_serve(client, auth_headers):
 
 def test_every_permit_assignment_matches_a_lot():
     import json
-    from app.api.routes.parking import DATA_FILE, PERMITS_FILE
+    from app.api.routes.parking import PERMITS_FILE, _load
 
-    names = {lot["name"] for lot in json.loads(DATA_FILE.read_text())["lots"]}
+    names = {lot.name for lot in _load().lots}  # includes lots added from UCI's own map
     permits = json.loads(PERMITS_FILE.read_text())
     for name, assigned in permits["lots"].items():
         assert name in names, f"{name} isn't in parking_lots.json (renamed in OpenStreetMap?)"
@@ -111,3 +111,40 @@ def test_housing_structures_are_not_commuter_lots(client, auth_headers):
     lots = {lot["name"]: lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"]}
     verano = lots["Verano Parking Structure"]
     assert not verano["uci"] and "housing" in verano["inferred"].lower()
+
+
+
+def test_uci_space_counts_and_staff_lots(client, auth_headers):
+    lots = {lot["name"]: lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"]}
+    aps = lots["Anteater Parking Structure"]["spaces"]
+    assert aps["source"] == "uci" and aps["regular"] == 1586 and aps["accessible"] == 34
+    assert aps["ev_ports"] == {"level1": 10, "level2": 12} and aps["tesla_chargers"] == 0
+    # UCI's own Lot 16 table, not inflated by neighbouring Lots 16AE/16AW
+    assert lots["Lot 16"]["spaces"]["total"] == 619 and lots["Lot 16"]["category"] == "staff"
+    assert lots["Lot 16A"]["spaces"]["source"] == "uci"  # 16AE + 16AW combined
+    assert lots["Lot EHS"]["category"] == "staff"
+    # Student zone lots stay student lots even though staff park there too
+    assert lots["Lot 90"]["category"] == "permit"
+    # Non-UCI lots get a labelled estimate and the ADA minimum for that size
+    tj = lots["Parking by Trader Joe's"]["spaces"]
+    assert tj["source"] == "estimate" and tj["accessible"] >= 1
+
+
+def test_ada_minimum_table():
+    from app.api.routes.parking import ada_minimum
+
+    assert [ada_minimum(n) for n in (10, 26, 100, 101, 450, 800, 1200)] == [1, 2, 4, 5, 9, 16, 22]
+
+
+
+def test_accessible_parking_counts_and_locations(client, auth_headers):
+    lots = {lot["name"]: lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"]}
+    aps = lots["Anteater Parking Structure"]["spaces"]
+    assert (aps["accessible"], aps["accessible_standard"], aps["accessible_van"]) == (34, 31, 3)
+    assert aps["accessible_is_minimum"] is False
+    assert any("level 1" in note for note in aps["accessible_where"])
+    hsps = lots["Health Sciences Parking Structure"]["spaces"]
+    assert hsps["accessible_ev"] == 7 and hsps["accessible"] == 33 + 7
+    # Lots without published counts show the ADA minimum, flagged as such
+    tj = lots["Parking by Trader Joe's"]["spaces"]
+    assert tj["accessible_is_minimum"] and tj["accessible"] >= 1

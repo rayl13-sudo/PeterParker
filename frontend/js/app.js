@@ -52,12 +52,20 @@ function showAuthError(err) {
   authError.hidden = !err;
 }
 
+// Accounts use a UCI email: name@uci.edu or a UCI department address (name@ics.uci.edu).
+// The server checks this too.
+const UCI_EMAIL = /^[^\s@]+@(?:[a-z0-9-]+\.)*uci\.edu$/i;
+const UCI_EMAIL_ERROR = "Invalid email: use your UCI email address (ending in uci.edu).";
+
 function validateAuthForm(password) {
   if (mode === "login") {
-    if (!authIdentifier.value.trim() || !password) return "Enter your username or email and password.";
+    const email = authIdentifier.value.trim();
+    if (!email || !password) return "Enter your UCI email and password.";
+    if (!UCI_EMAIL.test(email)) return UCI_EMAIL_ERROR;
     return null;
   }
-  if (!authUsername.value.trim() || !authEmail.value.trim()) return "Enter a username and email.";
+  if (!authUsername.value.trim() || !authEmail.value.trim()) return "Enter a username and your UCI email.";
+  if (!UCI_EMAIL.test(authEmail.value.trim())) return UCI_EMAIL_ERROR;
   if (!passwordMeetsRules(password)) return "Password doesn't meet all the requirements below.";
   return null;
 }
