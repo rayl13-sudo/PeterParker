@@ -1,4 +1,5 @@
 import json
+import re
 from functools import cache
 from pathlib import Path
 from typing import Literal
@@ -88,6 +89,8 @@ def _load() -> ParkingResponse:
     data = json.loads(DATA_FILE.read_text())
     uci = json.loads(PERMITS_FILE.read_text())
     for lot in data["lots"]:
+        # Remove generated OSM type labels, preserving name qualifiers such as (AIRB).
+        lot["serves"] = [re.sub(r"\s+\([a-z][a-z ]*\)$", "", name) for name in lot.get("serves", [])]
         assigned = uci["lots"].get(lot["name"], {})
         on_campus = lot["category"] == "permit" and "UCI's campus" in (lot.get("inferred") or "")
         lot["uci"] = lot.get("operator") in UCI_OPERATORS or bool(assigned) or on_campus
