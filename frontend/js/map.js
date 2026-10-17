@@ -1981,13 +1981,23 @@ $("directions-reroute").addEventListener("click", () => planTrip());
 
 // ---------- Boot ----------
 
-$("logout").addEventListener("click", async () => {
-  try {
-    await api.logout();
-  } finally {
-    toSignIn();
+const accountMenu = $("account-menu");
+const menuTrigger = accountMenu.querySelector("summary");
+accountMenu.addEventListener("click", (event) => {
+  if (event.target.closest(".account-dropdown button, .account-dropdown a")) accountMenu.open = false;
+});
+document.addEventListener("click", (event) => {
+  if (!accountMenu.contains(event.target)) accountMenu.open = false;
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && accountMenu.open) {
+    accountMenu.open = false;
+    menuTrigger.focus();
   }
 });
+$("parking-tricks").addEventListener("click", () => $("parking-tricks-dialog").showModal());
+$("parking-tricks-dialog").addEventListener("close", () => menuTrigger.focus());
+
 
 async function init() {
   try {

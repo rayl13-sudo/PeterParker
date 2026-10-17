@@ -32,9 +32,9 @@ const STEPS = [
     fallbackBody: "Select a lot to open its details. From there you can get directions, read community ratings and tips, or add a review.",
   },
   {
-    target: ".account .icon-button[href='settings.html']",
+    target: "#account-menu summary",
     title: "Manage your account",
-    body: "Open Settings to change your username, photo, avatar colors, or password. You can return to this tour with the ? button.",
+    body: "Open the three-dot menu for Settings, Parking tricks, or this tutorial. Settings lets you change your username, photo, avatar colors, or password.",
   },
 ];
 
@@ -145,7 +145,7 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
     document.removeEventListener("keydown", onKeydown);
     layer.remove();
     activeTour = null;
-    document.getElementById("tour-help").focus();
+    document.querySelector("#account-menu summary").focus();
   }
 
   function onKeydown(event) {

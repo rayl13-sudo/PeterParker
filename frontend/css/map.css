@@ -13,6 +13,7 @@
 /* ---------- Top bar ---------- */
 
 .topbar {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -87,6 +88,47 @@
 }
 .avatar-preview-close:focus-visible { outline: 2px solid var(--a-blue); }
 
+.account-menu { position: relative; }
+.account-menu summary { list-style: none; cursor: pointer; }
+.account-menu summary::-webkit-details-marker { display: none; }
+.account-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 1200;
+  min-width: 190px; padding: 6px; border: 1px solid var(--a-line);
+  border-radius: 12px; background: var(--a-white);
+  box-shadow: 0 8px 28px rgba(20, 24, 43, 0.18);
+}
+.account-dropdown > button, .account-dropdown > a.icon-button {
+  display: flex; align-items: center; justify-content: flex-start;
+  width: 100%; height: 44px; margin: 0; padding: 10px 12px; border: 0;
+  border-radius: 7px; background: transparent; color: var(--a-ink);
+  font: inherit; font-weight: 400; line-height: 1.5;
+  text-align: left; text-decoration: none; cursor: pointer;
+}
+.account-dropdown > .icon-button svg { display: none; }
+.account-dropdown > button, .account-dropdown > a.icon-button { gap: 10px; }
+.menu-symbol {
+  display: inline-grid; place-items: center; flex: 0 0 20px;
+  width: 20px; height: 20px; font-size: 18px; line-height: 1;
+  color: var(--a-muted);
+}
+.account-dropdown > [hidden] { display: none; }
+.account-dropdown > button:hover,
+.account-dropdown > a.icon-button:hover {
+  background: var(--a-field);
+  color: var(--a-ink);
+}
+.account-dropdown > :focus-visible, .account-menu summary:focus-visible {
+  outline: 2px solid var(--a-blue); outline-offset: 2px;
+}
+.parking-tricks-dialog {
+  width: min(90vw, 440px); padding: 1.5rem; border: 0; border-radius: 16px;
+  background: var(--a-white); color: var(--a-ink);
+}
+.parking-tricks-dialog::backdrop { background: rgba(20, 24, 43, 0.65); }
+.parking-tricks-dialog h2 { margin-top: 0; }
+.parking-tricks-dialog ul { list-style: disc; padding-left: 1.25rem; }
+.parking-tricks-dialog li { margin: 0.75rem 0; }
+
 /* Square icon button (settings gear) */
 .icon-button {
   display: inline-grid;
@@ -125,6 +167,7 @@
 
 .map-layout {
   position: relative;
+  z-index: 0;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -386,10 +429,10 @@
 /* Tab on the panel's outer edge; stays visible when the panel is pushed in. */
 .panel-toggle {
   position: absolute;
-  top: 1rem;
-  right: -2.25rem;
-  width: 2.25rem;
-  height: 2.75rem;
+  top: 2rem;
+  right: -2.75rem;
+  width: 2.75rem;
+  height: 3.25rem;
   padding: 0;
   display: grid;
   place-items: center;
@@ -399,6 +442,7 @@
   box-shadow: 4px 2px 10px -4px rgba(20, 24, 43, 0.25);
 }
 .panel-toggle:hover { color: var(--a-blue); }
+.panel-toggle svg { width: 20px; height: 20px; }
 .panel-toggle:focus-visible { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }
 .panel-toggle svg, .key-header svg {
   fill: none;
