@@ -9,7 +9,7 @@
 
 export const RULES_SOURCE = "https://parking.uci.edu/permits/student";
 export const STALL_NOTE =
-  "General unassigned stalls only: not Pay-by-Space, R, X, service, yellow (ECPS) or “Enforced 24 Hours” stalls.";
+  "General unassigned stalls only: not Pay-by-Space, R, X, service, yellow ECPS or “Enforced 24 Hours” stalls.";
 
 const DAY = 24 * 60;
 const H = (h) => h * 60;
@@ -33,8 +33,8 @@ function rulesFor(code) {
     return [
       { label: `Your Zone ${zone} lots`, days: "all", start: H(7), end: DAY, applies: (lot) => inZone(lot, zone) },
       { label: "Any Zone 1–6 lot", days: "weekdays", start: H(15), end: DAY, applies: inAnyZone },
-      { label: "Any UCI lot (incl. P & AR stalls)", days: "weekdays", start: H(17), end: DAY, applies: isUciLot },
-      { label: "Any UCI lot (incl. P & AR stalls)", days: "weekends", start: H(7), end: DAY, applies: isUciLot },
+      { label: "Any UCI lot, including P and AR stalls", days: "weekdays", start: H(17), end: DAY, applies: isUciLot },
+      { label: "Any UCI lot, including P and AR stalls", days: "weekends", start: H(7), end: DAY, applies: isUciLot },
     ];
   }
   if (kind === "R") {
@@ -42,8 +42,8 @@ function rulesFor(code) {
     if (code === "R-CVGRAD") return [own]; // UCI: exceptions don't apply to R-CVGRAD
     return [
       own,
-      { label: "Any UCI surface lot (not structures)", days: "weekdays", start: H(17), end: DAY, applies: isUciSurfaceLot },
-      { label: "Any UCI surface lot (not structures)", days: "weekends", start: H(7), end: DAY, applies: isUciSurfaceLot },
+      { label: "UCI surface lots only", days: "weekdays", start: H(17), end: DAY, applies: isUciSurfaceLot },
+      { label: "UCI surface lots only", days: "weekends", start: H(7), end: DAY, applies: isUciSurfaceLot },
     ];
   }
   if (code === "E") {
@@ -76,7 +76,7 @@ const onDay = (rule, day) =>
   rule.days === "all" || (rule.days === "weekdays" ? day >= 1 && day <= 5 : day === 0 || day === 6);
 
 export function formatTime(minutes) {
-  if (minutes === 0 || minutes === DAY) return "midnight";
+  if (minutes === 0 || minutes === DAY) return "Midnight";
   const h = Math.floor(minutes / 60);
   return `${h % 12 || 12}${minutes % 60 ? `:${String(minutes % 60).padStart(2, "0")}` : ""} ${h < 12 ? "am" : "pm"}`;
 }

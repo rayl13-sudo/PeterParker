@@ -75,22 +75,14 @@ function getPreviewDialog() {
   if (previewDialog) return previewDialog;
   previewDialog = document.createElement("dialog");
   previewDialog.className = "avatar-preview";
-  previewDialog.setAttribute("aria-labelledby", "avatar-preview-title");
+  previewDialog.setAttribute("aria-label", "Enlarged profile photo");
 
-  const close = document.createElement("button");
-  close.type = "button";
-  close.className = "avatar-preview-close";
-  close.setAttribute("aria-label", "Close enlarged profile photo");
-  close.textContent = "×";
-  close.addEventListener("click", () => previewDialog.close());
-
-  previewImage = document.createElement("span");
+  previewImage = document.createElement("button");
+  previewImage.type = "button";
   previewImage.className = "avatar avatar-zoomed";
-  previewImage.setAttribute("aria-hidden", "true");
-  const title = document.createElement("h2");
-  title.id = "avatar-preview-title";
-  title.textContent = "Profile photo";
-  previewDialog.append(close, previewImage, title);
+  previewImage.setAttribute("aria-label", "Close enlarged profile photo");
+  previewImage.addEventListener("click", () => previewDialog.close());
+  previewDialog.append(previewImage);
   previewDialog.addEventListener("click", (event) => {
     if (event.target === previewDialog) previewDialog.close();
   });

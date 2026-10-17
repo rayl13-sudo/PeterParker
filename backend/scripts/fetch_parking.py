@@ -17,6 +17,7 @@ Data (c) OpenStreetMap contributors, ODbL.
 
 import json
 import math
+import re
 import time
 from pathlib import Path
 
@@ -39,8 +40,8 @@ NEARBY_METERS = 120
 UTC_RULES = {
     "time_limit": "2 hours",
     "warning": (
-        "University Town Center limits shopper parking (mostly 2 hours; some spaces are "
-        "45 minutes or 3 hours) and has towed students who park here and walk to campus. "
+        "University Town Center limits shopper parking to mostly 2 hours; some spaces allow "
+        "45 minutes or 3 hours. Students who park here and walk to campus have been towed. "
         "Check the posted signs."
     ),
     "source": "https://newuniversity.org/2016/02/23/utc-implements-2-hour-parking-policy/",
@@ -222,9 +223,9 @@ def classify(tags: dict, on_campus: bool, at_utc: bool) -> dict:
     if fee == "no":
         return {"category": "free"}
     if tags.get("operator") in UCI_OPERATORS:
-        return {"category": "permit", "inferred": "Run by UCI Transportation; permit assumed (not tagged in OpenStreetMap)"}
+        return {"category": "permit", "inferred": "Run by UCI Transportation; permit assumed; not tagged in OpenStreetMap"}
     if on_campus:
-        return {"category": "permit", "inferred": "On UCI's campus, where lots require a permit (not tagged in OpenStreetMap)"}
+        return {"category": "permit", "inferred": "On UCI's campus, where lots require a permit; not tagged in OpenStreetMap"}
     return {"category": "limited", "restriction": "Restrictions not posted in OpenStreetMap; may be private"}
 
 
@@ -264,7 +265,7 @@ def main() -> None:
         key = (tags["name"].lower(), round(pos[0] * 2000), round(pos[1] * 2000))
         destinations.setdefault(key, {
             "id": f"{el['type']}/{el['id']}",  # stable OpenStreetMap id (reviews attach to it)
-            "name": tags["name"], "kind": kind, "lat": round(pos[0], 6), "lon": round(pos[1], 6),
+            "name": re.sub(r"\s+\([a-z][a-z ]*\)$", "", tags["name"]), "kind": kind, "lat": round(pos[0], 6), "lon": round(pos[1], 6),
         })
 
     lots = []
@@ -303,7 +304,7 @@ def main() -> None:
                 "warning": info.get("warning"),
                 "warning_source": info.get("source"),
                 "utc": info.get("utc", False),
-                "serves": serves,
+                "serves": [re.sub(r"\s+\([a-z][a-z ]*\)$", "", place) for place in serves],
                 "lat": round(lat, 6),
                 "lon": round(lon, 6),
                 "outline": outline(el),

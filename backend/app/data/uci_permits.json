@@ -69,12 +69,12 @@
     },
     "R-MC": {
       "name": "\"R-MC\" Resident",
-      "who": "Mesa Court residents (not freshmen)",
+      "who": "Mesa Court residents; not freshmen",
       "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
     },
     "R-ME": {
       "name": "\"R-ME\" Resident",
-      "who": "Middle Earth residents (not freshmen)",
+      "who": "Middle Earth residents; not freshmen",
       "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
     },
     "R-CVGRAD": {
@@ -84,11 +84,11 @@
     },
     "R-OC": {
       "name": "\"R-OC\" Resident",
-      "who": "Off-campus housing residents (VDC, VDCN, CDS, PDS, Plaza Verde)",
+      "who": "Off-campus housing residents: VDC, VDCN, CDS, PDS, Plaza Verde",
       "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
     },
     "GNA": {
-      "name": "One-day General (visitor)",
+      "name": "One-day General visitor pass",
       "who": "Anyone; buy at a dispenser/kiosk or PARKbyPLATE",
       "price": "$16/day"
     },
@@ -115,12 +115,12 @@
       "where": "Permit dispensers/kiosks & select PARKbyPLATE areas"
     },
     {
-      "name": "Hourly (General)",
+      "name": "General hourly",
       "price": "$4/hour",
       "where": "Permit dispensers/kiosks"
     },
     {
-      "name": "Hourly (Pay-by-Space)",
+      "name": "Pay-by-Space hourly",
       "price": "$5/hour",
       "where": "Pay-by-Space dispensers"
     },
@@ -131,7 +131,7 @@
     }
   ],
   "visitor_hours": {
-    "weekday": "One-day General: Mon-Fri 7 a.m.-midnight in general unassigned stalls of Zones 1-6 and Lot 1.",
+    "weekday": "One-day General: Mon-Fri 7 a.m.-Midnight in general unassigned stalls of Zones 1-6 and Lot 1.",
     "evening_weekend": "Mon-Fri after 5 p.m. and all day Sat-Sun: one-day General works in general, \"P\" and \"AR\" stalls not marked \"Enforced 24 Hours\" in all UCI parking areas."
   },
   "lots": {
