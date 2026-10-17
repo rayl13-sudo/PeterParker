@@ -8,7 +8,7 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Page "depth" decides the slide direction: sign-in < map < settings.
-  var DEPTH = { "": 0, "index.html": 0, "map.html": 1, "settings.html": 2 };
+  var DEPTH = { "": 0, "index.html": 0, "map.html": 1, "settings.html": 2, "issues.html": 2 };
   function depth(url) {
     var page = new URL(url, location.href).pathname.split("/").pop();
     return DEPTH[page] !== undefined ? DEPTH[page] : 0;

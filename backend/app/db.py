@@ -52,6 +52,19 @@ CREATE TABLE IF NOT EXISTS items (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name    TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS issue_reports (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category    TEXT NOT NULL,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL,
+    location    TEXT NOT NULL DEFAULT '',
+    status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS issue_reports_status ON issue_reports(status, created_at);
 """
 
 # Applied after SCHEMA so databases created before a column existed catch up.
@@ -61,7 +74,11 @@ MIGRATIONS = [
     ("users", "avatar_bg", "ALTER TABLE users ADD COLUMN avatar_bg TEXT"),
     ("users", "avatar_fg", "ALTER TABLE users ADD COLUMN avatar_fg TEXT"),
     ("users", "avatar_image", "ALTER TABLE users ADD COLUMN avatar_image TEXT"),
+<<<<<<< Updated upstream
     ("users", "permit", "ALTER TABLE users ADD COLUMN permit TEXT"),
+=======
+    ("users", "is_admin", "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"),
+>>>>>>> Stashed changes
 ]
 
 INDEXES = """

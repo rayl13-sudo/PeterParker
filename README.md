@@ -33,7 +33,7 @@ Suggested tables: `parking_places`, `reviews(place_id, user_id, rating, report, 
 3. **Hours 6–9:** Add persisted reviews/ratings, profile permit type, and saved places.
 4. **Hours 9–12:** Integrate the four screens and check mobile layout, empty states, authentication, and the main flow.
 
-If time slips, keep the four screens but simplify profile to read-only account details and show ratings/reports as an empty state until real entries exist. Protect the core **search → select parking → inspect details** flow. Live availability, Google sign-in, admin tools, messaging, and email/password changes are outside this sprint.
+If time slips, keep the four screens but simplify profile to read-only account details and show ratings/reports as an empty state until real entries exist. Protect the core **search → select parking → inspect details** flow. Live availability, Google sign-in, messaging, and email changes are outside this sprint.
 
 ### Current repository status
 
@@ -275,7 +275,7 @@ The Delete account section opens a confirmation dialog. “No, keep my account�
 selected by default; deletion requires selecting “Yes, delete my account,” entering
 the current password, and pressing the final delete button. `DELETE /api/auth/me`
 also requires the exact `YES` confirmation and checks the password. It removes the
-profile, sessions, reviews, and items. For Supabase accounts, it first deletes the
+profile, sessions, reviews, issue reports, and items. For Supabase accounts, it first deletes the
 Supabase Auth user; if the server-side secret key is missing or Auth deletion fails,
 the app account is kept and the user sees an error.
 
@@ -287,4 +287,26 @@ uploading a photo, the color controls give way to a single "Revert to default ic
 (`PUT`/`DELETE /api/auth/me/avatar`; `PUT` to choose or `POST` to shuffle
 `/api/auth/me/avatar/colors`). PostgreSQL deployments need `backend/migrations/002_avatars.sql`
 and `003_reviews.sql` applied; `init_db()` runs every migration in order.
-.
+
+## Issue reports and admin board
+
+Signed-in users can open **Report issue** from the map or Settings. The form accepts an issue
+type, title, description, and optional place or URL. Users can see the status of their own
+reports. Reports are stored in the application database and are removed when their account is
+deleted.
+
+The same page shows an **Admin board** only to accounts with `users.is_admin = true`. Admins can
+see up to 100 reports, with open reports first and newest first within each status, and mark
+each one resolved or reopen it.
+The API enforces admin access. New users are never admins by default. To appoint an admin, sign
+up and confirm that account first, then run this as the database owner with the intended email:
+
+```sql
+UPDATE public.users SET is_admin = TRUE WHERE email = 'admin@example.com';
+```
+
+On local SQLite, set `is_admin = 1` in the `users` table instead. Production PostgreSQL must
+have [`backend/migrations/005_issue_reports.sql`](backend/migrations/005_issue_reports.sql)
+applied before deploying this feature. It creates the private report table and admin flag.
+API routes: `POST /api/issues`, `GET /api/issues/mine`, admin-only `GET /api/issues/admin`, and
+admin-only `PATCH /api/issues/{id}` with `{"status":"resolved"}` or `{"status":"open"}`.

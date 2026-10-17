@@ -36,6 +36,9 @@
   font-size: 0.9rem;
   color: var(--a-muted);
 }
+.issue-link { color: var(--a-blue); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.issue-link:hover { text-decoration: underline; }
+.issue-link:focus-visible { outline: 2px solid var(--a-blue-soft); outline-offset: 3px; }
 /* Round profile icon next to the username */
 .user-chip { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--a-ink); font-weight: 500; }
 .avatar {
