@@ -105,3 +105,35 @@ def test_password_requirements(client):
     res = client.post("/api/auth/signup", json={**SIGNUP, "password": "nocapsorspecial"})
     msg = res.json()["detail"][0]["msg"]
     assert "capital letter" in msg and "special character" in msg
+
+
+def test_delete_account_requires_explicit_yes_and_password_then_revokes_every_session(client):
+    signed_up = client.post("/api/auth/signup", json=SIGNUP).json()
+    user_id = signed_up["user"]["id"]
+    headers = {"Authorization": f"Bearer {signed_up['token']}"}
+    other_token = login(client, "spidey").json()["token"]
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+
+    with sqlite3.connect(settings.database_path) as conn:
+        conn.execute("INSERT INTO items (user_id, name) VALUES (?, ?)", (user_id, "saved"))
+        conn.execute(
+            "INSERT INTO reviews (user_id, target_type, target_id, rating, comment, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user_id, "lot", "way/1", 5, "Easy parking", "2026-10-17", "2026-10-17"),
+        )
+
+    path = "/api/auth/me"
+    assert client.request("DELETE", path, json={"current_password": SIGNUP["password"], "confirmation": "YES"}).status_code == 401
+    assert client.request("DELETE", path, headers=headers, json={"current_password": SIGNUP["password"]}).status_code == 422
+    assert client.request("DELETE", path, headers=headers, json={"current_password": SIGNUP["password"], "confirmation": "NO"}).status_code == 422
+    assert client.request("DELETE", path, headers=headers, json={"current_password": "wrong", "confirmation": "YES"}).status_code == 400
+    assert client.get(path, headers=headers).status_code == 200
+
+    deleted = client.request("DELETE", path, headers=headers, json={"current_password": SIGNUP["password"], "confirmation": "YES"})
+    assert deleted.status_code == 204
+    assert client.get(path, headers=headers).status_code == 401
+    assert client.get(path, headers=other_headers).status_code == 401
+    assert login(client, "spidey").status_code == 401
+    with sqlite3.connect(settings.database_path) as conn:
+        for table in ("users", "sessions", "items", "reviews"):
+            assert conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {('id' if table == 'users' else 'user_id')} = ?", (user_id,)).fetchone()[0] == 0

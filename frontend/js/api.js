@@ -61,6 +61,10 @@ export const api = {
     }),
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request("/auth/me"),
+  deleteAccount: ({ currentPassword, confirmation }) => request("/auth/me", {
+    method: "DELETE",
+    body: JSON.stringify({ current_password: currentPassword, confirmation }),
+  }),
   updateMe: ({ username, currentPassword }) =>
     request("/auth/me", {
       method: "PATCH",

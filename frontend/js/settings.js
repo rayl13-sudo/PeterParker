@@ -3,6 +3,7 @@ import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
 import { imageFileToAvatar, renderAvatar } from "./avatar.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
+import { clearTutorialState } from "./tutorial-state.js";
 
 const SIGN_IN_PAGE = "index.html";
 const $ = (id) => document.getElementById(id);
@@ -35,6 +36,7 @@ function showUser(user) {
   $("color-controls").hidden = Boolean(user.avatar.image);
   $("color-bg").value = user.avatar.bg;
   $("color-fg").value = user.avatar.fg;
+  $("delete-account").disabled = false;
 }
 
 // Runs a form action with its button disabled, showing the result in `message`.
@@ -139,6 +141,66 @@ $("switch-account").addEventListener("click", async () => {
     await api.logout();
   } finally {
     toSignIn();
+  }
+});
+
+// ---------- Delete account ----------
+
+const deleteDialog = $("delete-dialog");
+const deleteForm = $("delete-form");
+const deleteYes = $("delete-yes");
+const deletePassword = $("delete-password");
+const deleteConfirm = $("delete-confirm");
+const deleteCancel = $("delete-cancel");
+let deleting = false;
+
+function updateDeleteConfirmation() {
+  deleteConfirm.disabled = !deleteYes.checked || !deletePassword.value;
+}
+
+$("delete-account").addEventListener("click", () => {
+  if (!current) return;
+  deleteDialog.showModal();
+  deleteForm.querySelector('input[value="no"]').focus();
+});
+deleteCancel.addEventListener("click", () => { if (!deleting) deleteDialog.close(); });
+deleteDialog.addEventListener("cancel", (event) => { if (deleting) event.preventDefault(); });
+deleteDialog.addEventListener("close", () => {
+  deleteForm.reset();
+  showMessage($("delete-message"), null);
+  updateDeleteConfirmation();
+});
+deleteForm.querySelectorAll('input[name="delete-choice"]').forEach((choice) =>
+  choice.addEventListener("change", updateDeleteConfirmation),
+);
+deletePassword.addEventListener("input", updateDeleteConfirmation);
+deleteForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!deleteYes.checked || !deletePassword.value || !current) return;
+  const currentPassword = deletePassword.value;
+  const confirmation = deleteYes.checked ? "YES" : "NO";
+  deleting = true;
+  deleteConfirm.disabled = true;
+  deleteConfirm.textContent = "Deleting…";
+  deleteCancel.disabled = true;
+  deleteForm.querySelectorAll("input").forEach((input) => { input.disabled = true; });
+  showMessage($("delete-message"), null);
+  try {
+    await api.deleteAccount({ currentPassword, confirmation });
+    try {
+      clearTutorialState(current);
+      sessionStorage.setItem("pp_account_deleted", "1");
+    } catch {
+      // Browser storage cleanup is best effort; the server has deleted the account.
+    }
+    toSignIn();
+  } catch (err) {
+    showMessage($("delete-message"), err.message, "error");
+    deleting = false;
+    deleteConfirm.textContent = "Permanently delete account";
+    deleteCancel.disabled = false;
+    deleteForm.querySelectorAll("input").forEach((input) => { input.disabled = false; });
+    updateDeleteConfirmation();
   }
 });
 

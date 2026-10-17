@@ -121,6 +121,10 @@ function showBackgroundMap() {
 function showAuth() {
   authView.hidden = false;
   showBackgroundMap();
+  if (sessionStorage.getItem("pp_account_deleted") === "1") {
+    sessionStorage.removeItem("pp_account_deleted");
+    showAuthError(new Error("Your account has been deleted."));
+  }
   firstField().focus();
 }
 

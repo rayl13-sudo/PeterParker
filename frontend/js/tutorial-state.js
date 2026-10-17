@@ -24,3 +24,10 @@ export function finishTutorial(user) {
     localStorage.removeItem(PENDING_EMAIL_KEY);
   }
 }
+
+export function clearTutorialState(user) {
+  if (user?.id) localStorage.removeItem(`${DONE_KEY_PREFIX}${user.id}`);
+  if (localStorage.getItem(PENDING_EMAIL_KEY) === normalizeEmail(user?.email)) {
+    localStorage.removeItem(PENDING_EMAIL_KEY);
+  }
+}

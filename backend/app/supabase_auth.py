@@ -4,6 +4,7 @@ import json
 import ssl
 import certifi
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from fastapi import HTTPException
@@ -41,4 +42,25 @@ def request(path: str, payload: dict, *, method: str = "POST", access_token: str
             raise HTTPException(400, "Unable to create account. Check your details or try signing in.") from exc
         raise HTTPException(502, "Authentication service unavailable. Please try again.") from exc
     except (URLError, TimeoutError, ValueError) as exc:
+        raise HTTPException(502, "Authentication service unavailable. Please try again.") from exc
+
+
+def delete_user(user_id: str) -> None:
+    """Permanently remove a Supabase Auth user with a server-only admin key."""
+    secret = settings.supabase_secret_key
+    if not secret:
+        raise HTTPException(503, "Account deletion is not configured on this server")
+    req = Request(
+        settings.supabase_url.rstrip("/") + "/auth/v1/admin/users/" + quote(user_id, safe=""),
+        headers={"apikey": secret, "Authorization": f"Bearer {secret}"},
+        method="DELETE",
+    )
+    try:
+        with urlopen(req, timeout=15, context=ssl.create_default_context(cafile=certifi.where())):
+            pass
+    except HTTPError as exc:
+        if exc.code in (401, 403):
+            raise HTTPException(503, "Account deletion is not configured correctly on this server") from exc
+        raise HTTPException(502, "Authentication service could not delete the account. Try again later.") from exc
+    except (URLError, TimeoutError) as exc:
         raise HTTPException(502, "Authentication service unavailable. Please try again.") from exc
