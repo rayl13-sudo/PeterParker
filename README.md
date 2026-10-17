@@ -310,3 +310,4 @@ have [`backend/migrations/005_issue_reports.sql`](backend/migrations/005_issue_r
 applied before deploying this feature. It creates the private report table and admin flag.
 API routes: `POST /api/issues`, `GET /api/issues/mine`, admin-only `GET /api/issues/admin`, and
 admin-only `PATCH /api/issues/{id}` with `{"status":"resolved"}` or `{"status":"open"}`.
+.
