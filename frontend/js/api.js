@@ -100,6 +100,7 @@ export const api = {
       body: JSON.stringify({ target_type: type, target_id: id, rating, comment }),
     }),
   deleteReview: (reviewId) => request(`/reviews/${reviewId}`, { method: "DELETE" }),
+  likeReview: (reviewId, liked) => request(`/reviews/${reviewId}/like`, { method: liked ? "PUT" : "DELETE" }),
   replyToReview: (reviewId, comment) =>
     request(`/reviews/${reviewId}/replies`, { method: "POST", body: JSON.stringify({ comment }) }),
   deleteReply: (replyId) => request(`/reviews/replies/${replyId}`, { method: "DELETE" }),

@@ -71,8 +71,21 @@
   overflow: visible;
 }
 .avatar-preview::backdrop { background: rgba(20, 24, 43, 0.7); }
-.avatar-preview .avatar-zoomed { width: min(70vw, 280px); height: min(70vw, 280px); padding: 0; cursor: zoom-out; }
-.avatar-preview .avatar-zoomed:focus-visible { outline: 2px solid var(--a-white); outline-offset: 4px; }
+.avatar-preview .avatar-zoomed { width: min(65vw, 240px); height: min(65vw, 240px); margin: 0 auto; }
+.avatar-preview h2 { margin: 1rem 0 0; font-size: 1rem; }
+.avatar-preview-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.65rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--a-field);
+  color: var(--a-ink);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+.avatar-preview-close:focus-visible { outline: 2px solid var(--a-blue); }
 
 /* Square icon button (settings gear) */
 .icon-button {
@@ -600,7 +613,7 @@
 /* ---------- Small screens: panel becomes a bottom sheet ---------- */
 
 @media (max-width: 500px) {
-  .topbar .brand > span:not(.mark) { display: none; }
+  .topbar .brand > span { display: none; }
 }
 
 @media (max-width: 640px) {

@@ -23,9 +23,18 @@
   if (supportsViewTransitions) {
     window.addEventListener("pageswap", function (e) {
       var to = e.viewTransition && e.activation && e.activation.entry && e.activation.entry.url;
+      // Returning to sign-in should never retain a snapshot of the signed-in map.
+      if (to && depth(to) === 0) {
+        e.viewTransition.skipTransition();
+        return;
+      }
       if (to) e.viewTransition.types.add(transitionType(location.href, to));
     });
     window.addEventListener("pagereveal", function (e) {
+      if (e.viewTransition && depth(location.href) === 0) {
+        e.viewTransition.skipTransition();
+        return;
+      }
       var from = window.navigation && navigation.activation && navigation.activation.from;
       if (e.viewTransition && from && from.url) e.viewTransition.types.add(transitionType(from.url, location.href));
     });
@@ -44,7 +53,7 @@
       if (replace) location.replace(url);
       else location.assign(url);
     }
-    if (supportsViewTransitions || reduceMotion) return go();
+    if (supportsViewTransitions || reduceMotion || depth(url) === 0) return go();
     document.documentElement.classList.add("page-leaving");
     setTimeout(go, 170);
   };
