@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import settings
-from app.db import connect
+from app.db import PostgresConnection, connect
 from app.main import app
 
 
@@ -35,3 +35,29 @@ def test_configured_frontend_can_preflight(client):
     })
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_postgres_connection_context_commits_or_rolls_back_and_closes(monkeypatch):
+    events = []
+
+    class FakeConnection:
+        def commit(self):
+            events.append("commit")
+
+        def rollback(self):
+            events.append("rollback")
+
+        def close(self):
+            events.append("close")
+
+    monkeypatch.setattr("app.db.psycopg.connect", lambda *args, **kwargs: FakeConnection())
+
+    with PostgresConnection() as conn:
+        assert isinstance(conn, PostgresConnection)
+    assert events == ["commit", "close"]
+
+    events.clear()
+    with pytest.raises(ValueError):
+        with PostgresConnection():
+            raise ValueError("test failure")
+    assert events == ["rollback", "close"]
