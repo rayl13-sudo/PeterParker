@@ -1,4 +1,5 @@
 import json
+import re
 from functools import cache
 from pathlib import Path
 from typing import Literal
@@ -17,6 +18,14 @@ DATA_FILE = DATA_DIR / "parking_lots.json"
 # Which UCI permits each lot accepts and visitor prices, transcribed by hand from
 # parking.uci.edu (see "sources" in the file). Update it when UCI publishes new rates.
 PERMITS_FILE = DATA_DIR / "uci_permits.json"
+
+LOT_NUMBER = re.compile(r"^Lot \w+$")  # UCI's own lot names: "Lot 5", "Lot 16H", "Lot BP"
+# Housing communities with their own resident parking (housing.uci.edu/grad/parking).
+HOUSING_NAMES = re.compile(
+    r"Verano|Palo Verde|Campus Village|Plaza Verde|Vista del Campo|Camino del Sol|Puerta del Sol"
+    r"|University Hills|Mesa Court|Middle Earth|Arroyo Vista",
+    re.I,
+)
 
 UCI_OPERATORS = {
     "University of California, Irvine - Transportation Services",
@@ -90,7 +99,24 @@ def _load() -> ParkingResponse:
     for lot in data["lots"]:
         assigned = uci["lots"].get(lot["name"], {})
         on_campus = lot["category"] == "permit" and "UCI's campus" in (lot.get("inferred") or "")
-        lot["uci"] = lot.get("operator") in UCI_OPERATORS or bool(assigned) or on_campus
+        # "uci" = a UCI Transportation lot, where UCI's permit and visitor rules apply.
+        # Untagged lots inside the campus boundary only count if they carry a UCI lot
+        # number ("Lot 15A"); the rest are mostly housing (UCI: housing permission "is
+        # valid only in your housing community") or department parking.
+        numbered = bool(LOT_NUMBER.match(lot["name"]))
+        housing = not assigned and bool(HOUSING_NAMES.search(lot["name"]))
+        lot["uci"] = not housing and (lot.get("operator") in UCI_OPERATORS or bool(assigned) or (on_campus and numbered))
+        if housing:
+            lot["inferred"] = (
+                "Housing community parking: UCI says housing parking is valid only for that "
+                "community's residents, so commuter permits don't apply here."
+            )
+        elif on_campus and not numbered:
+            lot["inferred"] = (
+                "Inside UCI's campus but not a numbered UCI lot: likely housing or department "
+                "parking. UCI commuter permits aren't valid here; residents and visitors follow "
+                "that community's rules."
+            )
         lot["permits"] = [{"code": code, **uci["permits"][code]} for code in assigned.get("permits", [])]
         lot["permit_note"] = assigned.get("note")
     data["permit_info"] = {

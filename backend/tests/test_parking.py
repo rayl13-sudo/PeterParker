@@ -70,3 +70,17 @@ def test_permit_catalogue(client, auth_headers):
     assert "S4" in body["holdable_permits"] and "GNA" not in body["holdable_permits"]
     assert body["permits"]["E"]["price"] == "$48/month"
     assert body["permit_rules_source"] == "https://parking.uci.edu/permits/student"
+
+
+def test_only_confirmed_uci_lots_follow_uci_permit_rules(client, auth_headers):
+    lots = {lot["name"]: lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"]}
+    assert lots["Lot 15A"]["uci"]  # a numbered UCI lot inside campus
+    assert {p["code"] for p in lots["Lot 70"]["permits"]} == {"S3", "P3", "R-CVGRAD"}
+    housing = [l for l in lots.values() if l["category"] == "permit" and "housing" in (l.get("inferred") or "")]
+    assert housing and not any(l["uci"] for l in housing)
+
+
+def test_housing_structures_are_not_commuter_lots(client, auth_headers):
+    lots = {lot["name"]: lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"]}
+    verano = lots["Verano Parking Structure"]
+    assert not verano["uci"] and "housing" in verano["inferred"].lower()
