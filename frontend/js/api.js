@@ -81,7 +81,16 @@ export const api = {
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
     }),
 
+  reportIssue: (issue) => request("/issues", { method: "POST", body: JSON.stringify(issue) }),
+  myIssues: () => request("/issues/mine"),
+  adminIssues: () => request("/issues/admin"),
+  updateIssue: (id, status) => request(`/issues/${id}`, {
+    method: "PATCH", body: JSON.stringify({ status }),
+  }),
+
   parking: () => request("/parking"),
+  permitCatalogue: () => request("/parking/permits"),
+  setPermit: (permit) => request("/auth/me/permit", { method: "PUT", body: JSON.stringify({ permit }) }),
   places: () => request("/places"),
   reviewSummary: () => request("/reviews/summary"),
   reviews: (type, id) => request(`/reviews?target_type=${type}&target_id=${encodeURIComponent(id)}`),

@@ -44,6 +44,9 @@ class PermitInfo(BaseModel):
     academic_year: str
     retrieved: str
     sources: list[str]
+    permits: dict[str, Permit]  # every permit by code, for naming the user's own
+    holdable_permits: list[str]
+    permit_rules_source: str
     visitor_rates: list[VisitorRate]
     visitor_hours: dict[str, str]
 
@@ -91,11 +94,20 @@ def _load() -> ParkingResponse:
         lot["permits"] = [{"code": code, **uci["permits"][code]} for code in assigned.get("permits", [])]
         lot["permit_note"] = assigned.get("note")
     data["permit_info"] = {
-        key: uci[key] for key in ("academic_year", "retrieved", "sources", "visitor_rates", "visitor_hours")
+        key: uci[key]
+        for key in ("academic_year", "retrieved", "sources", "visitor_rates", "visitor_hours",
+                    "holdable_permits", "permit_rules_source")
     }
+    data["permit_info"]["permits"] = {code: {"code": code, **info} for code, info in uci["permits"].items()}
     return ParkingResponse.model_validate(data)
 
 
 @router.get("", response_model=ParkingResponse, dependencies=[Depends(get_current_user)])
 def parking_lots() -> ParkingResponse:
     return _load()
+
+
+@router.get("/permits", response_model=PermitInfo, dependencies=[Depends(get_current_user)])
+def permit_catalogue() -> PermitInfo:
+    """Just the UCI permit catalogue (names, prices, which ones a person can hold), for settings."""
+    return _load().permit_info

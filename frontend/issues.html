@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="js/open-from-disk.js"></script>
+    <script src="js/page-transitions.js"></script>
+    <title>Report an issue · PeterParker</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/map.css" />
+    <link rel="stylesheet" href="css/settings.css" />
+    <link rel="stylesheet" href="css/issues.css" />
+    <link rel="stylesheet" href="css/motion.css" />
+    <script src="js/config.js"></script>
+    <script type="module" src="js/issues.js"></script>
+  </head>
+  <body class="map-page settings-page">
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>PeterParker</span>
+        <img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" />
+      </div>
+      <div class="account"><span id="report-user" class="user-chip"></span></div>
+    </header>
+    <main class="settings issue-page">
+      <a class="back-button" href="map.html">← Back to map</a>
+      <h1>Report an issue</h1>
+      <p class="issue-intro">Tell us what is wrong with a parking location or the website. Reports go to the PeterParker team.</p>
+
+      <section class="settings-card" aria-labelledby="report-heading">
+        <h2 id="report-heading">New report</h2>
+        <form id="issue-form" class="settings-form">
+          <label>Issue type
+            <select id="issue-category" required>
+              <option value="parking_data">Parking information</option>
+              <option value="map">Map or directions</option>
+              <option value="account">Account or sign in</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Short title
+            <input id="issue-title" type="text" minlength="3" maxlength="120" required placeholder="e.g. Wrong permit rules at Lot 5" />
+          </label>
+          <label>Place or URL <small>(optional)</small>
+            <input id="issue-location" type="text" maxlength="120" placeholder="e.g. Lot 5 near Student Center" />
+          </label>
+          <label>What happened?
+            <textarea id="issue-description" minlength="10" maxlength="2000" rows="5" required placeholder="Describe the problem and what you expected to see."></textarea>
+          </label>
+          <p id="issue-message" class="settings-message" role="status" hidden></p>
+          <button type="submit">Send report</button>
+        </form>
+      </section>
+
+      <section class="settings-card" aria-labelledby="mine-heading">
+        <h2 id="mine-heading">Your reports</h2>
+        <p id="mine-message" class="card-text" role="status">Loading…</p>
+        <ul id="mine-list" class="issue-list"></ul>
+      </section>
+
+      <section id="admin-board" class="settings-card" aria-labelledby="admin-heading" hidden>
+        <div class="issue-board-heading">
+          <div>
+            <h2 id="admin-heading">Admin board</h2>
+            <p class="card-text">Newest open reports appear first. Mark an issue resolved when it has been checked.</p>
+          </div>
+          <button id="admin-refresh" type="button" class="secondary-button">Refresh</button>
+        </div>
+        <p id="admin-message" class="card-text" role="status">Loading…</p>
+        <ul id="admin-list" class="issue-list"></ul>
+      </section>
+    </main>
+  </body>
+</html>

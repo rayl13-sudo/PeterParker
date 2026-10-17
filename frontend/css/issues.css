@@ -1,0 +1,28 @@
+.issue-page { max-width: 720px; }
+.issue-intro { margin: -0.55rem 0 1.35rem; color: var(--a-muted); line-height: 1.5; }
+.issue-page .settings-form :is(select, textarea) {
+  padding: 0.7rem 0.85rem;
+  background: var(--a-field);
+  color: var(--a-ink);
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+.issue-page .settings-form :is(select, textarea):focus { outline: none; background: var(--a-white); border-color: var(--a-blue); }
+.issue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; }
+.issue-card { display: block; padding: 0.85rem 1rem; border: 1px solid var(--a-line); border-radius: 12px; }
+.issue-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.7rem; }
+.issue-card h3 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.issue-card p { margin: 0.5rem 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.issue-meta { color: var(--a-muted); font-size: 0.82rem; }
+.issue-badge { flex: none; padding: 0.18rem 0.55rem; border-radius: 999px; background: #fff3d9; color: #875600; font-size: 0.76rem; font-weight: 700; }
+.issue-badge.resolved { background: #e5f5ec; color: #196b3c; }
+.issue-card .secondary-button { margin-top: 0.7rem; font-size: 0.82rem; }
+.issue-board-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.issue-board-heading .secondary-button { white-space: nowrap; }
+@media (max-width: 520px) {
+  .issue-board-heading { flex-wrap: wrap; }
+  .issue-card-head { flex-wrap: wrap; }
+}
