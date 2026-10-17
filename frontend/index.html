@@ -9,10 +9,61 @@
     <script type="module" src="js/app.js"></script>
   </head>
   <body>
-    <main class="container">
-      <header>
+    <!-- Auth view: shown until the user has a valid session -->
+    <main id="auth-view" class="auth" hidden>
+      <section class="card auth-card">
         <h1>PeterParker</h1>
-        <p class="status">API: <span id="api-status" class="badge">checking…</span></p>
+
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" class="tab active" data-mode="login" aria-selected="true">Sign in</button>
+          <button type="button" role="tab" class="tab" data-mode="signup" aria-selected="false">Sign up</button>
+        </div>
+
+        <form id="auth-form" novalidate>
+          <!-- Sign in: one field that accepts either -->
+          <label data-show="login">
+            Username or email
+            <input id="auth-identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" />
+          </label>
+          <!-- Sign up: both are collected -->
+          <label data-show="signup" hidden>
+            Username
+            <input id="auth-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" />
+          </label>
+          <label data-show="signup" hidden>
+            Email
+            <input id="auth-email" type="email" autocomplete="email" />
+          </label>
+          <label>
+            Password
+            <input id="auth-password" type="password" autocomplete="current-password" aria-describedby="password-rules" />
+          </label>
+          <ul id="password-rules" class="rules" data-show="signup" aria-label="Password requirements" hidden>
+            <li data-rule="length">At least 8 characters</li>
+            <li data-rule="capital">One capital letter</li>
+            <li data-rule="special">One special character (e.g. ! @ # $)</li>
+          </ul>
+          <label class="checkbox">
+            <input id="auth-remember" type="checkbox" />
+            Remember Me
+          </label>
+          <p id="auth-error" class="error" hidden></p>
+          <button id="auth-submit" type="submit">Sign in</button>
+        </form>
+      </section>
+    </main>
+
+    <!-- App view -->
+    <main id="app-view" class="container" hidden>
+      <header class="app-header">
+        <div>
+          <h1>PeterParker</h1>
+          <p class="status">API: <span id="api-status" class="badge">checking…</span></p>
+        </div>
+        <div class="user">
+          <span id="user-name"></span>
+          <button id="logout" type="button" class="secondary">Sign out</button>
+        </div>
       </header>
 
       <section class="card">

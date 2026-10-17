@@ -6,6 +6,11 @@ class Settings(BaseSettings):
 
     app_name: str = "PeterParker API"
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    database_path: str = "app.db"
+
+    # Session lifetimes: a normal sign-in vs. "Remember Me".
+    session_hours: int = 12
+    remember_me_days: int = 30
 
 
 settings = Settings()

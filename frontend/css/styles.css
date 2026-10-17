@@ -95,3 +95,118 @@ li {
 }
 
 .error { color: var(--down); margin: 1rem 0 0; }
+
+[hidden] { display: none !important; }
+
+/* ---------- Auth ---------- */
+
+.auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+}
+.auth-card h1 { text-align: center; margin-bottom: 1rem; }
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  background: transparent;
+  color: var(--muted);
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+#auth-form {
+  flex-direction: column;
+  gap: 0.9rem;
+}
+#auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+#auth-form label.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+#auth-form input[type="checkbox"] {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+#auth-form .error { margin: 0; }
+
+/* Password requirement checklist: each item gets a box that ticks when met. */
+.rules {
+  margin: -0.4rem 0 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.rules li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: none;
+  justify-content: flex-start;
+}
+.rules li::before {
+  content: "";
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #fff;
+  transition: background 0.15s, border-color 0.15s;
+}
+.rules li.met { color: var(--ok); }
+.rules li.met::before {
+  content: "\2713";
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+button:disabled { opacity: 0.6; cursor: wait; }
+
+/* ---------- App header ---------- */
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
