@@ -56,7 +56,50 @@ Open <http://localhost:5173>. API docs are at <http://localhost:8000/docs>. Run 
 
 Backend settings come from environment variables or `backend/.env` (see `backend/.env.example`). The frontend API URL is in `frontend/js/config.js`. Add a frontend origin to `CORS_ORIGINS` if it runs on a different port.
 
-## Existing authentication
+## Deploy the backend to Vercel
+
+Create a Vercel project from this repository with **Root Directory `backend`**
+and the **FastAPI** framework preset. Leave the build and output directory
+settings at their defaults. `app/main.py` exports the application, and
+`backend/vercel.json` selects the framework. Python 3.12 is pinned for deployment.
+This deploys the API; the frontend remains a separate deployment.
+See [Vercel's FastAPI guide](https://vercel.com/docs/frameworks/backend/fastapi).
+
+The deployed backend requires PostgreSQL for durable profiles, sessions, and
+items. Local development still defaults to SQLite. The app refuses to use SQLite
+when Vercel's `VERCEL` environment flag is set, because a local file cannot provide
+shared persistent state across serverless instances.
+
+1. In Supabase's **Connect** dialog, copy the **transaction pooler** PostgreSQL
+   connection string, fill in the database password, and include `sslmode=require`.
+   Store this as `DATABASE_URL` in Vercel's environment variables. This is a private
+   backend credential, distinct from the publishable auth key. The driver disables
+   prepared statements for compatibility with transaction pooling.
+2. Before the first deployment, run
+   [`backend/migrations/001_postgres.sql`](backend/migrations/001_postgres.sql) in
+   Supabase's SQL editor as the database owner. It creates the app's `public.users`,
+   `public.sessions`, and `public.items` tables. These are separate from Supabase's
+   `auth.users`. RLS is enabled with no client policies, so the backend must connect
+   as the database owner or another role with access that bypasses RLS.
+   Use a separate database/project if these table names are already used by another app.
+3. Also set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `CORS_ORIGINS` in Vercel.
+   `CORS_ORIGINS` is a JSON array of exact frontend origins, for example
+   `["https://your-frontend.vercel.app"]`. Add any explicitly trusted preview origins
+   if needed. Local `.env` files are excluded from deployments.
+4. Deploy, then check `https://YOUR-BACKEND.vercel.app/api/health` and `/docs`.
+   Set `API_BASE_URL` in `frontend/js/config.js` to
+   `https://YOUR-BACKEND.vercel.app/api`, and set Supabase's Auth Site URL to the
+   deployed **frontend** URL for confirmation emails.
+
+Schema changes run explicitly, never during cold starts. For a new local PostgreSQL
+database, set `DATABASE_URL` in `backend/.env`, then initialize it from `backend/`
+with `.venv/bin/python -c 'from app.db import init_db; init_db()'`.
+Existing SQLite data is not automatically copied to PostgreSQL. Use separate
+databases for preview and production deployments to isolate their users and data.
+The health endpoint checks application availability; test signup, confirmation,
+login, and item creation to verify database connectivity after deployment.
+
+## Authentication configuration
 
 ### Supabase setup
 
@@ -72,7 +115,7 @@ to check email. After confirming, use email for the first sign-in; subsequent
 sign-ins also accept the username. Usernames must be unique among linked accounts;
 if a username becomes unavailable before confirmation, email sign-in still works.
 
-Supabase checks credentials; SQLite stores the local profile, items and revocable
+Supabase checks credentials; the configured database stores the profile, items and revocable
 app sessions with the existing Remember Me lifetimes. Supabase sign-out or account
 changes do not revoke these local sessions automatically. Existing local accounts
 need a Supabase account with the same verified email to link their data on login.
