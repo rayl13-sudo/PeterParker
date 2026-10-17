@@ -3,22 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="js/open-from-disk.js"></script>
     <title>PeterParker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="js/config.js"></script>
     <script type="module" src="js/app.js"></script>
   </head>
   <body>
     <!-- Auth view: shown until the user has a valid session -->
     <main id="auth-view" class="auth" hidden>
-      <!-- Decorative background shapes -->
+      <!-- Decorative background: a faded map of campus that fades out toward the edges -->
       <div class="backdrop" aria-hidden="true">
-        <span class="shape circle-lg"></span>
-        <span class="shape circle-md"></span>
-        <span class="shape square"></span>
-        <span class="shape ring"></span>
-        <span class="shape dot"></span>
-        <span class="shape bar"></span>
+        <div id="auth-map" class="auth-map"></div>
       </div>
 
       <section class="auth-card">
@@ -70,30 +68,8 @@
           <button id="auth-submit" type="submit">Sign in</button>
         </form>
       </section>
-    </main>
 
-    <!-- App view -->
-    <main id="app-view" class="container" hidden>
-      <header class="app-header">
-        <div>
-          <h1>PeterParker</h1>
-          <p class="status">API: <span id="api-status" class="badge">checking…</span></p>
-        </div>
-        <div class="user">
-          <span id="user-name"></span>
-          <button id="logout" type="button" class="secondary">Sign out</button>
-        </div>
-      </header>
-
-      <section class="card">
-        <h2>Items</h2>
-        <form id="item-form">
-          <input id="item-name" name="name" placeholder="New item" required autocomplete="off" />
-          <button type="submit">Add</button>
-        </form>
-        <ul id="item-list"></ul>
-        <p id="error" class="error" hidden></p>
-      </section>
+      <p class="map-credit">Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
     </main>
   </body>
 </html>

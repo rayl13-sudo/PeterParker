@@ -10,20 +10,29 @@ export function setUnauthorizedHandler(fn) {
 
 async function request(path, options = {}) {
   const token = getToken();
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error("Can't reach the PeterParker server. Start it with `make dev` and try again.");
+  }
   if (res.status === 401 && token) {
     clearToken();
     onUnauthorized();
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (!body.detail && (res.status === 404 || res.status === 405)) {
+      // Something other than the PeterParker backend answered (e.g. a plain file server).
+      throw new Error("This page isn't connected to the PeterParker server. Open http://localhost:8000 instead.");
+    }
     throw new Error(formatDetail(body.detail) || `Request failed: ${res.status}`);
   }
   return res.status === 204 ? null : res.json();
@@ -53,7 +62,5 @@ export const api = {
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request("/auth/me"),
 
-  listItems: () => request("/items"),
-  createItem: (name) => request("/items", { method: "POST", body: JSON.stringify({ name }) }),
-  deleteItem: (id) => request(`/items/${id}`, { method: "DELETE" }),
+  parking: () => request("/parking"),
 };

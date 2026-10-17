@@ -27,3 +27,25 @@ def test_items_are_per_user(client, auth_headers):
         json={"username": "maryjane", "email": "mj@example.com", "password": "Password123!"},
     ).json()["token"]
     assert client.get("/api/items", headers={"Authorization": f"Bearer {other}"}).json() == []
+
+
+def test_cors_allows_any_local_page(client):
+    for origin in ["http://localhost:5173", "http://127.0.0.1:5500", "http://localhost:3000", "null"]:
+        res = client.options(
+            "/api/auth/login",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert res.status_code == 200, origin
+        assert res.headers["access-control-allow-origin"] == origin
+
+
+def test_cors_rejects_other_sites(client):
+    res = client.options(
+        "/api/auth/login",
+        headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"},
+    )
+    assert "access-control-allow-origin" not in res.headers

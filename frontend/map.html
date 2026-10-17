@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="js/open-from-disk.js"></script>
+    <title>Free Parking · PeterParker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/map.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="js/config.js"></script>
+    <script type="module" src="js/map.js"></script>
+  </head>
+  <body class="map-page">
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>PeterParker</span>
+        <img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" />
+      </div>
+      <div class="account">
+        <span id="user-name"></span>
+        <button id="logout" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <main class="map-layout">
+      <div id="map" aria-label="Map of UC Irvine showing parking"></div>
+
+      <aside id="panel" class="panel">
+        <button id="panel-toggle" class="panel-toggle" type="button"
+                aria-controls="panel" aria-expanded="true" aria-label="Hide free parking list">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+        </button>
+        <div class="panel-body">
+          <h1 id="panel-title">Free parking near UCI</h1>
+          <p id="spot-count" class="panel-sub">Loading…</p>
+          <div class="list-tabs" role="tablist" aria-label="Show lots">
+            <button type="button" role="tab" class="list-tab active" data-list="free" aria-selected="true">Free <span class="count"></span></button>
+            <button type="button" role="tab" class="list-tab" data-list="permit" aria-selected="false">Permit <span class="count"></span></button>
+            <button type="button" role="tab" class="list-tab" data-list="paid" aria-selected="false">Paid <span class="count"></span></button>
+            <button type="button" role="tab" class="list-tab" data-list="limited" aria-selected="false">Limited <span class="count"></span></button>
+          </div>
+          <ul id="spot-list"></ul>
+          <p id="map-error" class="map-error" hidden></p>
+          <p class="panel-note">
+            Lots from OpenStreetMap; permits and prices from
+            <a href="https://parking.uci.edu/permits/rates" target="_blank" rel="noopener">UCI Transportation</a>.
+            Check posted signs before parking.
+          </p>
+        </div>
+      </aside>
+
+      <section id="map-key" class="map-key" aria-label="Map key">
+        <button id="key-toggle" class="key-header" type="button" aria-controls="key-list" aria-expanded="true">
+          <span>Key</span>
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg>
+        </button>
+        <ul id="key-list" class="key-list"></ul>
+      </section>
+    </main>
+  </body>
+</html>

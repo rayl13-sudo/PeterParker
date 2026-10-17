@@ -7,9 +7,12 @@ from app.main import app
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "database_url", "")
+    monkeypatch.setattr(settings, "vercel", False)
     monkeypatch.setattr(settings, "supabase_url", "")
     monkeypatch.setattr(settings, "supabase_publishable_key", "")
     monkeypatch.setattr(settings, "database_path", str(tmp_path / "test.db"))
+    monkeypatch.setattr(settings, "seed_user", False)
     with TestClient(app) as c:
         yield c
 

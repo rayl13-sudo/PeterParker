@@ -1,3 +1,4 @@
+import hmac
 import re
 import sqlite3
 from datetime import datetime
@@ -6,12 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator
 
+from app.config import settings
 from app.db import get_db
-<<<<<<< Updated upstream
-=======
-from app.moderation import is_username_allowed
 from app import supabase_auth
->>>>>>> Stashed changes
 from app.security import (
     bearer,
     create_session,
@@ -126,15 +124,19 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
         return _supabase_session(db, result["user"], payload.remember_me)
 
     cur = db.execute(
-        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?) RETURNING id",
         (payload.username, payload.email, hash_password(payload.password)),
     )
-    user = User(id=cur.lastrowid, username=payload.username, email=payload.email)
+    user = User(id=cur.fetchone()["id"], username=payload.username, email=payload.email)
     return _issue(db, user, payload.remember_me)
 
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse:
+    seeded = _seed_login(db, payload)
+    if seeded is not None:
+        return seeded
+
     if supabase_auth.enabled():
         email = payload.identifier
         if "@" not in email:
@@ -158,6 +160,31 @@ def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthRes
     return _issue(db, user, payload.remember_me)
 
 
+def _seed_login(db: sqlite3.Connection, payload: LoginIn) -> AuthResponse | None:
+    """The temporary shared account always signs in locally, even with Supabase on."""
+    if not settings.seed_user or payload.identifier not in (
+        settings.seed_username.lower(),
+        settings.seed_email.lower(),
+    ):
+        return None
+    find = lambda: db.execute(  # noqa: E731
+        "SELECT id, username, email, password_hash FROM users WHERE username = ?",
+        (settings.seed_username,),
+    ).fetchone()
+    row = find()
+    if row is None and hmac.compare_digest(payload.password, settings.seed_password):
+        # Not created at startup (e.g. PostgreSQL deployments): create it now.
+        db.execute(
+            "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+            (settings.seed_username, settings.seed_email, hash_password(settings.seed_password)),
+        )
+        row = find()
+    if row is None or not verify_password(payload.password, row["password_hash"]):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
+    user = User(id=row["id"], username=row["username"], email=row["email"])
+    return _issue(db, user, payload.remember_me)
+
+
 def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -> AuthResponse:
     remote_id, email = remote["id"], remote["email"].strip().lower()
     row = db.execute("SELECT * FROM users WHERE supabase_id = ?", (remote_id,)).fetchone()
@@ -171,15 +198,15 @@ def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -
             row = existing
         else:
             username = (remote.get("user_metadata") or {}).get("username")
-            if not isinstance(username, str) or not USERNAME_RE.fullmatch(username) or not is_username_allowed(username):
+            if not isinstance(username, str) or not USERNAME_RE.fullmatch(username):
                 username = None
             if username and db.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
                 username = None
             cur = db.execute(
-                "INSERT INTO users (username, email, password_hash, supabase_id) VALUES (?, ?, ?, ?)",
+                "INSERT INTO users (username, email, password_hash, supabase_id) VALUES (?, ?, ?, ?) RETURNING id",
                 (username, email, "supabase", remote_id),
             )
-            row = db.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
+            row = db.execute("SELECT * FROM users WHERE id = ?", (cur.fetchone()["id"],)).fetchone()
     return _issue(db, User(id=row["id"], username=row["username"], email=row["email"]), remember_me)
 
 

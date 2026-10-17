@@ -35,9 +35,9 @@ def create_item(
     db: sqlite3.Connection = Depends(get_db),
 ) -> Item:
     cur = db.execute(
-        "INSERT INTO items (user_id, name) VALUES (?, ?)", (user["id"], payload.name)
+        "INSERT INTO items (user_id, name) VALUES (?, ?) RETURNING id", (user["id"], payload.name)
     )
-    return Item(id=cur.lastrowid, name=payload.name)
+    return Item(id=cur.fetchone()["id"], name=payload.name)
 
 
 @router.delete("/{item_id}", status_code=204)
