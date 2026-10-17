@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     routing_url: str = "https://routing.openstreetmap.de"
     supabase_url: str = ""
     supabase_publishable_key: str = ""
+    supabase_secret_key: str = ""
 
 
 settings = Settings()

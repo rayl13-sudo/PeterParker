@@ -1,6 +1,7 @@
 import re
 import sqlite3
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
@@ -350,6 +351,48 @@ def _supabase_access_token(db, user, current_password: str) -> str | None:
     if not access_token:
         raise HTTPException(502, "Authentication service did not issue a session")
     return access_token
+
+
+class AccountDeleteIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1)
+    confirmation: Literal["YES"]
+
+
+@router.delete("/me", status_code=204)
+def delete_me(
+    payload: AccountDeleteIn,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> None:
+    account = db.execute(
+        "SELECT password_hash, supabase_id FROM users WHERE id = ?", (user["id"],)
+    ).fetchone()
+    if account["supabase_id"]:
+        # Linked accounts must also be removed from Supabase Auth, or they can sign in again.
+        if not settings.supabase_secret_key:
+            raise HTTPException(503, "Account deletion is not configured on this server")
+        if not supabase_auth.enabled():
+            raise HTTPException(503, "Supabase authentication is not configured")
+        try:
+            verified = supabase_auth.request("token?grant_type=password", {
+                "email": user["email"], "password": payload.current_password,
+            })
+        except HTTPException as exc:
+            if exc.status_code == 401:
+                raise HTTPException(400, "Current password is incorrect") from exc
+            raise
+        if verified.get("user", {}).get("id") != account["supabase_id"]:
+            raise HTTPException(400, "Current password does not match this account")
+        if not verified.get("access_token"):
+            raise HTTPException(502, "Authentication service did not issue a session")
+        supabase_auth.delete_user(account["supabase_id"])
+    else:
+        _editable_account(db, user, payload.current_password)
+
+    # Sessions, reviews, and items cascade from this user in both databases.
+    db.execute("DELETE FROM users WHERE id = ?", (user["id"],))
 
 
 @router.patch("/me", response_model=Me)

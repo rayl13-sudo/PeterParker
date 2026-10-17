@@ -113,6 +113,31 @@
         <p class="card-text">Sign out of <b id="switch-name">this account</b> and sign in with a different one.</p>
         <button id="switch-account" type="button" class="secondary-button">Sign out and switch account</button>
       </section>
+
+      <section class="settings-card delete-card" aria-labelledby="delete-heading">
+        <h2 id="delete-heading">Delete account</h2>
+        <p class="card-text">Permanently remove your account, profile, reviews, and saved data. This cannot be undone.</p>
+        <button id="delete-account" type="button" class="danger-button" disabled>Delete account…</button>
+      </section>
     </main>
+
+    <dialog id="delete-dialog" class="delete-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-warning">
+      <form id="delete-form" novalidate>
+        <h2 id="delete-dialog-title">Delete your account?</h2>
+        <p id="delete-warning">This permanently deletes your PeterParker account, reviews, and saved data. You will be signed out on every device.</p>
+        <fieldset class="delete-choices">
+          <legend>Are you sure?</legend>
+          <label><input type="radio" name="delete-choice" value="no" checked /> No, keep my account</label>
+          <label><input id="delete-yes" type="radio" name="delete-choice" value="yes" /> Yes, delete my account</label>
+        </fieldset>
+        <label class="delete-password-label" for="delete-password">Current password</label>
+        <input id="delete-password" type="password" autocomplete="current-password" />
+        <p id="delete-message" class="settings-message" role="alert" hidden></p>
+        <div class="delete-actions">
+          <button id="delete-cancel" type="button" class="secondary-button">Cancel</button>
+          <button id="delete-confirm" type="submit" class="danger-button" disabled>Permanently delete account</button>
+        </div>
+      </form>
+    </dialog>
   </body>
 </html>

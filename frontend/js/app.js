@@ -1,7 +1,8 @@
-// Sign-in / sign-up page. On success the user is sent to the map page.
+// Sign-in / sign-up page. The map shows a tour to newly signed-up users.
 import { api } from "./api.js";
 import { clearToken, getToken, saveToken } from "./auth.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
+import { noteSignup } from "./tutorial-state.js";
 
 const MAP_PAGE = "map.html";
 
@@ -83,6 +84,8 @@ authForm.addEventListener("submit", async (e) => {
             rememberMe,
           });
     if (result.confirmation_required) {
+      // No app session exists until email confirmation; show the map tour at first sign-in.
+      noteSignup(authEmail.value);
       authForm.reset();
       updatePasswordRules();
       setMode("login");
@@ -90,6 +93,7 @@ authForm.addEventListener("submit", async (e) => {
       return;
     }
     saveToken(result.token, rememberMe);
+    if (mode === "signup") noteSignup(result.user.email);
     window.ppNavigate(MAP_PAGE, { replace: true });
   } catch (err) {
     showAuthError(err);
@@ -119,10 +123,14 @@ function showBackgroundMap() {
 function showAuth() {
   authView.hidden = false;
   showBackgroundMap();
+  if (sessionStorage.getItem("pp_account_deleted") === "1") {
+    sessionStorage.removeItem("pp_account_deleted");
+    showAuthError(new Error("Your account has been deleted."));
+  }
   firstField().focus();
 }
 
-// Already signed in? Skip straight to the map.
+// Already signed in? The map decides whether to show the on-map tour.
 async function init() {
   if (!getToken()) return showAuth();
   try {

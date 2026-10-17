@@ -1,6 +1,7 @@
 from app import supabase_auth
 from app.config import settings
 from fastapi import HTTPException
+from urllib.request import Request
 
 
 def enable(monkeypatch, result):
@@ -137,3 +138,68 @@ def test_remote_username_update_rejects_email_changes(client, monkeypatch):
     assert again.status_code == 200
     new_headers = {"Authorization": "Bearer " + again.json()["token"]}
     assert client.get("/api/auth/me", headers=new_headers).json()["email"] == remote_email
+
+
+def test_remote_delete_needs_secret_and_only_removes_local_data_after_auth_delete(client, monkeypatch):
+    monkeypatch.setattr(settings, "supabase_url", "https://example.supabase.co")
+    monkeypatch.setattr(settings, "supabase_publishable_key", "test-key")
+    deleted_remote = []
+
+    def request(path, payload, **kwargs):
+        if path.startswith("token"):
+            if payload["password"] == "wrong":
+                raise HTTPException(401, "Invalid credentials")
+            return {"access_token": "remote-token", "user": {
+                "id": "remote", "email": "peter@example.com", "email_confirmed_at": "2026-10-17",
+                "user_metadata": {"username": "peter"},
+            }}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(supabase_auth, "request", request)
+    signed_in = client.post("/api/auth/login", json={
+        "identifier": "peter@example.com", "password": "Webslinger!",
+    })
+    headers = {"Authorization": "Bearer " + signed_in.json()["token"]}
+    payload = {"current_password": "Webslinger!", "confirmation": "YES"}
+    path = "/api/auth/me"
+
+    assert client.request("DELETE", path, headers=headers, json=payload).status_code == 503
+    assert client.get(path, headers=headers).status_code == 200
+    monkeypatch.setattr(settings, "supabase_secret_key", "server-secret")
+    monkeypatch.setattr(supabase_auth, "delete_user", lambda user_id: deleted_remote.append(user_id))
+    assert client.request("DELETE", path, headers=headers, json={**payload, "current_password": "wrong"}).status_code == 400
+    assert deleted_remote == []
+
+    def fail_delete(_user_id):
+        raise HTTPException(502, "Remote deletion failed")
+
+    monkeypatch.setattr(supabase_auth, "delete_user", fail_delete)
+    assert client.request("DELETE", path, headers=headers, json=payload).status_code == 502
+    assert client.get(path, headers=headers).status_code == 200
+
+    monkeypatch.setattr(supabase_auth, "delete_user", lambda user_id: deleted_remote.append(user_id))
+    assert client.request("DELETE", path, headers=headers, json=payload).status_code == 204
+    assert deleted_remote == ["remote"]
+    assert client.get(path, headers=headers).status_code == 401
+
+
+def test_admin_delete_uses_server_secret_key(monkeypatch):
+    monkeypatch.setattr(settings, "supabase_url", "https://example.supabase.co")
+    monkeypatch.setattr(settings, "supabase_secret_key", "server-secret")
+    requests = []
+
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self, *_): return False
+
+    def urlopen(req: Request, **kwargs):
+        requests.append(req)
+        return Response()
+
+    monkeypatch.setattr(supabase_auth, "urlopen", urlopen)
+    supabase_auth.delete_user("remote-id")
+    assert len(requests) == 1
+    assert requests[0].get_method() == "DELETE"
+    assert requests[0].full_url == "https://example.supabase.co/auth/v1/admin/users/remote-id"
+    assert requests[0].get_header("Apikey") == "server-secret"
+    assert requests[0].get_header("Authorization") == "Bearer server-secret"

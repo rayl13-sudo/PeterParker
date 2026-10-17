@@ -121,11 +121,11 @@
 /* Hover: everything clickable grows a little and darkens slightly, so it's
    obvious what you're over. (Pressing still shrinks it; see motion.css.) */
 .settings-page :is(.back-button, .secondary-button, .pill-button, .color-field, .file-button,
-  .settings-form button[type="submit"], #logout):hover:not(:disabled) {
+  .settings-form button[type="submit"], #logout, .danger-button):hover:not(:disabled) {
   transform: scale(1.04);
 }
 .settings-page :is(.back-button, .secondary-button, .pill-button, .color-field, .file-button,
-  .settings-form button[type="submit"], #logout):active:not(:disabled) {
+  .settings-form button[type="submit"], #logout, .danger-button):active:not(:disabled) {
   transform: scale(0.97);
 }
 .settings-page .back-button:hover { background: var(--a-field); border-color: var(--a-gray); color: var(--a-ink); }
@@ -133,3 +133,57 @@
 .settings-page .file-button:hover,
 .settings-page .color-field:hover { background: var(--a-line); border-color: var(--a-gray); }
 .settings-page .settings-form button[type="submit"]:hover:not(:disabled) { background: var(--a-blue-dark); }
+
+/* Account deletion stays separate from routine settings and requires an explicit Yes. */
+.delete-card { border: 1px solid #f1d3d0; }
+.delete-card h2 { color: #9b2c26; }
+.danger-button {
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  background: #a3312b;
+  color: #fff;
+  font-weight: 700;
+}
+.danger-button:hover:not(:disabled) { background: #83231e; }
+.danger-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.danger-button:focus-visible { outline: 3px solid #eeb9b5; outline-offset: 2px; }
+.delete-dialog {
+  width: min(440px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 1.5rem;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  color: #14182b;
+  box-shadow: 0 24px 70px rgba(20, 24, 43, 0.3);
+}
+.delete-dialog::backdrop { background: rgba(15, 24, 45, 0.62); }
+.delete-dialog form { display: flex; flex-direction: column; gap: 0.85rem; }
+.delete-dialog h2 { margin: 0; color: #9b2c26; font-size: 1.35rem; }
+.delete-dialog p { margin: 0; color: #555e73; font-size: 0.92rem; }
+.delete-choices {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid #e5e8ef;
+  border-radius: 10px;
+}
+.delete-choices legend { padding: 0 0.25rem; font-size: 0.88rem; font-weight: 700; }
+.delete-choices label { display: flex; align-items: center; gap: 0.55rem; font-size: 0.9rem; cursor: pointer; }
+.delete-choices input { flex: none; accent-color: #a3312b; }
+.delete-password-label { font-size: 0.88rem; font-weight: 700; }
+#delete-password {
+  width: 100%;
+  flex: none;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #cdd3df;
+  border-radius: 10px;
+  background: #f3f5fa;
+  color: #14182b;
+  font: inherit;
+}
+#delete-password:focus { outline: 2px solid #eeb9b5; }
+.delete-dialog .settings-message { color: #9b2c26; }
+.delete-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.2rem; }
+.delete-actions button { padding: 0.65rem 0.9rem; }

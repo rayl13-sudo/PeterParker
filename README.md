@@ -102,6 +102,11 @@ shared persistent state across serverless instances.
    `CORS_ORIGINS` is a JSON array of exact frontend origins, for example
    `["https://your-frontend.vercel.app"]`. Add any explicitly trusted preview origins
    if needed. Local `.env` files are excluded from deployments.
+   To enable account deletion, also set `SUPABASE_SECRET_KEY` in the **backend**
+   project's environment. Get a secret key from Supabase Settings → API Keys;
+   never put it in the frontend or commit it. Supabase's
+   [admin deletion API](https://supabase.com/docs/reference/javascript/auth-admin-deleteuser)
+   requires a server-side secret key.
 4. Deploy, then check `https://YOUR-BACKEND.vercel.app/api/health` and `/docs`.
    Set `API_BASE_URL` in `frontend/js/config.js` to
    `https://YOUR-BACKEND.vercel.app/api`, and set Supabase's Auth Site URL to the
@@ -135,7 +140,9 @@ Supabase checks credentials; the configured database stores the profile, items a
 app sessions with the existing Remember Me lifetimes. Supabase sign-out or account
 changes do not revoke these local sessions automatically. Existing local accounts
 need a Supabase account with the same verified email to link their data on login.
-Passwords are not migrated. Never use a service-role or secret key here.
+Passwords are not migrated. Normal sign-in uses the publishable key. The
+separate secret key for account deletion stays only in the backend environment
+and is never sent to the browser.
 
 ### Local authentication
 
@@ -245,11 +252,26 @@ identified by their OpenStreetMap id (`way/171169301`). PostgreSQL deployments n
 
 ## Settings
 
+After sign-up, users land on the map and see a guided tour with dashed outlines
+around the real search box, parking tabs, color key, nearby lots, directions and
+reviews, and Settings. The Student Center example shows nearby lots by walking
+distance. Skip closes the tour and leaves the user on the map; the `?` button
+replays it. With Supabase email confirmation, the tour appears after the first
+successful sign-in in the same browser.
+
 The gear button next to your name on the map opens `frontend/settings.html`, where you can
 change your username (`PATCH /api/auth/me`), change your password
 (`POST /api/auth/password`, which signs out your other devices), or sign out to switch
 accounts. Both changes require your current password. The profile shows your email,
 but the app does not offer email changes.
+
+The Delete account section opens a confirmation dialog. “No, keep my account” is
+selected by default; deletion requires selecting “Yes, delete my account,” entering
+the current password, and pressing the final delete button. `DELETE /api/auth/me`
+also requires the exact `YES` confirmation and checks the password. It removes the
+profile, sessions, reviews, and items. For Supabase accounts, it first deletes the
+Supabase Auth user; if the server-side secret key is missing or Auth deletion fails,
+the app account is kept and the user sees an error.
 
 Every account has a profile picture: by default a silhouette in a random color on a random
 background color of a clearly different hue, assigned the first time the account is shown.
@@ -259,3 +281,4 @@ uploading a photo, the color controls give way to a single "Revert to default ic
 (`PUT`/`DELETE /api/auth/me/avatar`; `PUT` to choose or `POST` to shuffle
 `/api/auth/me/avatar/colors`). PostgreSQL deployments need `backend/migrations/002_avatars.sql`
 and `003_reviews.sql` applied; `init_db()` runs every migration in order.
+.
