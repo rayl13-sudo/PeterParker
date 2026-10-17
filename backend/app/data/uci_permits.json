@@ -7,50 +7,256 @@
     "https://parking.uci.edu/permits/visitor"
   ],
   "permits": {
-    "S1": {"name": "\"S\" Zone 1 commuter", "who": "Students living beyond two miles", "price": "$81/month · $40/week · $16/day"},
-    "S2": {"name": "\"S\" Zone 2 commuter", "who": "Graduate students", "price": "$81/month · $40/week · $16/day"},
-    "S3": {"name": "\"S\" Zone 3 commuter", "who": "Student commuters", "price": "$81/month · $40/week · $16/day"},
-    "S4": {"name": "\"S\" Zone 4 commuter", "who": "Student commuters", "price": "$81/month · $40/week · $16/day"},
-    "S5": {"name": "\"S\" Zone 5 commuter", "who": "Student commuters", "price": "$81/month · $40/week · $16/day"},
-    "S6": {"name": "\"S\" Zone 6 commuter", "who": "Student commuters", "price": "$81/month · $40/week · $16/day"},
-    "P1": {"name": "\"P\" Preferred Zone 1", "who": "Student commuters", "price": "$101/month · $49/week · $20/day"},
-    "P3": {"name": "\"P\" Preferred Zone 3", "who": "Student commuters", "price": "$101/month · $49/week · $20/day"},
-    "P4": {"name": "\"P\" Preferred Zone 4", "who": "Student commuters", "price": "$101/month · $49/week · $20/day"},
-    "P5": {"name": "\"P\" Preferred Zone 5", "who": "Student commuters", "price": "$101/month · $49/week · $20/day"},
-    "P6": {"name": "\"P\" Preferred Zone 6", "who": "Student commuters", "price": "$101/month · $49/week · $20/day"},
-    "S-ANY": {"name": "Any \"S\" or \"P\" zone permit", "who": "Student commuters", "price": "$81-$101/month"},
-    "R-MC": {"name": "\"R-MC\" Resident", "who": "Mesa Court residents (not freshmen)", "price": "$150/month · $69/week · $20/day"},
-    "R-ME": {"name": "\"R-ME\" Resident", "who": "Middle Earth residents (not freshmen)", "price": "$150/month · $69/week · $20/day"},
-    "R-CVGRAD": {"name": "\"R-CVGRAD\" Resident", "who": "Campus Village residents", "price": "$150/month · $69/week · $20/day"},
-    "R-OC": {"name": "\"R-OC\" Resident", "who": "Off-campus housing residents (VDC, VDCN, CDS, PDS, Plaza Verde)", "price": "$150/month · $69/week · $20/day"},
-    "GNA": {"name": "One-day General (visitor)", "who": "Anyone; buy at a dispenser/kiosk or PARKbyPLATE", "price": "$16/day"}
+    "S1": {
+      "name": "\"S\" Zone 1 commuter",
+      "who": "Students living beyond two miles",
+      "price": "$81/month \u00b7 $40/week \u00b7 $16/day"
+    },
+    "S2": {
+      "name": "\"S\" Zone 2 commuter",
+      "who": "Graduate students",
+      "price": "$81/month \u00b7 $40/week \u00b7 $16/day"
+    },
+    "S3": {
+      "name": "\"S\" Zone 3 commuter",
+      "who": "Student commuters",
+      "price": "$81/month \u00b7 $40/week \u00b7 $16/day"
+    },
+    "S4": {
+      "name": "\"S\" Zone 4 commuter",
+      "who": "Student commuters",
+      "price": "$81/month \u00b7 $40/week \u00b7 $16/day"
+    },
+    "S5": {
+      "name": "\"S\" Zone 5 commuter",
+      "who": "Student commuters",
+      "price": "$81/month \u00b7 $40/week \u00b7 $16/day"
+    },
+    "S6": {
+      "name": "\"S\" Zone 6 commuter",
+      "who": "Student commuters",
+      "price": "$81/month \u00b7 $40/week \u00b7 $16/day"
+    },
+    "P1": {
+      "name": "\"P\" Preferred Zone 1",
+      "who": "Student commuters",
+      "price": "$101/month \u00b7 $49/week \u00b7 $20/day"
+    },
+    "P3": {
+      "name": "\"P\" Preferred Zone 3",
+      "who": "Student commuters",
+      "price": "$101/month \u00b7 $49/week \u00b7 $20/day"
+    },
+    "P4": {
+      "name": "\"P\" Preferred Zone 4",
+      "who": "Student commuters",
+      "price": "$101/month \u00b7 $49/week \u00b7 $20/day"
+    },
+    "P5": {
+      "name": "\"P\" Preferred Zone 5",
+      "who": "Student commuters",
+      "price": "$101/month \u00b7 $49/week \u00b7 $20/day"
+    },
+    "P6": {
+      "name": "\"P\" Preferred Zone 6",
+      "who": "Student commuters",
+      "price": "$101/month \u00b7 $49/week \u00b7 $20/day"
+    },
+    "S-ANY": {
+      "name": "Any \"S\" or \"P\" zone permit",
+      "who": "Student commuters",
+      "price": "$81-$101/month"
+    },
+    "R-MC": {
+      "name": "\"R-MC\" Resident",
+      "who": "Mesa Court residents (not freshmen)",
+      "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
+    },
+    "R-ME": {
+      "name": "\"R-ME\" Resident",
+      "who": "Middle Earth residents (not freshmen)",
+      "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
+    },
+    "R-CVGRAD": {
+      "name": "\"R-CVGRAD\" Resident",
+      "who": "Campus Village residents",
+      "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
+    },
+    "R-OC": {
+      "name": "\"R-OC\" Resident",
+      "who": "Off-campus housing residents (VDC, VDCN, CDS, PDS, Plaza Verde)",
+      "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
+    },
+    "GNA": {
+      "name": "One-day General (visitor)",
+      "who": "Anyone; buy at a dispenser/kiosk or PARKbyPLATE",
+      "price": "$16/day"
+    },
+    "R-AV": {
+      "name": "\"R-AV\" Resident",
+      "who": "Arroyo Vista residents",
+      "price": "$150/month \u00b7 $69/week \u00b7 $20/day"
+    },
+    "E": {
+      "name": "\"E\" Evening",
+      "who": "Student commuters and VDC, VDCN, CDS, PDS residents",
+      "price": "$48/month"
+    }
   },
   "visitor_rates": [
-    {"name": "One-day General", "price": "$16/day", "where": "Permit dispensers/kiosks & select PARKbyPLATE areas"},
-    {"name": "One-day Reserved", "price": "$20/day", "where": "Permit dispensers/kiosks & select PARKbyPLATE areas"},
-    {"name": "Hourly (General)", "price": "$4/hour", "where": "Permit dispensers/kiosks"},
-    {"name": "Hourly (Pay-by-Space)", "price": "$5/hour", "where": "Pay-by-Space dispensers"},
-    {"name": "Overnight", "price": "$20 per 24 hours", "where": "Permit dispensers; surface lots in Zones 1-6 only"}
+    {
+      "name": "One-day General",
+      "price": "$16/day",
+      "where": "Permit dispensers/kiosks & select PARKbyPLATE areas"
+    },
+    {
+      "name": "One-day Reserved",
+      "price": "$20/day",
+      "where": "Permit dispensers/kiosks & select PARKbyPLATE areas"
+    },
+    {
+      "name": "Hourly (General)",
+      "price": "$4/hour",
+      "where": "Permit dispensers/kiosks"
+    },
+    {
+      "name": "Hourly (Pay-by-Space)",
+      "price": "$5/hour",
+      "where": "Pay-by-Space dispensers"
+    },
+    {
+      "name": "Overnight",
+      "price": "$20 per 24 hours",
+      "where": "Permit dispensers; surface lots in Zones 1-6 only"
+    }
   ],
   "visitor_hours": {
     "weekday": "One-day General: Mon-Fri 7 a.m.-midnight in general unassigned stalls of Zones 1-6 and Lot 1.",
     "evening_weekend": "Mon-Fri after 5 p.m. and all day Sat-Sun: one-day General works in general, \"P\" and \"AR\" stalls not marked \"Enforced 24 Hours\" in all UCI parking areas."
   },
   "lots": {
-    "Mesa Parking Structure (MPS)": {"permits": ["S1", "P1", "GNA"]},
-    "Lot 14": {"permits": ["S1", "P1", "R-MC", "GNA"]},
-    "Lot 14A": {"permits": ["S1", "P1", "R-MC", "GNA"]},
-    "Health Sciences Parking Structure": {"permits": ["S2", "GNA"], "note": "Zone 2 is Level 5 only."},
-    "Lot 16H": {"permits": ["S3", "P3", "GNA"]},
-    "Anteater Parking Structure": {"permits": ["S4", "P4", "R-ME", "GNA"], "note": "R-ME is valid on Levels 3-7."},
-    "Social Science Parking Structure": {"permits": ["S5", "P5", "GNA"]},
-    "Student Center Parking Structure (SCPS)": {"permits": ["S6", "P6", "GNA"]},
-    "Lot 5": {"permits": ["S6", "P6", "R-MC", "GNA"]},
-    "East Campus Parking Structure": {"permits": ["S-ANY", "R-OC", "GNA"], "note": "White stalls only."},
-    "Lot 18R": {"permits": ["R-ME"]},
-    "Lot 16A": {"permits": ["R-CVGRAD"], "note": "UCI lists this as Lots 16AE and 16AW."},
-    "Lot 16B": {"permits": ["R-CVGRAD"]},
-    "Lot 13": {"permits": ["R-CVGRAD"], "note": "Resident permits only in \"R\"-marked stalls."},
-    "Lot 1": {"permits": ["GNA"]}
-  }
+    "Mesa Parking Structure (MPS)": {
+      "permits": [
+        "S1",
+        "P1",
+        "GNA"
+      ]
+    },
+    "Lot 14": {
+      "permits": [
+        "S1",
+        "P1",
+        "R-MC",
+        "GNA"
+      ]
+    },
+    "Lot 14A": {
+      "permits": [
+        "S1",
+        "P1",
+        "R-MC",
+        "GNA"
+      ]
+    },
+    "Health Sciences Parking Structure": {
+      "permits": [
+        "S2",
+        "GNA"
+      ],
+      "note": "Zone 2 is Level 5 only."
+    },
+    "Lot 16H": {
+      "permits": [
+        "S3",
+        "P3",
+        "GNA"
+      ]
+    },
+    "Anteater Parking Structure": {
+      "permits": [
+        "S4",
+        "P4",
+        "R-ME",
+        "GNA"
+      ],
+      "note": "R-ME is valid on Levels 3-7."
+    },
+    "Social Science Parking Structure": {
+      "permits": [
+        "S5",
+        "P5",
+        "GNA"
+      ]
+    },
+    "Student Center Parking Structure (SCPS)": {
+      "permits": [
+        "S6",
+        "P6",
+        "GNA"
+      ]
+    },
+    "Lot 5": {
+      "permits": [
+        "S6",
+        "P6",
+        "R-MC",
+        "GNA"
+      ]
+    },
+    "East Campus Parking Structure": {
+      "permits": [
+        "S-ANY",
+        "R-OC",
+        "GNA"
+      ],
+      "note": "White stalls only."
+    },
+    "Lot 18R": {
+      "permits": [
+        "R-ME"
+      ]
+    },
+    "Lot 16A": {
+      "permits": [
+        "R-CVGRAD"
+      ],
+      "note": "UCI lists this as Lots 16AE and 16AW."
+    },
+    "Lot 16B": {
+      "permits": [
+        "R-CVGRAD"
+      ]
+    },
+    "Lot 13": {
+      "permits": [
+        "R-CVGRAD"
+      ],
+      "note": "Resident permits only in \"R\"-marked stalls."
+    },
+    "Lot 1": {
+      "permits": [
+        "GNA"
+      ]
+    }
+  },
+  "holdable_permits": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "P1",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "R-MC",
+    "R-ME",
+    "R-AV",
+    "R-CVGRAD",
+    "R-OC",
+    "E"
+  ],
+  "permit_rules_source": "https://parking.uci.edu/permits/student"
 }

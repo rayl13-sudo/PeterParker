@@ -7,6 +7,7 @@ import { clearToken, getToken } from "./auth.js";
 import { renderAvatar } from "./avatar.js";
 import { averageRating, initReviews, openReviews, ratingLabel } from "./reviews.js";
 import { startMapTour } from "./map-tour.js";
+import { RULES_SOURCE, STALL_NOTE, describeWindow, permitStatus } from "./permit-rules.js";
 
 const SIGN_IN_PAGE = "index.html";
 const UCI_CENTER = [33.6461, -117.8427]; // Aldrich Park, middle of campus
@@ -18,6 +19,8 @@ const EXTRA_ZOOM = 2;
 // ticketed or towed. Paid lots get a dashed edge to read differently from permit lots.
 const CATEGORIES = {
   free: { label: "Free", color: "#3f5fae", fillOpacity: 0.55, marker: "pin" },
+  // Permit lots your own permit covers right now (see permit-rules.js); shown only if you set one.
+  mine: { label: "Free with your permit", color: "#13806a", fillOpacity: 0.5 },
   permit: { label: "Permit required", color: "#3d4457", fillOpacity: 0.4 },
   paid: { label: "Paid", color: "#6b7184", fillOpacity: 0.12, dashArray: "5 4", weight: 2 },
   limited: { label: "Limited / may be towed", color: "#e06f68", fillOpacity: 0.3, marker: "dot" },
@@ -170,10 +173,12 @@ function popupContent(lot) {
   for (const text of details) root.append(el("p", null, text));
 
   if (lot.category === "limited") root.append(warningBox(lot));
+  if (lot.permitStatus) root.append(permitSectionForYou(lot));
 
-  if (lot.uci && (lot.category === "permit" || lot.category === "paid")) {
+  const baseCategory = lot.baseCategory ?? lot.category;
+  if (lot.uci && (baseCategory === "permit" || baseCategory === "paid")) {
     root.append(permitSection(lot));
-    if (lot.category === "paid" || takesVisitorPass(lot)) {
+    if (baseCategory === "paid" || takesVisitorPass(lot)) {
       root.append(dailyPassSection(lot));
     } else {
       root.append(el("p", "popup-note", "Evenings after 5 p.m. and weekends: a $16 one-day General pass works in general, P and AR stalls."));
@@ -248,12 +253,76 @@ function addLot(lot) {
   return { area, marker, primary: marker ?? area };
 }
 
+// ---------- Your permit: permit lots it covers right now count as free ----------
+
+let userPermit = null; // e.g. "S4"; set in settings
+const permitName = (code) => permitInfo?.permits?.[code]?.name ?? code;
+
+// Re-labels lots for the current time; returns true if any lot changed.
+function applyPermit(lots, now = new Date()) {
+  let changed = false;
+  for (const lot of lots) {
+    lot.baseCategory ??= lot.category;
+    lot.permitStatus = userPermit ? permitStatus(lot, userPermit, now) : null;
+    const next = lot.permitStatus?.active ? "mine" : lot.baseCategory;
+    if (next !== lot.category) {
+      lot.category = next;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function permitSectionForYou(lot) {
+  const status = lot.permitStatus;
+  const section = el("div", "popup-section permit-yours");
+  section.append(el("h4", null, `Your ${permitName(userPermit)} permit`));
+  section.append(
+    status.active
+      ? el("p", "permit-now ok", `Free for you now (${status.active.label.toLowerCase()}) · ${status.until}`)
+      : el("p", "permit-now no", "Not valid here right now"),
+  );
+  const list = el("ul", "permit-windows");
+  for (const rule of status.windows) {
+    const li = el("li", rule === status.active ? "now" : null);
+    li.append(el("b", null, describeWindow(rule)), el("span", null, rule.label));
+    list.append(li);
+  }
+  const note = el("p", "popup-note", `${STALL_NOTE} `);
+  const src = el("a", null, "UCI permit rules");
+  src.href = RULES_SOURCE;
+  src.target = "_blank";
+  src.rel = "noopener";
+  note.append(src);
+  section.append(list, note);
+  return section;
+}
+
+function renderPermitBanner() {
+  const banner = $("permit-banner");
+  banner.replaceChildren();
+  if (!userPermit) {
+    banner.className = "permit-banner empty";
+    const link = el("a", null, "Add it in Settings");
+    link.href = "settings.html";
+    banner.append(el("span", null, "Have a UCI parking permit? "), link, el("span", null, " to see where you park free."));
+    return;
+  }
+  const count = listEntries.filter(({ lot }) => lot.category === "mine").length;
+  banner.className = "permit-banner";
+  banner.append(
+    el("span", "permit-badge", userPermit),
+    el("span", null, count ? `${count} ${count === 1 ? "lot is" : "lots are"} free with your permit right now` : "Your permit isn't valid in any lot right now"),
+  );
+}
+
 // ---------- Side list ----------
 
 let listEntries = []; // [{ lot, area, marker, primary }]
 
 function listMeta(lot) {
   const cat = CATEGORIES[lot.category];
+  if (lot.category === "mine") return `Free with your ${userPermit} permit · ${lot.permitStatus.until}`;
   if (lot.category === "paid") return "One-day pass $16 · Reserved $20 · Hourly $4–$5";
   if (lot.category === "limited") {
     if (lot.utc) return `University Town Center · ${lot.time_limit} max · tow risk`;
@@ -452,7 +521,8 @@ function activeFilters() {
 }
 
 function passes(lot, { categories, minStars, tokens }, { ignoreText = false } = {}) {
-  if (categories.size && !categories.has(lot.category)) return false;
+  const category = lot.category === "mine" ? "free" : lot.category; // "free" includes free-with-your-permit
+  if (categories.size && !categories.has(category)) return false;
   if (minStars && !((averageRating("lot", lot.id) ?? 0) >= minStars)) return false;
   return ignoreText || tokens.every((t) => searchableText(lot).includes(t));
 }
@@ -710,19 +780,41 @@ document.addEventListener("keydown", (e) => {
   $("search").focus();
 });
 
+let allLots = [];
+
 function renderLots(lots) {
-  lots = [...lots].sort(
+  allLots = lots;
+  applyPermit(allLots);
+  buildLotLayers();
+  if (lots.length) fitToLots(lots);
+}
+
+// (Re)draws every lot. Called at start, and when your permit's coverage changes
+// (new permit, or the clock passing 7 am / 3 pm / 5 pm / midnight).
+function buildLotLayers({ animate = true } = {}) {
+  for (const { area, marker } of listEntries) {
+    area?.remove();
+    marker?.remove();
+  }
+  const lots = [...allLots].sort(
     (a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || a.name.localeCompare(b.name, undefined, { numeric: true }),
   );
   listEntries = lots.map((lot) => ({ lot, ...addLot(lot) }));
   for (const chip of document.querySelectorAll(".chip-toggle[data-category]")) {
     const c = chip.dataset.category;
-    chip.querySelector(".count").textContent = lots.filter((lot) => lot.category === c).length;
+    const count = lots.filter((lot) => lot.category === c || (c === "free" && lot.category === "mine")).length;
+    chip.querySelector(".count").textContent = count;
     chip.querySelector(".swatch").style.background = CATEGORIES[c].color;
   }
-  applyFilters({ fit: false, animate: true });
-  if (lots.length) fitToLots(lots);
+  renderKey();
+  renderPermitBanner();
+  applyFilters({ fit: false, animate });
 }
+
+// Permit hours change during the day: re-check every minute, redraw only on change.
+setInterval(() => {
+  if (userPermit && allLots.length && applyPermit(allLots)) buildLotLayers({ animate: false });
+}, 60_000);
 
 function fitToLots(lots) {
   // Leave room for the side panel (desktop) or bottom sheet (mobile).
@@ -764,7 +856,7 @@ setupCollapsible({ container: $("map-key"), toggle: $("key-toggle"), storageKey:
 
 function renderKey() {
   $("key-list").replaceChildren(
-    ...Object.values(CATEGORIES).map((cat) => {
+    ...Object.entries(CATEGORIES).filter(([key]) => key !== "mine" || userPermit).map(([, cat]) => {
       const li = document.createElement("li");
       const swatch = document.createElement("i");
       swatch.className = "key-swatch";
@@ -977,14 +1069,117 @@ function startDirections(lot) {
   planTrip();
 }
 
+let fromSearching = false; // the From dropdown swapped for a search box
+
 function renderTripFields() {
-  for (const end of ["from", "to"]) {
-    const input = $(`trip-${end}`);
-    if (document.activeElement !== input) input.value = trip[end]?.name ?? "";
-    input.closest(".trip-field").classList.toggle("is-here", trip[end]?.kind === "here");
-    document.querySelector(`.trip-clear[data-end="${end}"]`).hidden = !input.value;
-  }
+  // From: a dropdown button showing the current start (or a search box while searching).
+  const fromField = document.querySelector(".from-field");
+  fromField.classList.toggle("is-here", trip.from?.kind === "here");
+  fromField.classList.toggle("searching", fromSearching);
+  $("from-label").textContent = trip.from?.name ?? "Choose a starting point";
+  $("from-select").hidden = fromSearching;
+  $("trip-from").hidden = !fromSearching;
+  document.querySelector('.trip-clear[data-end="from"]').hidden = !fromSearching;
+
+  // To: a search box.
+  const input = $("trip-to");
+  if (document.activeElement !== input) input.value = trip.to?.name ?? "";
+  input.closest(".trip-field").classList.toggle("is-here", trip.to?.kind === "here");
+  document.querySelector('.trip-clear[data-end="to"]').hidden = !input.value;
 }
+
+// ----- The From dropdown -----
+
+const FROM_ICONS = {
+  here: '<span class="sugg-icon here"></span>',
+  pin: '<svg class="sugg-icon" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><path d="M9 10h6M12 7v6"/></svg>',
+  search: '<svg class="sugg-icon plain" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg>',
+  current: '<svg class="sugg-icon" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+};
+
+function fromMenuItems() {
+  const items = [];
+  const current = trip.from;
+  if (current && current.kind !== "here") {
+    items.push({ icon: "current", label: current.name, detail: "Current start", checked: true, pick: () => closeFromMenu() });
+  }
+  items.push(
+    { icon: "here", label: "My location", detail: here ? "Follows you live" : "Uses your device's location", checked: current?.kind === "here", pick: () => setEndpoint("from", HERE) },
+    { icon: "pin", label: "Drop a pin on the map", detail: "Click anywhere, then drag it to adjust", pick: () => startPick("from") },
+    { icon: "search", label: "Search for a place or lot…", detail: "Buildings, shops, parking", pick: () => startFromSearch() },
+  );
+  return items;
+}
+
+function openFromMenu() {
+  const menu = $("from-menu");
+  menu.replaceChildren(
+    ...fromMenuItems().map((item) => {
+      const li = el("li");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", String(!!item.checked));
+      const btn = el("button", `from-option${item.checked ? " checked" : ""}`);
+      btn.type = "button";
+      btn.insertAdjacentHTML("beforeend", FROM_ICONS[item.icon]);
+      const text = el("span", "spot-text");
+      text.append(el("span", null, item.label), el("small", null, item.detail));
+      btn.append(text);
+      if (item.checked) btn.insertAdjacentHTML("beforeend", '<svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>');
+      btn.addEventListener("click", () => {
+        closeFromMenu();
+        item.pick();
+      });
+      li.append(btn);
+      return li;
+    }),
+  );
+  menu.hidden = false;
+  $("from-select").setAttribute("aria-expanded", "true");
+  menu.querySelector(".from-option")?.focus();
+}
+
+function closeFromMenu({ refocus = false } = {}) {
+  const menu = $("from-menu");
+  if (menu.hidden) return;
+  menu.hidden = true;
+  $("from-select").setAttribute("aria-expanded", "false");
+  if (refocus) $("from-select").focus();
+}
+
+function startFromSearch() {
+  fromSearching = true;
+  renderTripFields();
+  const input = $("trip-from");
+  input.value = "";
+  input.focus();
+}
+
+function stopFromSearch() {
+  if (!fromSearching) return;
+  fromSearching = false;
+  hideSuggestions();
+  renderTripFields();
+}
+
+$("from-select").addEventListener("click", () => ($("from-menu").hidden ? openFromMenu() : closeFromMenu()));
+$("from-select").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    openFromMenu();
+  }
+});
+$("from-menu").addEventListener("keydown", (e) => {
+  const options = [...$("from-menu").querySelectorAll(".from-option")];
+  const i = options.indexOf(document.activeElement);
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    options[(i + (e.key === "ArrowDown" ? 1 : options.length - 1)) % options.length]?.focus();
+  }
+  if (e.key === "Escape") closeFromMenu({ refocus: true });
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest(".from-field")) closeFromMenu();
+});
 
 // Closest lots you can use near a point (respecting the filter chips).
 function closestLots(point, count = 4) {
@@ -1001,6 +1196,7 @@ function setEndpoint(end, endpoint, { fit = true } = {}) {
   cancelPick();
   // Done typing: let the field show the chosen name.
   if (document.activeElement?.matches("#trip-from, #trip-to")) document.activeElement.blur();
+  if (end === "from") fromSearching = false;
   trip[end] = endpoint;
   if (end === "to") {
     trip.lotChosen = false; // new destination: pick its closest lot again
@@ -1093,8 +1289,8 @@ async function planTrip({ fit = true } = {}) {
       if (run !== directionsRun) return;
       trip.from = null;
       renderTripFields();
-      directionsStatus(`${err.message} Choose another starting point, or pick one on the map.`, "warn");
-      $("trip-from").focus();
+      directionsStatus(`${err.message} Choose another starting point.`, "warn");
+      openFromMenu();
       return;
     }
   }
@@ -1144,6 +1340,7 @@ async function planTrip({ fit = true } = {}) {
   const parkNote = el("div", "park-note");
   parkNote.append(el("b", null, `Park at ${lot.name}`), el("span", null, ` · ${CATEGORIES[lot.category].label}`));
   if (lot.category === "limited") parkNote.append(el("small", null, lot.time_limit ? `${lot.time_limit} max · tow risk` : "Not public parking: you may be towed"));
+  if (lot.category === "mine") parkNote.append(el("small", null, `Free with your ${userPermit} permit · ${lot.permitStatus.until}`));
   if (lot.category === "permit") parkNote.append(el("small", null, "Needs a UCI permit or visitor pass"));
   if (lot.category === "paid") parkNote.append(el("small", null, "One-day pass $16 · hourly $4–$5"));
 
@@ -1165,8 +1362,10 @@ async function planTrip({ fit = true } = {}) {
 function suggestionsFor(end, text) {
   const tokens = normalize(text).split(" ").filter(Boolean);
   const items = [];
-  if (trip[end]?.kind !== "here") items.push({ label: "Use my location", detail: "Follows you live", icon: "here", pick: () => setEndpoint(end, HERE) });
-  items.push({ label: "Pick a point on the map", detail: "Click anywhere on the map", icon: "pin", pick: () => startPick(end) });
+  if (end === "from") {
+    // The dropdown already offers your location and a pin.
+  } else if (trip[end]?.kind !== "here") items.push({ label: "Use my location", detail: "Follows you live", icon: "here", pick: () => setEndpoint(end, HERE) });
+  if (end !== "from") items.push({ label: "Pick a point on the map", detail: "Click anywhere on the map", icon: "pin", pick: () => startPick(end) });
   if (tokens.length) {
     for (const place of findPlaces(tokens, 0).slice(0, 5)) {
       items.push({ label: place.name, detail: place.kind ?? "Place", icon: "place", pick: () => setEndpoint(end, placeEndpoint(place)) });
@@ -1253,6 +1452,10 @@ for (const end of ["from", "to"]) {
       hideSuggestions();
       input.value = trip[end]?.name ?? "";
       input.blur();
+      if (end === "from") {
+        stopFromSearch();
+        $("from-select").focus();
+      }
     }
     if (e.key === "Enter") {
       e.preventDefault();
@@ -1265,6 +1468,7 @@ for (const end of ["from", "to"]) {
     setTimeout(() => {
       if (suggestFor === end && !$("trip-suggestions").contains(document.activeElement)) {
         hideSuggestions();
+        if (end === "from") stopFromSearch();
         renderTripFields();
       }
     }, 150),
@@ -1276,6 +1480,7 @@ $("trip-suggestions").addEventListener("pointerdown", (e) => e.preventDefault())
 document.querySelectorAll(".trip-clear").forEach((btn) =>
   btn.addEventListener("click", () => {
     const end = btn.dataset.end;
+    if (end === "from") return stopFromSearch(); // × on the From search box just cancels the search
     cancelPick();
     trip[end] = null;
     if (end === "to") trip.lotChosen = false;
@@ -1332,6 +1537,8 @@ function revealRoute(run, casing, line, walkLine, { immediate = false } = {}) {
 
 function closeDirections() {
   directionsRun++;
+  closeFromMenu();
+  fromSearching = false;
   cancelPick();
   hideSuggestions();
   routeLayer.clearLayers();
@@ -1374,6 +1581,7 @@ async function init() {
     $("user-name").title = user.email;
     renderAvatar($("user-avatar"), user.avatar);
     permitInfo = parking.permit_info;
+    userPermit = user.permit ?? null;
     renderLots(parking.lots);
     const tourActions = {
       showExample: () => {

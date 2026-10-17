@@ -3,9 +3,16 @@ import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
 import { imageFileToAvatar, renderAvatar } from "./avatar.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
+import { RULES_SOURCE, STALL_NOTE, permitSummary } from "./permit-rules.js";
 import { clearTutorialState } from "./tutorial-state.js";
 
 const SIGN_IN_PAGE = "index.html";
+const el = (tag, className, text) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+};
 const $ = (id) => document.getElementById(id);
 
 function toSignIn() {
@@ -206,12 +213,102 @@ deleteForm.addEventListener("submit", async (event) => {
   }
 });
 
+// ---------- Your parking permit ----------
+
+const PERMIT_GROUPS = [
+  { label: "Commuter “S” zone permit", test: (c) => /^S\d$/.test(c) },
+  { label: "Preferred “P” zone permit", test: (c) => /^P\d$/.test(c) },
+  { label: "Resident “R” permit", test: (c) => c.startsWith("R-") },
+  { label: "Evening permit", test: (c) => c === "E" },
+];
+let permitCatalogue = null;
+
+function renderPermitDetails(code) {
+  const box = $("permit-details");
+  if (!code) {
+    box.hidden = true;
+    return;
+  }
+  const info = permitCatalogue.permits[code];
+  const list = el("ul", "permit-rule-list");
+  for (const { where, when } of permitSummary(code)) {
+    const li = el("li");
+    li.append(el("b", null, when), el("span", null, where));
+    list.append(li);
+  }
+  const note = el("p", "permit-note", `${STALL_NOTE} Overnight parking isn't included unless it's your resident area. `);
+  const src = el("a", null, "UCI's permit rules");
+  src.href = RULES_SOURCE;
+  src.target = "_blank";
+  src.rel = "noopener";
+  note.append(src);
+  box.replaceChildren(
+    el("p", "permit-meta", `${info.who} · ${info.price}`),
+    el("p", "permit-heading", "Free for you here, at these times"),
+    list,
+    note,
+  );
+  box.hidden = false;
+  box.classList.remove("enter");
+  void box.offsetWidth; // replay the entrance animation
+  box.classList.add("enter");
+}
+
+async function loadPermits() {
+  const select = $("permit-select");
+  try {
+    permitCatalogue = await api.permitCatalogue();
+  } catch (err) {
+    showMessage($("permit-message"), err.message, "error");
+    return;
+  }
+  const none = el("option", null, "I don't have a UCI permit");
+  none.value = "";
+  const groups = PERMIT_GROUPS.map(({ label, test }) => {
+    const group = el("optgroup");
+    group.label = label;
+    for (const code of permitCatalogue.holdable_permits.filter(test)) {
+      const option = el("option", null, permitCatalogue.permits[code].name.replaceAll("\"", ""));
+      option.value = code;
+      group.append(option);
+    }
+    return group;
+  });
+  select.replaceChildren(none, ...groups);
+  select.value = current?.permit ?? "";
+  select.disabled = false;
+  renderPermitDetails(select.value);
+}
+
+$("permit-select").addEventListener("change", async (e) => {
+  const select = e.target;
+  const code = select.value || null;
+  renderPermitDetails(code);
+  select.disabled = true;
+  showMessage($("permit-message"), null);
+  try {
+    current = await api.setPermit(code);
+    showMessage(
+      $("permit-message"),
+      code ? "Saved. The map now shows where this permit lets you park free." : "Saved. The map no longer assumes a permit.",
+      "success",
+    );
+  } catch (err) {
+    select.value = current?.permit ?? "";
+    renderPermitDetails(select.value);
+    showMessage($("permit-message"), err.message, "error");
+  } finally {
+    select.disabled = false;
+  }
+});
+
 // ---------- Boot ----------
 
 async function init() {
   try {
     current = await api.me();
     showUser(current);
+    loadPermits();
   } catch (err) {
     showMessage($("details-message"), err.message, "error");
   }

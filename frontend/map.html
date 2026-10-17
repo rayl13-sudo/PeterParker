@@ -71,6 +71,7 @@
           </div>
 
           <div id="list-view" class="panel-view">
+            <p id="permit-banner" class="permit-banner" aria-live="polite"></p>
             <h1 id="panel-title">Free parking near UCI</h1>
             <p id="spot-count" class="panel-sub">Loading…</p>
             <ul id="spot-list"></ul>
@@ -114,15 +115,21 @@
             </button>
             <div class="trip-planner" role="group" aria-label="Trip">
               <div class="trip-fields">
-                <label class="trip-field">
+                <div class="trip-field from-field">
                   <span class="trip-dot from" aria-hidden="true"></span>
-                  <span class="sr-only">From</span>
-                  <input id="trip-from" type="text" placeholder="Choose a starting point" autocomplete="off"
-                         spellcheck="false" aria-controls="trip-suggestions" aria-autocomplete="list" />
-                  <button type="button" class="trip-clear" data-end="from" aria-label="Clear starting point">
+                  <!-- Starting point is a dropdown: your location, a pin, or (Search…) a place -->
+                  <button id="from-select" type="button" class="from-select" aria-haspopup="listbox" aria-expanded="false"
+                          aria-controls="from-menu" aria-label="Starting point">
+                    <span id="from-label">My location</span>
+                    <svg class="chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+                  </button>
+                  <input id="trip-from" type="text" placeholder="Search a place or lot…" autocomplete="off" hidden
+                         spellcheck="false" aria-label="Search for a starting point" aria-controls="trip-suggestions" aria-autocomplete="list" />
+                  <button type="button" class="trip-clear" data-end="from" aria-label="Cancel search" hidden>
                     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
                   </button>
-                </label>
+                  <ul id="from-menu" class="from-menu" role="listbox" aria-label="Choose a starting point" hidden></ul>
+                </div>
                 <label class="trip-field">
                   <span class="trip-dot to" aria-hidden="true"></span>
                   <span class="sr-only">To</span>

@@ -62,3 +62,11 @@ def test_every_permit_assignment_matches_a_lot():
         assert name in names, f"{name} isn't in parking_lots.json (renamed in OpenStreetMap?)"
         for code in assigned["permits"]:
             assert code in permits["permits"], code
+
+
+def test_permit_catalogue(client, auth_headers):
+    assert client.get("/api/parking/permits").status_code == 401
+    body = client.get("/api/parking/permits", headers=auth_headers).json()
+    assert "S4" in body["holdable_permits"] and "GNA" not in body["holdable_permits"]
+    assert body["permits"]["E"]["price"] == "$48/month"
+    assert body["permit_rules_source"] == "https://parking.uci.edu/permits/student"

@@ -61,6 +61,7 @@ MIGRATIONS = [
     ("users", "avatar_bg", "ALTER TABLE users ADD COLUMN avatar_bg TEXT"),
     ("users", "avatar_fg", "ALTER TABLE users ADD COLUMN avatar_fg TEXT"),
     ("users", "avatar_image", "ALTER TABLE users ADD COLUMN avatar_image TEXT"),
+    ("users", "permit", "ALTER TABLE users ADD COLUMN permit TEXT"),
 ]
 
 INDEXES = """

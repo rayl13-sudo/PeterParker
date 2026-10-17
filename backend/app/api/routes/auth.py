@@ -1,6 +1,9 @@
+import json
 import re
 import sqlite3
 from datetime import datetime
+from functools import cache
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -238,11 +241,12 @@ class Avatar(BaseModel):
 
 class Me(User):
     avatar: Avatar
+    permit: str | None = None  # UCI permit code the user holds, e.g. "S4" or "R-ME"
 
 
 def _me(db, user_id: int) -> Me:
     row = db.execute(
-        "SELECT id, username, email, avatar_bg, avatar_fg, avatar_image FROM users WHERE id = ?",
+        "SELECT id, username, email, avatar_bg, avatar_fg, avatar_image, permit FROM users WHERE id = ?",
         (user_id,),
     ).fetchone()
     bg, fg = row["avatar_bg"], row["avatar_fg"]
@@ -253,6 +257,7 @@ def _me(db, user_id: int) -> Me:
     return Me(
         id=row["id"], username=row["username"], email=row["email"],
         avatar=Avatar(bg=bg, fg=fg, image=row["avatar_image"]),
+        permit=row["permit"],
     )
 
 
@@ -287,6 +292,33 @@ def remove_avatar_image(
     user: sqlite3.Row = Depends(get_current_user), db: sqlite3.Connection = Depends(get_db)
 ) -> Me:
     db.execute("UPDATE users SET avatar_image = NULL WHERE id = ?", (user["id"],))
+    return _me(db, user["id"])
+
+
+@cache
+def _holdable_permits() -> set[str]:
+    data = json.loads((Path(__file__).resolve().parents[2] / "data" / "uci_permits.json").read_text())
+    return set(data["holdable_permits"])
+
+
+class PermitIn(BaseModel):
+    permit: str | None = None  # None: no permit
+
+    @field_validator("permit")
+    @classmethod
+    def known_permit(cls, v: str | None) -> str | None:
+        if v is not None and v not in _holdable_permits():
+            raise ValueError("Choose a permit from the list")
+        return v
+
+
+@router.put("/me/permit", response_model=Me)
+def set_permit(
+    payload: PermitIn,
+    user: sqlite3.Row = Depends(get_current_user),
+    db: sqlite3.Connection = Depends(get_db),
+) -> Me:
+    db.execute("UPDATE users SET permit = ? WHERE id = ?", (payload.permit, user["id"]))
     return _me(db, user["id"])
 
 

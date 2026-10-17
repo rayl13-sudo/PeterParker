@@ -141,3 +141,14 @@ def test_choose_avatar_colors(client):
     assert client.get("/api/auth/me", headers=headers).json()["avatar"]["bg"] == "#ffeedd"
     for bad in [{"bg": "red", "fg": "#123abc"}, {"bg": "#12345", "fg": "#123abc"}, {"bg": "#ffeedd", "fg": "url(x)"}]:
         assert client.put("/api/auth/me/avatar/colors", json=bad, headers=headers).status_code == 422
+
+
+def test_set_and_clear_permit(client):
+    headers = signup(client)
+    assert client.get("/api/auth/me", headers=headers).json()["permit"] is None
+    res = client.put("/api/auth/me/permit", json={"permit": "S4"}, headers=headers)
+    assert res.status_code == 200 and res.json()["permit"] == "S4"
+    assert client.get("/api/auth/me", headers=headers).json()["permit"] == "S4"
+    for bad in ["S9", "GNA", "S-ANY", "x"]:
+        assert client.put("/api/auth/me/permit", json={"permit": bad}, headers=headers).status_code == 422
+    assert client.put("/api/auth/me/permit", json={"permit": None}, headers=headers).json()["permit"] is None

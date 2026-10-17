@@ -82,6 +82,8 @@ export const api = {
     }),
 
   parking: () => request("/parking"),
+  permitCatalogue: () => request("/parking/permits"),
+  setPermit: (permit) => request("/auth/me/permit", { method: "PUT", body: JSON.stringify({ permit }) }),
   places: () => request("/places"),
   reviewSummary: () => request("/reviews/summary"),
   reviews: (type, id) => request(`/reviews?target_type=${type}&target_id=${encodeURIComponent(id)}`),
