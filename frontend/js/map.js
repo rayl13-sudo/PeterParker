@@ -7,6 +7,7 @@ import { clearToken, getToken } from "./auth.js";
 import { renderAvatar } from "./avatar.js";
 import { averageRating, initReviews, openReviews, ratingLabel } from "./reviews.js";
 import { startMapTour } from "./map-tour.js";
+import { createMapHistory } from "./map-history.mjs";
 import { RULES_SOURCE, STALL_NOTE, describeWindow, permitStatus } from "./permit-rules.js";
 
 const SIGN_IN_PAGE = "index.html";
@@ -29,6 +30,38 @@ const CATEGORY_ORDER = Object.keys(CATEGORIES);
 const isFree = (lot) => lot.category === "free";
 
 const $ = (id) => document.getElementById(id);
+let mapHistory = null;
+let savedView = false;
+
+function rememberTarget(type, id) {
+  mapHistory?.remember({ type, id });
+  renderRecentShortcuts();
+}
+
+function saveButton(type, id, name, compact = false) {
+  const button = el("button", "save-place");
+  button.type = "button";
+  const update = () => {
+    const saved = mapHistory?.isSaved({ type, id }) ?? false;
+    button.setAttribute("aria-pressed", String(saved));
+    button.setAttribute("aria-label", `${saved ? "Remove" : "Save"} ${name} ${saved ? "from" : "to"} saved places`);
+    button.title = saved ? "Remove from saved places" : "Save place";
+    button.textContent = compact ? (saved ? "★" : "☆") : (saved ? "★ Saved" : "☆ Save");
+  };
+  update();
+  button.addEventListener("click", () => {
+    mapHistory?.toggleSaved({ type, id });
+    update();
+    updateSavedButton();
+    renderList();
+  });
+  return button;
+}
+
+function updateSavedButton() {
+  $("saved-count").textContent = mapHistory?.saved().length ? `(${mapHistory.saved().length})` : "";
+  $("saved-toggle").setAttribute("aria-pressed", String(savedView));
+}
 
 function toSignIn() {
   clearToken();
@@ -149,6 +182,7 @@ function warningBox(lot) {
 }
 
 function popupContent(lot) {
+  rememberTarget("lot", lot.id);
   const cat = CATEGORIES[lot.category];
   const root = el("div", "popup");
 
@@ -204,7 +238,7 @@ function popupContent(lot) {
     map.closePopup();
     showLotReviews(lot);
   });
-  actions.append(go, reviews);
+  actions.append(go, reviews, saveButton("lot", lot.id, lot.name));
   root.append(actions);
   return root;
 }
@@ -351,12 +385,10 @@ function listItem({ lot, primary: layer }, walkMeters) {
   const rating = ratingLabel("lot", lot.id);
   if (rating) text.append(el("small", "rating-line", rating));
   btn.append(swatch, text);
-  btn.addEventListener("click", () => {
-    map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
-    map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
-  });
+  btn.addEventListener("click", () => focusLot({ lot, primary: layer }));
   const li = el("li");
-  li.append(btn);
+  li.className = "savable-row";
+  li.append(btn, saveButton("lot", lot.id, lot.name, true));
   if (walkMeters != null) {
     const actions = el("div", "item-actions");
     const go = el("button", "pill-button primary", "Directions");
@@ -384,7 +416,8 @@ function placeItem(place) {
   btn.append(text);
   btn.addEventListener("click", () => setDestination(place));
   const li = el("li");
-  li.append(btn);
+  li.className = "savable-row";
+  li.append(btn, saveButton("place", place.id, place.name, true));
   return li;
 }
 
@@ -394,6 +427,7 @@ const sectionHeading = (text) => el("li", "list-heading", text);
 function placeCard(place) {
   const li = el("li", "place-card");
   li.append(el("strong", null, place.name));
+  li.append(saveButton("place", place.id, place.name));
   if (place.kind) li.append(el("small", null, place.kind));
   const rating = ratingLabel("place", place.id);
   li.append(el("p", "rating-line", rating ?? "No reviews yet"));
@@ -422,6 +456,7 @@ function listTitle(cats, minStars) {
 // Rebuilds the side list. With `animate`, items cascade in (used for chip clicks,
 // picking a destination, first load; not on every keystroke).
 function renderList({ animate = false } = {}) {
+  if (!animate) $("spot-list").classList.remove("enter");
   buildList();
   if (animate) animateList();
 }
@@ -436,6 +471,22 @@ function animateList() {
 
 function buildList() {
   const { categories: cats, minStars, text } = activeFilters();
+  updateSavedButton();
+
+  if (savedView && !destination) {
+    const items = (mapHistory?.saved() ?? []).map((item) => {
+      if (item.type === "place") {
+        const place = places.find((candidate) => candidate.id === item.id);
+        return place ? placeItem(place) : null;
+      }
+      const entry = listEntries.find((candidate) => candidate.lot.id === item.id);
+      return entry ? listItem(entry) : null;
+    }).filter(Boolean);
+    $("panel-title").textContent = "Saved places";
+    $("spot-count").textContent = `${items.length} saved ${items.length === 1 ? "place" : "places"}`;
+    $("spot-list").replaceChildren(...(items.length ? items : [el("li", "no-results", "Use ☆ beside a place or parking lot to save it here.")]));
+    return;
+  }
 
   if (destination) {
     $("panel-title").textContent = `Parking near ${destination.name}`;
@@ -466,6 +517,14 @@ function buildList() {
   }
   $("spot-list").replaceChildren(...items);
 }
+
+$("saved-toggle").addEventListener("click", () => {
+  const opening = !savedView;
+  clearSearch();
+  savedView = opening;
+  $("search-shortcuts").hidden = true;
+  renderList();
+});
 
 // ---------- Search: bold matching lots, fade the rest, as you type ----------
 
@@ -631,6 +690,45 @@ function findPlaces(tokens, minStars) {
     .slice(0, MAX_PLACE_RESULTS);
 }
 
+function focusLot({ lot, primary: layer }) {
+  rememberTarget("lot", lot.id);
+  savedView = false;
+  $("search-shortcuts").hidden = true;
+  renderList();
+  if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
+  map.flyTo([lot.lat, lot.lon], 18, { duration: 0.6 });
+  map.once("moveend", () => layer.fire("click", { latlng: L.latLng(lot.lat, lot.lon) }));
+}
+
+function renderRecentShortcuts(showOnFocus = false) {
+  const box = $("search-shortcuts");
+  if (!mapHistory || document.activeElement !== $("search") || (!showOnFocus && $("search").value.trim())) {
+    box.hidden = true;
+    return;
+  }
+  const targets = mapHistory.recent().map((item) => {
+    const target = item.type === "place"
+      ? places.find((place) => place.id === item.id)
+      : listEntries.find((entry) => entry.lot.id === item.id);
+    return target ? { type: item.type, target } : null;
+  }).filter(Boolean);
+  if (!targets.length) { box.hidden = true; return; }
+  const title = el("strong", null, "Recent searches");
+  const buttons = targets.map(({ type, target }) => {
+    const name = type === "place" ? target.name : target.lot.name;
+    const button = el("button", null, name);
+    button.type = "button";
+    button.addEventListener("click", () => {
+      box.hidden = true;
+      if (type === "place") setDestination(target);
+      else focusLot(target);
+    });
+    return button;
+  });
+  box.replaceChildren(title, ...buttons);
+  box.hidden = false;
+}
+
 // Re-applies search text + chips: highlights matching lots, fades the rest, refreshes the list.
 function applyFilters({ fit = true, animate = false } = {}) {
   clearTimeout(fitTimer);
@@ -655,6 +753,8 @@ function applyFilters({ fit = true, animate = false } = {}) {
 function runSearch() {
   const raw = $("search").value;
   $("search-clear").hidden = !raw;
+  if (raw.trim()) savedView = false;
+  renderRecentShortcuts();
   clearDestination(); // typing again means looking for something new
   parsedQuery = parseQuery(raw);
   applyFilters();
@@ -662,6 +762,7 @@ function runSearch() {
 
 document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) =>
   chip.addEventListener("click", () => {
+    savedView = false;
     const c = chip.dataset.category;
     if (parsedQuery.categories.has(c) && !chipFilters.categories.has(c)) {
       // Turning off a filter that came from the search text: remove those words.
@@ -674,6 +775,7 @@ document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) =>
 );
 document.querySelectorAll(".star-chip").forEach((chip) =>
   chip.addEventListener("click", () => {
+    savedView = false;
     const value = Number(chip.dataset.stars);
     const current = Math.max(chipFilters.minStars, parsedQuery.minStars);
     // Clicking the rating that's already on turns it off, like the type chips.
@@ -717,11 +819,15 @@ const destinationIcon = L.divIcon({
   tooltipAnchor: [0, -36],
 });
 
-function setDestination(place) {
+function setDestination(place, { remember = true } = {}) {
+  clearTimeout(fitTimer);
+  savedView = false;
   destination = place;
   placeResults = [];
   $("search").value = place.name;
   $("search-clear").hidden = false;
+  $("search-shortcuts").hidden = true;
+  if (remember) rememberTarget("place", place.id);
 
   showDestinationMarker(place);
 
@@ -764,9 +870,17 @@ function clearDestination() {
 }
 
 $("search").addEventListener("input", runSearch);
+$("search").addEventListener("focus", () => renderRecentShortcuts(true));
+document.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".search")) $("search-shortcuts").hidden = true;
+});
 $("search").addEventListener("keydown", (e) => {
-  if (e.key === "Escape") clearSearch();
+  if (e.key === "Escape") {
+    if (!$("search-shortcuts").hidden) $("search-shortcuts").hidden = true;
+    else clearSearch();
+  }
   if (e.key === "Enter" && placeResults.length) setDestination(placeResults[0]);
+  else if (e.key === "Enter" && $("search").value.trim() && filteredEntries.length) focusLot(filteredEntries[0]);
 });
 $("search-clear").addEventListener("click", () => {
   clearSearch();
@@ -838,7 +952,8 @@ function setupCollapsible({ container, toggle, storageKey, labels }) {
     toggle.setAttribute("aria-expanded", String(!collapsed));
     if (labels) toggle.setAttribute("aria-label", collapsed ? labels.show : labels.hide);
   };
-  apply(loadFlag(storageKey));
+  apply(container.id === "panel" && window.matchMedia("(max-width: 640px)").matches
+    ? false : loadFlag(storageKey));
   toggle.addEventListener("click", () => {
     const collapsed = !container.classList.contains("collapsed");
     apply(collapsed);
@@ -853,6 +968,67 @@ setupCollapsible({
   labels: { show: "Show free parking list", hide: "Hide free parking list" },
 });
 setupCollapsible({ container: $("map-key"), toggle: $("key-toggle"), storageKey: "pp_key_collapsed" });
+
+// Four mobile snap points, including a handle-only position to reveal the map.
+const panelHandle = $("panel-handle");
+const panel = $("panel");
+const sheetLevels = [0, 0.42, 0.7, 1];
+const sheetNames = ["Minimized", "Preview", "Medium height", "Full height"];
+let sheetLevel = 1;
+function setPanelLevel(level) {
+  sheetLevel = Math.max(0, Math.min(sheetLevels.length - 1, level));
+  panel.dataset.level = String(sheetLevel);
+  panel.classList.toggle("expanded", sheetLevel === 3);
+  panel.style.removeProperty("--sheet-height");
+  panel.querySelector(".panel-body").inert = sheetLevel === 0 && window.matchMedia("(max-width: 640px)").matches;
+  panelHandle.setAttribute("aria-valuenow", String(sheetLevel + 1));
+  panelHandle.setAttribute("aria-valuetext", sheetNames[sheetLevel]);
+}
+function setPanelExpanded(expanded) {
+  setPanelLevel(expanded ? 3 : 1);
+}
+panelHandle.addEventListener("keydown", (event) => {
+  const levels = { ArrowUp: sheetLevel + 1, ArrowDown: sheetLevel - 1, Home: 0, End: 3 };
+  if (!(event.key in levels)) return;
+  event.preventDefault();
+  setPanelLevel(levels[event.key]);
+});
+let sheetDrag = null;
+panelHandle.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || !window.matchMedia("(max-width: 640px)").matches) return;
+  sheetDrag = { id: event.pointerId, y: event.clientY, height: panel.getBoundingClientRect().height,
+    available: panel.parentElement.clientHeight, level: sheetLevel };
+  panelHandle.setPointerCapture(event.pointerId);
+});
+panelHandle.addEventListener("pointermove", (event) => {
+  if (!sheetDrag || event.pointerId !== sheetDrag.id) return;
+  const fraction = (sheetDrag.height + sheetDrag.y - event.clientY) / sheetDrag.available;
+  sheetDrag.fraction = Math.max(sheetLevels[0], Math.min(1, fraction));
+  // Keep the handle reachable while dragging toward the full-screen snap point.
+  panel.classList.add("dragging");
+  panel.classList.remove("expanded");
+  panel.style.setProperty("--sheet-height", `${Math.min(0.92, sheetDrag.fraction) * 100}%`);
+});
+function finishSheetDrag(event) {
+  if (!sheetDrag || event.pointerId !== sheetDrag.id) return;
+  const drag = sheetDrag;
+  sheetDrag = null;
+  panel.classList.remove("dragging");
+  const fraction = event.type === "pointercancel" ? sheetLevels[drag.level]
+    : drag.fraction ?? sheetLevels[drag.level];
+  const nearest = sheetLevels.reduce((best, point, index) =>
+    Math.abs(point - fraction) < Math.abs(sheetLevels[best] - fraction) ? index : best, 0);
+  setPanelLevel(nearest);
+  if (panelHandle.hasPointerCapture(event.pointerId)) panelHandle.releasePointerCapture(event.pointerId);
+}
+panelHandle.addEventListener("pointerup", finishSheetDrag);
+panelHandle.addEventListener("pointercancel", finishSheetDrag);
+panelHandle.addEventListener("lostpointercapture", finishSheetDrag);
+setPanelLevel(1);
+window.matchMedia("(max-width: 640px)").addEventListener("change", (event) => {
+  if (event.matches && panel.classList.contains("collapsed")) $("panel-toggle").click();
+  setPanelLevel(sheetLevel);
+});
 
 function renderKey() {
   $("key-list").replaceChildren(
@@ -1577,6 +1753,7 @@ async function init() {
       ...place,
       search: normalize([place.name, place.kind ?? ""].join(" ")),
     }));
+    mapHistory = createMapHistory(user.id);
     $("user-name").textContent = user.username ?? user.email;
     $("user-name").title = user.email;
     renderAvatar($("user-avatar"), user.avatar);
@@ -1587,7 +1764,7 @@ async function init() {
       showExample: () => {
         const studentCenter = places.find((place) => place.name === "Student Center");
         if (!studentCenter) return false;
-        setDestination(studentCenter);
+        setDestination(studentCenter, { remember: false });
         return true;
       },
       clearExample: clearSearch,

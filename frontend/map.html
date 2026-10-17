@@ -41,6 +41,12 @@
       <div id="map" aria-label="Map of UC Irvine showing parking"></div>
 
       <aside id="panel" class="panel">
+        <div id="panel-handle" class="panel-handle" role="slider" tabindex="0"
+             aria-label="Parking list height" aria-orientation="vertical"
+             aria-valuemin="1" aria-valuemax="4" aria-valuenow="2"
+             aria-valuetext="Preview" title="Drag up or down to resize the parking list">
+          <span aria-hidden="true"></span>
+        </div>
         <button id="panel-toggle" class="panel-toggle" type="button"
                 aria-controls="panel" aria-expanded="true" aria-label="Hide free parking list">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
@@ -53,6 +59,7 @@
             <button id="search-clear" type="button" aria-label="Clear search" hidden>
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
             </button>
+            <div id="search-shortcuts" class="search-shortcuts" hidden></div>
           </div>
           <div class="filters" aria-label="Filter parking">
             <div class="filter-row" role="group" aria-label="Parking type">
@@ -69,7 +76,7 @@
               <button type="button" class="chip-toggle star-chip" data-stars="4.5" aria-pressed="false">4.5+ ★</button>
             </div>
           </div>
-
+          <button id="saved-toggle" class="saved-toggle" type="button" aria-pressed="false">☆ Saved places <span id="saved-count"></span></button>
           <div id="list-view" class="panel-view">
             <p id="permit-banner" class="permit-banner" aria-live="polite"></p>
             <h1 id="panel-title">Free parking near UCI</h1>

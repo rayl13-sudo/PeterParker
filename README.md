@@ -200,6 +200,12 @@ you; if you've already allowed location for the site it starts on its own. Direc
 your live position, and "Re-route from where I am" rebuilds the route as you move. Both the list and
 the key remember whether they were open.
 
+Use ☆ beside a place or lot to add it to **Saved places**; open that button below
+search to revisit saved locations. Focusing the search box shows the last three
+places or lots you selected, so you can reopen a recent result. Saved places and
+recent selections are kept per account in this browser. They are removed from
+this browser when the account is deleted and do not sync across devices.
+
 Lots come from `GET /api/parking`, which serves a snapshot in
 `backend/app/data/parking_lots.json`. Refresh it with:
 
