@@ -17,7 +17,7 @@ const STEPS = [
     body: "The map key explains each colored area. Blue is free, dark gray needs a permit, dashed gray is paid, and red warns of limits or tow risk.",
   },
   {
-    target: "#spot-list .spot-item",
+    target: "#spot-list .spot-item .spot-text",
     fallback: "#spot-list",
     example: true,
     title: "Compare nearby lots",
