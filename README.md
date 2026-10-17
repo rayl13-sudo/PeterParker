@@ -61,7 +61,23 @@ and the **FastAPI** framework preset. Leave the build and output directory
 settings at their defaults. `app/main.py` exports the application, and
 `backend/vercel.json` selects the framework. Python 3.12 is pinned for deployment.
 This deploys the API; the frontend remains a separate deployment.
+The current backend URL, <https://peterparker-mauve.vercel.app>, returns 404 at `/`
+because FastAPI has no homepage route. Its `/api/health` and `/docs` routes are
+working. This is a deployment split, not an API startup failure.
 See [Vercel's FastAPI guide](https://vercel.com/docs/frameworks/backend/fastapi).
+
+### Deploy the website
+
+Create a **second Vercel project** from this same repository with Root Directory
+`frontend`, Framework Preset **Other**, no build command, and output directory `.`.
+Open that project's URL for the website. The static frontend uses
+`https://peterparker-mauve.vercel.app/api` in production and `http://localhost:8000/api`
+locally (configured in `frontend/js/config.js`). On the backend project, set
+`CORS_ORIGINS` to a JSON array containing the exact frontend origin, then redeploy.
+Set the Supabase Auth Site URL to the frontend URL as well. These are separate
+Vercel projects and will have separate default URLs. If a single public domain is
+required later, configure routing after both deployments work independently.
+
 
 The deployed backend requires PostgreSQL for durable profiles, sessions, and
 items. Local development still defaults to SQLite. The app refuses to use SQLite
