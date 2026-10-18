@@ -331,11 +331,11 @@ def _supabase_session(
     if email in DEFAULT_ADMIN_EMAILS:
         db.execute(
             "UPDATE users SET is_admin = ? WHERE id = ?",
-            (1 if remote.get("email_confirmed_at") else 0, row["id"]),
+            (bool(remote.get("email_confirmed_at")), row["id"]),
         )
     elif previous_email in DEFAULT_ADMIN_EMAILS and previous_email != email:
         # A former team address must not keep its automatic access after an email change.
-        db.execute("UPDATE users SET is_admin = 0 WHERE id = ?", (row["id"],))
+        db.execute("UPDATE users SET is_admin = FALSE WHERE id = ?", (row["id"],))
     return _issue(db, User(id=row["id"], username=row["username"], email=email), remember_me)
 
 
