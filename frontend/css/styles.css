@@ -184,6 +184,31 @@ li {
   font-size: 0.95rem;
   letter-spacing: 0.01em;
 }
+.brand-wordmark {
+  display: inline-flex;
+  white-space: nowrap;
+  font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.065em;
+}
+.brand-peter { color: #cf3642; }
+.brand-parker { color: #2455a7; }
+.brand-parking-sign {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 23px;
+  height: 23px;
+  border: 2px solid #fff;
+  border-radius: 6px;
+  background: #2455a7;
+  box-shadow: 0 0 0 1px #2455a7;
+  color: #fff;
+  font: 800 0.78rem/1 system-ui, sans-serif;
+  transform: rotate(7deg);
+}
 .partner-logo { height: 22px; width: auto; display: block; }
 .mascot-logo { height: 48px; width: 44px; object-fit: contain; display: block; }
 

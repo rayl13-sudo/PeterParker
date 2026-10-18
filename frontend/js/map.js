@@ -2342,6 +2342,7 @@ function closeMobileFilters() {
 }
 mobileFilterToggle.addEventListener("click", () => {
   const open = filterPanel.classList.toggle("filters-open");
+  if (open && sheetLevel < 3) setPanelLevel(3);
   mobileFilterToggle.setAttribute("aria-expanded", String(open));
 });
 document.addEventListener("click", (event) => {
