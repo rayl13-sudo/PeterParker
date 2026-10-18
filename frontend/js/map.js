@@ -76,11 +76,12 @@ setUnauthorizedHandler(toSignIn);
 
 // ---------- Remembered UI state (best effort; storage may be unavailable) ----------
 
-function loadFlag(key) {
+function loadFlag(key, fallback = false) {
   try {
-    return localStorage.getItem(key) === "1";
+    const stored = localStorage.getItem(key);
+    return stored === null ? fallback : stored === "1";
   } catch {
-    return false;
+    return fallback;
   }
 }
 
@@ -94,7 +95,8 @@ function saveFlag(key, value) {
 
 // ---------- Map ----------
 
-const map = L.map("map", { zoomControl: false, dragging: true }).setView(UCI_CENTER, 16);
+// flyTo handles camera animation; avoid a queued CSS zoom overriding a selected lot.
+const map = L.map("map", { zoomControl: false, dragging: true, zoomAnimation: false }).setView(UCI_CENTER, 16);
 L.control.zoom({ position: "topright" }).addTo(map);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
@@ -418,7 +420,10 @@ const POPUP_OPTIONS = { maxWidth: 300, maxHeight: 380, autoPan: false };
 let nextParkingPopupZoom = null;
 
 function centerParkingPopup({ popup, zoom = map.getZoom() }) {
+  clearTimeout(fitTimer);
   map.stop();
+  // Make room for details even on short phones or when the legend is expanded.
+  if (window.matchMedia("(max-width: 640px)").matches) setPanelLevel(0);
   const frame = map.getContainer().getBoundingClientRect();
   const mobile = window.matchMedia("(max-width: 640px)").matches;
   const panel = $("panel");
@@ -638,6 +643,7 @@ function shortLotName(lot) {
 
 function openPermitMenu(picker) {
   if (!permitInfo?.holdable_permits) return;
+  if (window.matchMedia("(max-width: 640px)").matches) setPanelLevel(3);
   const menu = el("div", "permit-menu");
   menu.setAttribute("role", "menu");
   for (const { label, test } of PERMIT_MENU_GROUPS) {
@@ -1064,6 +1070,7 @@ function findPlaces(tokens, minStars) {
 }
 
 function focusLot({ lot, primary: layer }) {
+  clearTimeout(fitTimer);
   rememberTarget("lot", lot.id);
   savedView = false;
   $("search-shortcuts").hidden = true;
@@ -1323,14 +1330,14 @@ function fitToLots(lots) {
 
 // ---------- Collapsible side panel and key ----------
 
-function setupCollapsible({ container, toggle, storageKey, labels }) {
+function setupCollapsible({ container, toggle, storageKey, labels, defaultCollapsed = false }) {
   const apply = (collapsed) => {
     container.classList.toggle("collapsed", collapsed);
     toggle.setAttribute("aria-expanded", String(!collapsed));
     if (labels) toggle.setAttribute("aria-label", collapsed ? labels.show : labels.hide);
   };
   apply(container.id === "panel" && window.matchMedia("(max-width: 640px)").matches
-    ? false : loadFlag(storageKey));
+    ? false : loadFlag(storageKey, defaultCollapsed));
   toggle.addEventListener("click", () => {
     const collapsed = !container.classList.contains("collapsed");
     apply(collapsed);
@@ -1344,7 +1351,11 @@ setupCollapsible({
   storageKey: "pp_panel_collapsed",
   labels: { show: "Show free parking list", hide: "Hide free parking list" },
 });
-setupCollapsible({ container: $("map-key"), toggle: $("key-toggle"), storageKey: "pp_key_collapsed" });
+setupCollapsible({
+  container: $("map-key"), toggle: $("key-toggle"),
+  storageKey: window.matchMedia("(max-width: 640px)").matches ? "pp_mobile_key_collapsed" : "pp_key_collapsed",
+  defaultCollapsed: window.matchMedia("(max-width: 640px)").matches,
+});
 
 // Four mobile snap points, including a handle-only position to reveal the map.
 const panelHandle = $("panel-handle");
@@ -1402,6 +1413,10 @@ panelHandle.addEventListener("pointerup", finishSheetDrag);
 panelHandle.addEventListener("pointercancel", finishSheetDrag);
 panelHandle.addEventListener("lostpointercapture", finishSheetDrag);
 setPanelLevel(1);
+panel.addEventListener("focusin", (event) => {
+  if (!window.matchMedia("(max-width: 640px)").matches || !event.target.matches("input, textarea")) return;
+  setPanelLevel(3);
+});
 window.matchMedia("(max-width: 640px)").addEventListener("change", (event) => {
   if (event.matches && panel.classList.contains("collapsed")) $("panel-toggle").click();
   setPanelLevel(sheetLevel);
@@ -1539,6 +1554,10 @@ function showPanelView(name) {
   for (const view of PANEL_VIEWS) $(view).hidden = view !== name;
   document.querySelector(".filters").hidden = name !== "list-view"; // filters only apply to the list
   if ($("panel").classList.contains("collapsed")) $("panel-toggle").click();
+  if (window.matchMedia("(max-width: 640px)").matches) {
+    if (name !== "list-view") setPanelLevel(3);
+    panel.querySelector(".panel-body").scrollTop = 0;
+  }
 }
 
 const showDirectionsView = (show) => showPanelView(show ? "directions-view" : "list-view");
