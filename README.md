@@ -150,16 +150,46 @@ and is never sent to the browser.
 
 ### Local authentication
 
-Opening the app shows a sign-in / sign-up screen. Sign-up asks for a username and
-UCI email. Sign-in is by **UCI email only** (`@uci.edu` or a UCI subdomain like `@ics.uci.edu`);
-usernames are display names, and any other email domain is rejected as invalid on both forms
-and by the API.
+**When Supabase is on** (the deployed backend), sign-up and sign-in don't depend on it being
+responsive:
+- If Supabase wants the email confirmed first, rate-limits ("Too many attempts") or is down, the
+  account is still created and you're signed in right away. When the email is confirmed later,
+  your next sign-in links the account to Supabase.
+- Every account keeps a hash of the password Supabase last accepted. If Supabase is rate-limited
+  or down, sign-in checks that instead.
+- A linked account whose password Supabase rejects stays rejected.
+
+Opening the app shows a sign-in / sign-up screen. Sign-up asks for a username and an
+email. **Any email works**, and a tip under the field asks UCI students to use their UCI student
+email. Accounts with a UCI email (`@uci.edu` or a UCI subdomain like `@ics.uci.edu`, reported as
+`is_uci` by `/api/auth/me`) can choose a UCI parking permit. Other accounts see every lot,
+including permit-only lots shaded "Permit required", but get no permit options: no map banner
+or picker and no Settings card, and the API returns 403 on `PUT /api/auth/me/permit`. Sign-in
+takes your **email or username** (usernames are case-insensitive).
+
+**Terms of Service.** After filling in the sign-up form, **Create account** first checks
+that the username and email are free (`POST /api/auth/signup/check`). If one is taken, the
+form says so right away. Otherwise it opens a Terms of Service step. The terms cover:
+- PeterParker isn't affiliated with UCI.
+- Its information is guidance only, and posted signs control.
+- It isn't liable for citations, tows or other consequences.
+- Safe navigation (don't use it while driving), content rules, location and privacy.
+- No warranty, limitation of liability, indemnity, and California law.
+
+Each section counts as read once it has been mostly on screen for about a second, and gets a
+small ✓. A progress bar shows how many sections you've read. The agreement checkbox unlocks only
+after every section has been read, so jumping straight to the bottom doesn't count, and clicking
+the checkbox earlier asks you to keep reading. Ticking it enables **Sign up**, which creates the account and opens the map. The text lives
+in `frontend/js/terms.js`. The API rejects sign-ups that don't send `accept_terms: true` and the
+current `TERMS_VERSION` (`backend/app/api/routes/auth.py`), and it records `terms_version` and
+`terms_accepted_at` on the account (migration `007_terms_acceptance.sql`). When you change the
+terms, bump the version in both files; a test checks they match.
 
 Sign-up rules (enforced by the API, mirrored in the UI):
 
 - **Password:** at least 8 characters, one capital letter, one special character.
   The sign-up form shows a checklist that ticks off each rule as you type.
-- **Username:** 3-32 characters; special characters are fine, but no spaces or `@`. Accounts, sessions and items
+- **Username:** 3-67 characters (the sign-up form says live if it's too short, too long or taken); special characters are fine, but no spaces or `@`. Accounts, sessions and items
 are stored in SQLite (`backend/app.db`, created on first run). Passwords are hashed
 with PBKDF2, and the API issues an opaque bearer token; only its hash is stored.
 
@@ -243,6 +273,15 @@ again: drive From → a parking lot, then walk to To (or just drive, if To is it
 at" pills offer the closest usable lots to To (respecting the filter chips); click one to route
 via it.
 
+
+You can also **click a building on the map**. Clicking inside a hall, library or other mapped
+place outlines it and asks "Navigate here?". **Yes, find parking** does exactly what picking it in
+the search does. For buildings with things inside, such as the Student Center's food court, the
+popup also lists those places so you can pick one instead. Footprints come from OpenStreetMap
+via `scripts/fetch_place_outlines.py`, which adds an `outline` to each place in `places.json`.
+Places mapped as a point get the building they're in, and huge areas get no outline so they
+don't catch every click. Clicks on lots still open the lot.
+
 ## Spaces, accessible stalls, EV charging and staff lots
 
 UCI publishes, on its official campus map (https://map.uci.edu/?id=463), a stall table for every
@@ -278,9 +317,14 @@ pieces with the same name and rules whose outlines come within 12 m of each othe
 into one lot (e.g. the three Sepulveda Vista Point areas become one 9-space lot). Separate lots
 nearby that share a name stay separate.
 
+**Fewer red dots.** Limited lots within ~95 m of each other share one red dot (groups stay
+under 200 m across). That's 80 dots for 133 lots, about 60%. Every lot keeps its own shaded
+outline, and a shared dot opens a short list of the lots it covers.
+University Town Center's 6 lots are grouped only with each other, into 2 dots.
+
 ## Your parking permit
 
-In **Settings → Your parking permit**, pick the UCI permit you hold ("S" zone, "P" preferred zone,
+In **Settings → Your parking permit** (UCI-email accounts only), pick the UCI permit you hold ("S" zone, "P" preferred zone,
 "R" resident or "E" evening; saved with `PUT /api/auth/me/permit`). The map then turns every lot
 that permit covers *right now* into **Free with your permit** (teal), counts them in a banner,
 includes them in the Free chip and "free parking" searches, and explains the hours in each lot's
@@ -321,9 +365,12 @@ Rules (`frontend/js/permit-rules.js`) follow UCI's student permit page
 | E evening | any UCI lot | Mon–Fri 5 pm–midnight, Sat–Sun |
 
 Choices made where UCI is ambiguous err toward *not* free: students can't park overnight, so
-weekend "All Day" is treated as 7 am–midnight. Only confirmed UCI Transportation lots count
-(named on UCI's permit pages, tagged as UCI-operated, or numbered "Lot __"); untagged campus lots
-and housing structures (Verano, Palo Verde, Campus Village…) are excluded, since UCI says housing
+weekend "All Day" is treated as 7 am–midnight. Only UCI Transportation lots count, and only
+UCI's own sources decide which those are: its official parking map (map.uci.edu stall tables
+or Faculty & Staff layer) or its permit pages. OpenStreetMap's operator tag or a "Lot 15A"-style
+name isn't enough. Outside lots never add to a permit's count, and their popups say why. Lots
+that don't count include Lots 15A/15D, the English Language School lots and the Nursing lot.
+Housing structures (Verano, Palo Verde, Campus Village…) are excluded, since UCI says housing
 parking "is valid only in your housing community". Popups and Settings list UCI's "not valid"
 stalls for your permit type: P/AR before 5 pm (S), R, X, exclusively reserved, service/E-plate,
 disabled without a placard, Pay-by-Space, yellow ECPS, and overnight. ARC hours come from
@@ -402,4 +449,3 @@ have [`backend/migrations/005_issue_reports.sql`](backend/migrations/005_issue_r
 applied before deploying this feature. It creates the private report table and admin flag.
 API routes: `POST /api/issues`, `GET /api/issues/mine`, admin-only `GET /api/issues/admin`, and
 admin-only `PATCH /api/issues/{id}` with `{"status":"resolved"}` or `{"status":"open"}`.
-.

@@ -40,13 +40,13 @@
         </div>
 
         <form id="auth-form" novalidate>
-          <!-- Sign in: UCI email only (usernames are display names, not logins) -->
+          <!-- Sign in: email or username -->
           <label data-show="login">
-            UCI email
+            Email or username
             <span class="input-with-icon">
-              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><rect class="stroke" x="5.8" y="7.6" width="12.4" height="8.8" rx="1.6"/><path class="stroke" d="M6.4 8.6l5.6 4.2 5.6-4.2"/></svg>
-              <input id="auth-identifier" type="email" autocomplete="email" autocapitalize="none" spellcheck="false"
-                     placeholder="you@uci.edu" inputmode="email" />
+              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><circle class="cut" cx="12" cy="9.5" r="3.6"/><path class="cut" d="M5.6 19.2c1.4-2.9 3.7-4.4 6.4-4.4s5 1.5 6.4 4.4"/></svg>
+              <input id="auth-identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"
+                     placeholder="Email or username" />
             </span>
           </label>
           <!-- Sign up: both are collected -->
@@ -54,16 +54,23 @@
             Username
             <span class="input-with-icon">
               <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><circle class="cut" cx="12" cy="9.5" r="3.6"/><path class="cut" d="M5.6 19.2c1.4-2.9 3.7-4.4 6.4-4.4s5 1.5 6.4 4.4"/></svg>
-              <input id="auth-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" />
+              <input id="auth-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"
+                     aria-describedby="username-status" />
             </span>
+            <span id="username-status" class="field-status" aria-live="polite"></span>
           </label>
           <label data-show="signup" hidden>
-            UCI email
+            Email
             <span class="input-with-icon">
               <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><rect class="stroke" x="5.8" y="7.6" width="12.4" height="8.8" rx="1.6"/><path class="stroke" d="M6.4 8.6l5.6 4.2 5.6-4.2"/></svg>
-              <input id="auth-email" type="email" autocomplete="email" placeholder="you@uci.edu" inputmode="email" />
+              <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" inputmode="email"
+                     aria-describedby="uci-email-tip" />
             </span>
           </label>
+          <p id="uci-email-tip" class="uci-tip" data-show="signup" hidden>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><path d="M8 7.2v4M8 4.8v.1"/></svg>
+            <span>If you are a UCI student, please use your UCI student ID email! It unlocks Quality of Life Benefits on the map.</span>
+          </p>
           <label>
             Password
             <span class="input-with-icon">
@@ -83,6 +90,31 @@
           <p id="auth-error" class="error" hidden></p>
           <button id="auth-submit" type="submit">Sign in</button>
         </form>
+
+        <!-- Sign up, step 2: read and accept the Terms of Service -->
+        <section id="terms-step" class="terms-step" aria-labelledby="terms-title" hidden>
+          <button type="button" id="terms-back" class="terms-back">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
+            Back
+          </button>
+          <h2 id="terms-title">Terms of Service</h2>
+          <p class="subtitle">One last step. Please read these before creating your account.</p>
+          <div class="terms-frame">
+            <div id="terms-box" class="terms-box" tabindex="0" role="document" aria-label="PeterParker Terms of Service"></div>
+            <div class="terms-progress" aria-hidden="true"><span id="terms-progress-bar"></span></div>
+          </div>
+          <p id="terms-hint" class="terms-hint">Scroll to the end to continue</p>
+          <label class="terms-agree" id="terms-agree-label">
+            <input id="terms-agree" type="checkbox" disabled />
+            <span class="terms-check" aria-hidden="true">
+              <svg viewBox="0 0 20 20"><path d="M5 10.5l3.2 3.2L15 6.8"/></svg>
+            </span>
+            <span>I have read and agree to the PeterParker Terms of Service, including that PeterParker
+              isn't liable for tickets, tows or other consequences of where I park or how I travel.</span>
+          </label>
+          <p id="terms-error" class="error" hidden></p>
+          <button id="terms-submit" type="button" disabled>Sign up</button>
+        </section>
       </section>
 
       <p class="map-credit">Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>

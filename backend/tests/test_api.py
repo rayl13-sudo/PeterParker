@@ -1,3 +1,6 @@
+from tests.conftest import TERMS
+
+
 def test_health(client):
     res = client.get("/api/health")
     assert res.status_code == 200
@@ -24,7 +27,7 @@ def test_items_are_per_user(client, auth_headers):
     client.post("/api/items", json={"name": "mine"}, headers=auth_headers)
     other = client.post(
         "/api/auth/signup",
-        json={"username": "maryjane", "email": "mj@uci.edu", "password": "Password123!"},
+        json={"username": "maryjane", "email": "mj@uci.edu", "password": "Password123!", **TERMS},
     ).json()["token"]
     assert client.get("/api/items", headers={"Authorization": f"Bearer {other}"}).json() == []
 

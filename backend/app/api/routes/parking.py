@@ -20,7 +20,6 @@ DATA_FILE = DATA_DIR / "parking_lots.json"
 # parking.uci.edu (see "sources" in the file). Update it when UCI publishes new rates.
 PERMITS_FILE = DATA_DIR / "uci_permits.json"
 
-LOT_NUMBER = re.compile(r"^Lot \w+$")  # UCI's own lot names: "Lot 5", "Lot 16H", "Lot BP"
 # Housing communities with their own resident parking (housing.uci.edu/grad/parking).
 HOUSING_NAMES = re.compile(
     r"Verano|Palo Verde|Campus Village|Plaza Verde|Vista del Campo|Camino del Sol|Puerta del Sol"
@@ -102,6 +101,9 @@ class ParkingLot(BaseModel):
     # "fee" (OpenStreetMap fee=yes).
     pay: list[str] = []
     merged_from: int = 1  # number of mapped pieces combined into this lot
+    # Limited lots close together share one red dot on the map (their outlines stay
+    # separate): the id of the group's dot, the same for every lot in the group.
+    dot_group: str | None = None
     # "limited" lots: who may park, any time limit, and a tow/ticket warning
     restriction: str | None = None
     time_limit: str | None = None
@@ -276,6 +278,44 @@ def _merge_pieces(lots: list[dict]) -> list[dict]:
     return [lot for lot in lots if lot["id"] not in drop]
 
 
+DOT_LINK_M = 95  # limited lots this close share a dot...
+DOT_SPAN_M = 200  # ...as long as the group stays this compact
+# University Town Center is one shopping center: its lots share just a couple of dots.
+UTC_DOT_LINK_M = 300
+UTC_DOT_SPAN_M = 280
+
+
+def _group_dots(lots: list[dict]) -> None:
+    """Give nearby limited lots one shared map dot, so the map shows general areas
+    instead of a dot per parking row (about 60% as many dots). UTC lots are grouped
+    only with each other."""
+    limited = [lot for lot in lots if lot["category"] == "limited"]
+    _group([lot for lot in limited if not lot.get("utc")], DOT_LINK_M, DOT_SPAN_M)
+    _group([lot for lot in limited if lot.get("utc")], UTC_DOT_LINK_M, UTC_DOT_SPAN_M)
+
+
+def _group(lots: list[dict], link_m: float, span_m: float) -> None:
+    groups = [[lot] for lot in lots]
+    while True:
+        best = None
+        for i in range(len(groups)):
+            for j in range(i + 1, len(groups)):
+                gap = min(_meters_apart(a, b) for a in groups[i] for b in groups[j])
+                if gap >= link_m or (best and gap >= best[0]):
+                    continue
+                both = groups[i] + groups[j]
+                if max(_meters_apart(a, b) for a in both for b in both) <= span_m:
+                    best = (gap, i, j)
+        if best is None:
+            break
+        _, i, j = best
+        groups[i] += groups.pop(j)
+    for group in groups:
+        dot = min(lot["id"] for lot in group)
+        for lot in group:
+            lot["dot_group"] = dot
+
+
 def _merge_uci_lots(lots: list[dict], uci_lots: dict) -> None:
     """Attach UCI's stall tables to our lots; add UCI lots we don't have as map points."""
     by_key = {_key(lot["name"]): lot for lot in lots}
@@ -354,24 +394,23 @@ def _load() -> ParkingResponse:
         # Remove generated OSM type labels, preserving name qualifiers such as (AIRB).
         lot["serves"] = [re.sub(r"\s+\([a-z][a-z ]*\)$", "", name) for name in lot.get("serves", [])]
         assigned = uci["lots"].get(lot["name"], {})
-        on_campus = lot["category"] == "permit" and "UCI's campus" in (lot.get("inferred") or "")
-        # "uci" = a UCI Transportation lot, where UCI's permit and visitor rules apply.
-        # Untagged lots inside the campus boundary only count if they carry a UCI lot
-        # number ("Lot 15A"); the rest are mostly housing (UCI: housing permission "is
-        # valid only in your housing community") or department parking.
-        numbered = bool(LOT_NUMBER.match(lot["name"]))
+        # "uci" = a UCI Transportation lot, where UCI permits and visitor passes apply. Only
+        # UCI's own sources count: its parking map (stall table or Faculty & Staff layer)
+        # or its permit pages. OpenStreetMap's operator tag or a "Lot 15A"-style name isn't
+        # enough, so outside lots never add to what a permit covers.
+        official = bool(lot.get("uci_map_id")) or bool(assigned) or _key(lot["name"]) in staff_lots
         housing = not assigned and bool(HOUSING_NAMES.search(lot["name"]))
-        lot["uci"] = not housing and (lot.get("operator") in UCI_OPERATORS or bool(assigned) or (on_campus and numbered))
+        lot["uci"] = official and not housing
         if housing:
             lot["inferred"] = (
                 "Housing community parking: UCI says housing parking is valid only for that "
                 "community's residents, so commuter permits don't apply here."
             )
-        elif on_campus and not numbered:
+        elif not official and (lot.get("operator") in UCI_OPERATORS or "UCI's campus" in (lot.get("inferred") or "")):
             lot["inferred"] = (
-                "Inside UCI's campus but not a numbered UCI lot: likely housing or department "
-                "parking. UCI commuter permits aren't valid here; residents and visitors follow "
-                "that community's rules."
+                "Not on UCI Transportation's official parking map, so UCI permits and visitor "
+                "passes aren't counted here (likely department, housing or private parking). "
+                "Check the posted signs."
             )
         lot["permits"] = [{"code": code, **uci["permits"][code]} for code in assigned.get("permits", [])]
         lot["permit_note"] = assigned.get("note")
@@ -379,6 +418,7 @@ def _load() -> ParkingResponse:
         student_zone = any(p["code"][0] in "SP" for p in lot["permits"])
         if _key(lot["name"]) in staff_lots and lot["uci"] and not student_zone:
             lot["category"] = "staff"
+    _group_dots(data["lots"])
     data["permit_info"] = {
         key: uci[key]
         for key in ("academic_year", "retrieved", "sources", "visitor_rates", "visitor_hours",

@@ -1,4 +1,7 @@
-SIGNUP = {"username": "milesm", "email": "miles@uci.edu", "password": "Spider-Verse1"}
+from tests.conftest import TERMS
+
+
+SIGNUP = {"username": "milesm", "email": "miles@uci.edu", "password": "Spider-Verse1", **TERMS}
 
 
 def signup(client, **overrides):
@@ -21,9 +24,10 @@ def test_update_username(client):
     assert res.status_code == 200, res.json()
     assert res.json()["username"] == "miles#42" and res.json()["email"] == SIGNUP["email"]
     assert client.get("/api/auth/me", headers=headers).json()["username"] == "miles#42"
-    # Sign-in stays by email; the username is just a display name.
+    # Sign in with the email or the new username.
     assert login(client, SIGNUP["email"], SIGNUP["password"]).status_code == 200
-    assert login(client, "miles#42", SIGNUP["password"]).status_code == 422
+    assert login(client, "miles#42", SIGNUP["password"]).status_code == 200
+    assert login(client, "milesm", SIGNUP["password"]).status_code == 401
 
 
 def test_update_requires_current_password(client):

@@ -34,6 +34,9 @@ class Place(BaseModel):
     kind: str | None = None
     lat: float
     lon: float
+    # Footprint of the place (or of the building it's in), rings of [lat, lon]; clicking
+    # inside it on the map picks this place. Empty for big areas and unmapped buildings.
+    outline: list[list[list[float]]] = []
 
 
 class PlacesResponse(BaseModel):

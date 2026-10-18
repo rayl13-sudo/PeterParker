@@ -132,7 +132,7 @@ html:active-view-transition-type(fade)::view-transition-new(root) {
 /* Sign-in */
 .auth-card { animation: rise-in 0.55s var(--ease-out) both; }
 .backdrop { animation: vt-fade-in 1.2s ease both; }
-#auth-form label[data-show]:not([hidden]), #password-rules:not([hidden]) { animation: msg-in 0.3s var(--ease-out) both; }
+#auth-form label[data-show]:not([hidden]), #password-rules:not([hidden]), #uci-email-tip:not([hidden]) { animation: msg-in 0.3s var(--ease-out) both; }
 #auth-error:not([hidden]) { animation: shake 0.4s var(--ease-out), msg-in 0.2s ease both; }
 .rules li::before { transition: background 0.2s ease, border-color 0.2s ease, transform 0.25s var(--ease-spring); }
 .rules li.met::before { transform: scale(1.08); }

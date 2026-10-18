@@ -1,14 +1,14 @@
 import json
 import re
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import cache
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.config import settings
 from app.db import get_db
@@ -27,7 +27,8 @@ from app.security import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Any characters except whitespace and "@" ("@" is how sign-in tells emails apart).
-USERNAME_RE = re.compile(r"^[^\s@]{3,32}$")
+USERNAME_MIN, USERNAME_MAX = 3, 67
+USERNAME_RE = re.compile(rf"^[^\s@]{{{USERNAME_MIN},{USERNAME_MAX}}}$")
 
 # Keep in sync with PASSWORD_RULES in frontend/js/app.js.
 PASSWORD_MIN_LENGTH = 8
@@ -38,24 +39,25 @@ SPECIAL_CHAR_RE = re.compile(r"[^A-Za-z0-9\s]")
 def clean_username(v: str) -> str:
     v = v.strip().lower()
     if not USERNAME_RE.match(v):
-        raise ValueError("Username must be 3-32 characters with no spaces or '@'")
+        raise ValueError(f"Username must be {USERNAME_MIN}-{USERNAME_MAX} characters with no spaces or '@'")
     return v
 
 
-# PeterParker is for the UCI community: accounts use a UCI email (name@uci.edu, or a
-# UCI department subdomain such as name@ics.uci.edu).
+# Anyone can sign up with any email. UCI accounts (name@uci.edu, or a UCI department
+# subdomain such as name@ics.uci.edu) can also choose a UCI parking permit.
 UCI_EMAIL_DOMAIN = re.compile(r"^(?:[a-z0-9-]+\.)*uci\.edu$")
-UCI_EMAIL_ERROR = "Invalid email: use your UCI email address (ending in uci.edu)"
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 def clean_email(v: str) -> str:
     v = v.strip().lower()
-    local, _, domain = v.partition("@")
-    if not local or "." not in domain:
+    if not EMAIL_RE.match(v):
         raise ValueError("Enter a valid email address")
-    if not UCI_EMAIL_DOMAIN.match(domain):
-        raise ValueError(UCI_EMAIL_ERROR)
     return v
+
+
+def is_uci_email(email: str) -> bool:
+    return bool(UCI_EMAIL_DOMAIN.match(email.rpartition("@")[2].lower()))
 
 
 def check_password_strength(v: str) -> str:
@@ -71,11 +73,25 @@ def check_password_strength(v: str) -> str:
     return v
 
 
+# The Terms of Service version sign-ups must accept (frontend/js/terms.js, TERMS_VERSION).
+TERMS_VERSION = "2026-10-17.2"
+
+
 class SignupIn(BaseModel):
     username: str
     email: str
     password: str = Field(max_length=128)
     remember_me: bool = False
+    accept_terms: bool = False
+    terms_version: str | None = None
+
+    @model_validator(mode="after")
+    def check_terms(self) -> "SignupIn":
+        if not self.accept_terms:
+            raise ValueError("You must accept the Terms of Service to create an account")
+        if self.terms_version != TERMS_VERSION:
+            raise ValueError("The Terms of Service have been updated. Reload the page and accept the latest version")
+        return self
 
     @field_validator("username")
     @classmethod
@@ -116,17 +132,15 @@ class PasswordChangeIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    # Sign-in is by UCI email only (usernames are display names, not logins).
-    identifier: str = Field(min_length=1, description="UCI email address")
+    # Sign in with your UCI email or your username.
+    identifier: str = Field(min_length=1, description="UCI email address or username")
     password: str
     remember_me: bool = False
 
     @field_validator("identifier")
     @classmethod
-    def uci_email_only(cls, v: str) -> str:
-        if "@" not in v:
-            raise ValueError("Sign in with your UCI email address, not your username")
-        return clean_email(v)
+    def email_or_username(cls, v: str) -> str:
+        return clean_email(v) if "@" in v else v.strip().lower()  # usernames are stored lowercase
 
 
 class User(BaseModel):
@@ -151,29 +165,78 @@ def _issue(db: sqlite3.Connection, user: User, remember_me: bool) -> AuthRespons
     return AuthResponse(token=token, expires_at=expires_at, user=user)
 
 
-@router.post("/signup", response_model=AuthResponse | ConfirmationResponse, status_code=201)
-def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse | ConfirmationResponse:
+class SignupCheckIn(BaseModel):
+    username: str
+    email: str
+
+    @field_validator("username")
+    @classmethod
+    def check_username(cls, v: str) -> str:
+        return clean_username(v)
+
+    @field_validator("email")
+    @classmethod
+    def check_email(cls, v: str) -> str:
+        return clean_email(v)
+
+
+def _ensure_available(db, username: str, email: str) -> None:
     taken = db.execute(
         "SELECT username = ? AS username_taken FROM users WHERE username = ? OR email = ?",
-        (payload.username, payload.username, payload.email),
+        (username, username, email),
     ).fetchone()
     if taken is not None:
         field = "username" if taken["username_taken"] else "email"
         raise HTTPException(status.HTTP_409_CONFLICT, f"That {field} is already taken")
 
+
+class UsernameAvailability(BaseModel):
+    available: bool
+
+
+@router.get("/username-available", response_model=UsernameAvailability)
+def username_available(
+    username: str = Query(min_length=1, max_length=200), db: sqlite3.Connection = Depends(get_db)
+) -> UsernameAvailability:
+    """For the sign-up form's live hint: is anyone already using this username?"""
+    taken = db.execute("SELECT 1 FROM users WHERE username = ?", (username.strip().lower(),)).fetchone()
+    return UsernameAvailability(available=taken is None)
+
+
+@router.post("/signup/check", status_code=204)
+def signup_check(payload: SignupCheckIn, db: sqlite3.Connection = Depends(get_db)) -> None:
+    """Before the Terms of Service step: are this username and email still free?"""
+    _ensure_available(db, payload.username, payload.email)
+
+
+@router.post("/signup", response_model=AuthResponse | ConfirmationResponse, status_code=201)
+def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse | ConfirmationResponse:
+    _ensure_available(db, payload.username, payload.email)
+
     if supabase_auth.enabled():
-        result = supabase_auth.request("signup", {
-            "email": payload.email, "password": payload.password,
-            "data": {"username": payload.username},
-        })
-        # Confirmation-required accounts are linked only after a verified login.
-        if not result.get("access_token"):
-            return ConfirmationResponse()
-        return _supabase_session(db, result["user"], payload.remember_me)
+        accepted_at = datetime.now(timezone.utc).isoformat()
+        try:
+            result = supabase_auth.request("signup", {
+                "email": payload.email, "password": payload.password,
+                # Kept with the Supabase account until its first verified sign-in links our row.
+                "data": {"username": payload.username, "terms_version": TERMS_VERSION, "terms_accepted_at": accepted_at},
+            })
+        except HTTPException as exc:
+            # Supabase rate-limits sign-ups (its confirmation emails especially) and can be
+            # down. Don't lock people out over that: create the account here instead.
+            if exc.status_code not in (429, 502):
+                raise
+            result = {}
+        if result.get("access_token"):
+            return _supabase_session(db, result["user"], payload.remember_me, password=payload.password)
+        # Email confirmation pending (or Supabase unavailable): the account works right away
+        # with its own password. Once the email is confirmed, the next sign-in links the two.
 
     cur = db.execute(
-        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?) RETURNING id",
-        (payload.username, payload.email, hash_password(payload.password)),
+        "INSERT INTO users (username, email, password_hash, terms_version, terms_accepted_at) "
+        "VALUES (?, ?, ?, ?, ?) RETURNING id",
+        (payload.username, payload.email, hash_password(payload.password),
+         TERMS_VERSION, datetime.now(timezone.utc).isoformat()),
     )
     user = User(id=cur.fetchone()["id"], username=payload.username, email=payload.email)
     return _issue(db, user, payload.remember_me)
@@ -181,24 +244,48 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthResponse:
-    if supabase_auth.enabled():
-        result = supabase_auth.request("token?grant_type=password", {
-            "email": payload.identifier, "password": payload.password,
-        })
-        return _supabase_session(db, result["user"], payload.remember_me)
-
+    by_email = "@" in payload.identifier
     row = db.execute(
-        "SELECT id, username, email, password_hash FROM users WHERE email = ?",
+        f"SELECT id, username, email, password_hash FROM users WHERE {'email' if by_email else 'username'} = ?",
         (payload.identifier,),
     ).fetchone()
+    if supabase_auth.enabled():
+        # Supabase signs in by email: a username is looked up to its account's email.
+        email = payload.identifier if by_email else (row["email"] if row else None)
+        if email is None:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
+        try:
+            result = supabase_auth.request("token?grant_type=password", {
+                "email": email, "password": payload.password,
+            })
+            return _supabase_session(db, result["user"], payload.remember_me, password=payload.password)
+        except HTTPException as exc:
+            # Fall back to the password stored here when Supabase is rate-limited or down,
+            # or for accounts Supabase doesn't know yet (unconfirmed email, made locally).
+            # A linked account whose password Supabase rejected stays rejected.
+            linked = row is not None and _is_linked(db, row["id"])
+            if not (exc.status_code in (429, 502) or (exc.status_code == 401 and not linked)):
+                raise
+            if row is None or not verify_password(payload.password, row["password_hash"]):
+                raise
+
     if row is None or not verify_password(payload.password, row["password_hash"]):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
     user = User(id=row["id"], username=row["username"], email=row["email"])
     return _issue(db, user, payload.remember_me)
 
 
-def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -> AuthResponse:
+def _is_linked(db, user_id: int) -> bool:
+    return bool(db.execute("SELECT supabase_id FROM users WHERE id = ?", (user_id,)).fetchone()["supabase_id"])
+
+
+def _supabase_session(
+    db: sqlite3.Connection, remote: dict, remember_me: bool, password: str | None = None
+) -> AuthResponse:
     remote_id, email = remote["id"], remote["email"].strip().lower()
+    # Keep a hash of the password Supabase just accepted, so sign-in still works if
+    # Supabase is rate-limited or unreachable later.
+    local_hash = hash_password(password) if password else "supabase"
     row = db.execute("SELECT * FROM users WHERE supabase_id = ?", (remote_id,)).fetchone()
     if row is None:
         existing = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
@@ -209,14 +296,18 @@ def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -
             db.execute("UPDATE users SET supabase_id = ? WHERE id = ?", (remote_id, existing["id"]))
             row = existing
         else:
-            username = (remote.get("user_metadata") or {}).get("username")
+            metadata = remote.get("user_metadata") or {}
+            username = metadata.get("username")
             if not isinstance(username, str) or not USERNAME_RE.fullmatch(username):
                 username = None
             if username and db.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
                 username = None
+            terms_version = metadata.get("terms_version") if isinstance(metadata.get("terms_version"), str) else None
+            accepted_at = metadata.get("terms_accepted_at") if terms_version else None
             cur = db.execute(
-                "INSERT INTO users (username, email, password_hash, supabase_id) VALUES (?, ?, ?, ?) RETURNING id",
-                (username, email, "supabase", remote_id),
+                "INSERT INTO users (username, email, password_hash, supabase_id, terms_version, terms_accepted_at) "
+                "VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+                (username, email, local_hash, remote_id, terms_version, accepted_at),
             )
             row = db.execute("SELECT * FROM users WHERE id = ?", (cur.fetchone()["id"],)).fetchone()
     elif row["email"] != email:
@@ -225,6 +316,8 @@ def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -
         if clash:
             raise HTTPException(409, "This email is already associated with another account")
         db.execute("UPDATE users SET email = ? WHERE id = ?", (email, row["id"]))
+    if password:
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (local_hash, row["id"]))
     return _issue(db, User(id=row["id"], username=row["username"], email=email), remember_me)
 
 
@@ -246,6 +339,7 @@ class Avatar(BaseModel):
 class Me(User):
     avatar: Avatar
     permit: str | None = None  # UCI permit code the user holds, e.g. "S4" or "R-ME"
+    is_uci: bool = False  # UCI email: may choose a UCI parking permit
     is_admin: bool = False
 
 
@@ -265,7 +359,9 @@ def _me(db, user_id: int) -> Me:
     return Me(
         id=row["id"], username=row["username"], email=row["email"],
         avatar=Avatar(bg=bg, fg=fg, image=row["avatar_image"]),
-        permit=row.get("permit"), is_admin=bool(row.get("is_admin", False)),
+        # Only UCI accounts hold UCI permits (an account's email may change later).
+        permit=row.get("permit") if is_uci_email(row["email"]) else None,
+        is_uci=is_uci_email(row["email"]), is_admin=bool(row.get("is_admin", False)),
     )
 
 
@@ -326,6 +422,8 @@ def set_permit(
     user: sqlite3.Row = Depends(get_current_user),
     db: sqlite3.Connection = Depends(get_db),
 ) -> Me:
+    if payload.permit is not None and not is_uci_email(user["email"]):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "UCI parking permits are only for accounts with a UCI email")
     db.execute("UPDATE users SET permit = ? WHERE id = ?", (payload.permit, user["id"]))
     return _me(db, user["id"])
 
@@ -373,8 +471,8 @@ def _supabase_access_token(db, user, current_password: str) -> str | None:
     account = db.execute(
         "SELECT password_hash, supabase_id FROM users WHERE id = ?", (user["id"],)
     ).fetchone()
-    if account["password_hash"] != "supabase":
-        return None
+    if not account["supabase_id"]:
+        return None  # a local account: its password is checked here
     if not supabase_auth.enabled():
         raise HTTPException(503, "Supabase authentication is not configured")
     try:
@@ -469,6 +567,8 @@ def change_password(
             method="PUT",
             access_token=access_token,
         )
+        # Keep the local fallback copy in step with Supabase.
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(payload.new_password), user["id"]))
     else:
         _editable_account(db, user, payload.current_password)
         db.execute(

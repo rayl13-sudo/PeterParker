@@ -82,6 +82,9 @@ MIGRATIONS = [
     ("users", "avatar_image", "ALTER TABLE users ADD COLUMN avatar_image TEXT"),
     ("users", "permit", "ALTER TABLE users ADD COLUMN permit TEXT"),
     ("users", "is_admin", "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"),
+    # Which Terms of Service version the account accepted, and when (UTC, ISO 8601).
+    ("users", "terms_version", "ALTER TABLE users ADD COLUMN terms_version TEXT"),
+    ("users", "terms_accepted_at", "ALTER TABLE users ADD COLUMN terms_accepted_at TEXT"),
 ]
 
 INDEXES = """

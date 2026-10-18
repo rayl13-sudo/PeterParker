@@ -25,4 +25,5 @@
 @media (max-width: 520px) {
   .issue-board-heading { flex-wrap: wrap; }
   .issue-card-head { flex-wrap: wrap; }
+  
 }

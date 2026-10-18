@@ -49,11 +49,19 @@ function formatDetail(detail) {
 export const api = {
   health: () => request("/health"),
 
-  signup: ({ username, email, password, rememberMe }) =>
+  signup: ({ username, email, password, rememberMe, termsVersion }) =>
     request("/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ username, email, password, remember_me: rememberMe }),
+      body: JSON.stringify({
+        username, email, password, remember_me: rememberMe,
+        accept_terms: Boolean(termsVersion), terms_version: termsVersion,
+      }),
     }),
+  usernameAvailable: (username) =>
+    request(`/auth/username-available?username=${encodeURIComponent(username)}`),
+  // Before the Terms step: 409 if the username or email is already taken.
+  checkSignup: ({ username, email }) =>
+    request("/auth/signup/check", { method: "POST", body: JSON.stringify({ username, email }) }),
   login: ({ identifier, password, rememberMe }) =>
     request("/auth/login", {
       method: "POST",

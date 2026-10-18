@@ -167,6 +167,7 @@ function replyForm(review, li, opener) {
 
 function reviewItem(review) {
   const li = el("li", review.mine ? "review mine" : "review");
+  li.dataset.reviewId = String(review.id);
   const when = formatDate(review.updated_at) + (review.updated_at !== review.created_at ? " · edited" : "");
   const head = authorLine(review.author, review.mine, when, "review-avatar");
   head.append(stars(review.rating, "stars small"));
@@ -186,8 +187,21 @@ function reviewItem(review) {
   updateLike(review);
   likeBtn.addEventListener("click", async () => {
     likeBtn.disabled = true;
+    const run = loadRun;
+    const currentTarget = target;
     try {
       updateLike(await api.likeReview(review.id, !liked));
+      const data = await api.reviews(currentTarget.type, currentTarget.id);
+      if (run !== loadRun) return;
+      // Move existing rows so open replies and unsaved review text survive.
+      const list = $("review-list");
+      const rows = new Map([...list.children].map((row) => [row.dataset.reviewId, row]));
+      const focused = document.activeElement;
+      for (const item of data.reviews) {
+        const row = rows.get(String(item.id));
+        if (row) list.append(row);
+      }
+      if (focused?.isConnected && !focused.disabled) focused.focus({ preventScroll: true });
     } catch (err) {
       showMessage(err.message, "error");
     } finally {

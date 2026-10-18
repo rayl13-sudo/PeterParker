@@ -87,3 +87,13 @@ def test_routing_outage_is_a_clear_error(client, auth_headers, monkeypatch):
     params = {"mode": "car", "from_lat": 33.61, "from_lon": -117.8, "to_lat": 33.7, "to_lon": -117.9}
     res = client.get("/api/route", params=params, headers=auth_headers)
     assert res.status_code == 502 and "unavailable" in res.json()["detail"]
+
+
+def test_buildings_have_clickable_outlines(client, auth_headers):
+    places = client.get("/api/places", headers=auth_headers).json()["places"]
+    by_name = {place["name"]: place for place in places}
+    assert by_name["Langson Library"]["outline"]
+    # A cafe mapped as a point gets the outline of the building it's in.
+    starbucks = [place for place in places if place["name"] == "Starbucks"]  # there are several
+    assert any(place["outline"] == by_name["Student Center"]["outline"] for place in starbucks)
+    assert sum(bool(place["outline"]) for place in places) > len(places) * 0.8

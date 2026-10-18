@@ -101,7 +101,10 @@ def test_permit_catalogue(client, auth_headers):
 
 def test_only_confirmed_uci_lots_follow_uci_permit_rules(client, auth_headers):
     lots = {lot["name"]: lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"]}
-    assert lots["Lot 15A"]["uci"]  # a numbered UCI lot inside campus
+    # Only lots on UCI's own map or permit pages count, whatever OSM's tags or names say.
+    for name in ("Lot 15A", "Permit parking by English Language School", "Parking by Bill & Sue Gross School of Nursing"):
+        assert not lots[name]["uci"]
+    assert all(l["uci_map_id"] or l["permits"] or l["category"] == "staff" for l in lots.values() if l["uci"])
     assert {p["code"] for p in lots["Lot 70"]["permits"]} == {"S3", "P3", "R-CVGRAD"}
     housing = [l for l in lots.values() if l["category"] == "permit" and "housing" in (l.get("inferred") or "")]
     assert housing and not any(l["uci"] for l in housing)
@@ -168,3 +171,23 @@ def test_touching_pieces_of_one_lot_are_merged(client, auth_headers):
     assert vista[0]["merged_from"] == 3 and vista[0]["capacity"] == 9 and len(vista[0]["outline"]) == 3
     # Same name but far apart: separate lots.
     assert len([lot for lot in lots if lot["name"] == "Parking by Cambridge Court"]) == 5
+
+
+def test_nearby_limited_lots_share_dots(client, auth_headers):
+    from app.api.routes.parking import DOT_SPAN_M, UTC_DOT_SPAN_M, _meters_apart
+
+    limited = [lot for lot in client.get("/api/parking", headers=auth_headers).json()["lots"] if lot["category"] == "limited"]
+    groups = {}
+    for lot in limited:
+        groups.setdefault(lot["dot_group"], []).append(lot)
+    assert len(groups) <= round(len(limited) * 0.65)  # about 60% as many dots as lots
+    for members in groups.values():  # each dot covers one compact area
+        span = UTC_DOT_SPAN_M if members[0]["utc"] else DOT_SPAN_M
+        assert max(_meters_apart(a, b) for a in members for b in members) <= span
+
+
+def test_university_town_center_has_few_dots(client, auth_headers):
+    lots = client.get("/api/parking", headers=auth_headers).json()["lots"]
+    utc_dots = {lot["dot_group"] for lot in lots if lot["utc"]}
+    assert 1 <= len(utc_dots) <= 3
+    assert not any(lot["dot_group"] in utc_dots for lot in lots if not lot["utc"])

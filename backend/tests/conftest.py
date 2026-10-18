@@ -17,10 +17,16 @@ def client(tmp_path, monkeypatch):
         yield c
 
 
+from app.api.routes.auth import TERMS_VERSION  # noqa: E402
+
+# Every sign-up must accept the current Terms of Service.
+TERMS = {"accept_terms": True, "terms_version": TERMS_VERSION}
+
+
 @pytest.fixture
 def auth_headers(client):
     res = client.post(
         "/api/auth/signup",
-        json={"username": "peter", "email": "peter@uci.edu", "password": "Webslinger!"},
+        json={"username": "peter", "email": "peter@uci.edu", "password": "Webslinger!", **TERMS},
     )
     return {"Authorization": f"Bearer {res.json()['token']}"}
