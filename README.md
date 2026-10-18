@@ -439,15 +439,23 @@ and `003_reviews.sql` applied; `init_db()` runs every migration in order.
 ## Issue reports and admin board
 
 Signed-in users can open **Report issue** from the map or Settings. The form accepts an issue
-type, title, description, and optional place or URL. Users can see the status of their own
-reports. Reports are stored in the application database and are removed when their account is
-deleted.
+type, title, description, and optional place or URL. Reports are saved in the application
+database, not sent by email. After submitting, users can see the report number and track its
+status under **Your reports** on the same page. Reports are removed when their account is deleted.
 
 The same page shows an **Admin board** only to accounts with `users.is_admin = true`. Admins can
-see up to 100 reports, with open reports first and newest first within each status, and mark
-each one resolved or reopen it.
-The API enforces admin access. New users are never admins by default. To appoint an admin, sign
-up and confirm that account first, then run this as the database owner with the intended email:
+open it directly from the map's account menu or the link on the report page. They can see up to
+100 reports, with open reports first and newest first within each status, and mark each one
+resolved or reopen it. The API enforces admin access.
+
+The exact emails `blam22@uci.edu`, `jessd10@uci.edu`, `sstanik@uci.edu`, and
+`rayl13@uci.edu` automatically become admins after a Supabase-authenticated sign-in confirms
+ownership of the email. If one of these accounts is deleted, its newly registered replacement
+regains admin access after the new email is confirmed and it signs in. An unconfirmed or local-only
+account with the same email does **not** receive admin access. Existing accounts should sign out
+and sign back in once after this change to refresh their role.
+
+Other admins can still be appointed manually by the database owner after account creation:
 
 ```sql
 UPDATE public.users SET is_admin = TRUE WHERE email = 'admin@example.com';

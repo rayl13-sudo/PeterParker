@@ -18,13 +18,14 @@
   </head>
   <body class="map-page settings-page">
     <header class="topbar">
-      <div class="brand">
-        <a href="map.html" aria-label="Back to map"><img class="mascot-logo" src="assets/peterparker-mascot.png" alt="" width="44" height="48" /></a>
-        <span>PeterParker</span>
-        <img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" />
-      </div>
+      <div class="topbar-campus"><img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" /></div>
+      <a class="brand topbar-brand" href="map.html" aria-label="PeterParker home">
+        <img class="mascot-logo" src="assets/peterparker-mascot.png" alt="" width="44" height="48" />
+        <span class="brand-wordmark"><span class="brand-peter">Peter</span><span class="brand-parker">Parker</span></span>
+        <span class="brand-parking-sign" aria-hidden="true">P</span>
+      </a>
       <div class="account">
-        <a class="issue-link" href="issues.html" aria-label="Report an issue"><span class="issue-link-full">Report issue</span><span class="issue-link-short">Report</span></a>
+        <a class="issue-link" href="issues.html" aria-label="Report an issue"><span class="issue-link-full">Report issue</span><span class="issue-link-short">Report</span><span class="issue-link-icon" aria-hidden="true">!</span></a>
         <span class="user-chip">
           <button id="user-avatar" class="avatar avatar-button" type="button" aria-label="Enlarge profile photo"></button>
           <span id="user-name"></span>

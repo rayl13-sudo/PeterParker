@@ -20,13 +20,14 @@
   </head>
   <body class="map-page">
     <header class="topbar">
-      <div class="brand">
-        <a href="map.html" aria-label="Back to map"><img class="mascot-logo" src="assets/peterparker-mascot.png" alt="" width="44" height="48" /></a>
-        <span>PeterParker</span>
-        <img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" />
-      </div>
+      <div class="topbar-campus"><img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" /></div>
+      <a class="brand topbar-brand" href="map.html" aria-label="PeterParker home">
+        <img class="mascot-logo" src="assets/peterparker-mascot.png" alt="" width="44" height="48" />
+        <span class="brand-wordmark"><span class="brand-peter">Peter</span><span class="brand-parker">Parker</span></span>
+        <span class="brand-parking-sign" aria-hidden="true">P</span>
+      </a>
       <div class="account">
-        <a class="issue-link" href="issues.html" aria-label="Report an issue"><span class="issue-link-full">Report issue</span><span class="issue-link-short">Report</span></a>
+        <a class="issue-link" href="issues.html" aria-label="Report an issue"><span class="issue-link-full">Report issue</span><span class="issue-link-short">Report</span><span class="issue-link-icon" aria-hidden="true">!</span></a>
         <span class="user-chip">
           <button id="user-avatar" class="avatar avatar-button" type="button" aria-label="Enlarge profile photo"></button>
           <span id="user-name"></span>
@@ -45,6 +46,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </a>
             <button id="parking-tricks" type="button"><span class="menu-symbol" aria-hidden="true">💡</span><span>Parking tricks</span></button>
+            <a id="admin-panel-link" class="icon-button" href="issues.html#admin-board" hidden><span class="menu-symbol" aria-hidden="true">⚑</span><span>Admin panel</span></a>
           </div>
         </details>
       </div>
@@ -75,12 +77,13 @@
             <div id="search-shortcuts" class="search-shortcuts" hidden></div>
           </div>
           <div class="filters" aria-label="Filter parking">
-            <div id="parking-type-filters" class="filter-row" role="group" aria-label="Parking type">
+            <div id="parking-type-filters" class="filter-row" role="group" aria-label="Parking type and amenities">
               <button type="button" class="chip-toggle" data-category="free" aria-pressed="false"><i class="swatch"></i>Free <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="permit" aria-pressed="false"><i class="swatch"></i>Permit <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="paid" aria-pressed="false"><i class="swatch"></i>Paid <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="limited" aria-pressed="false"><i class="swatch"></i>Limited <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="staff" aria-pressed="false"><i class="swatch"></i>Staff <span class="count"></span></button>
+              <button id="ev-filter" type="button" class="chip-toggle" aria-pressed="false">EV ports <span class="count"></span></button>
             </div>
             <div id="parking-rating-filters" class="filter-row" role="group" aria-label="Minimum rating">
               <span class="filter-label">Rating</span>
@@ -92,7 +95,7 @@
           </div>
           <div class="saved-filter-controls">
             <button id="saved-toggle" class="saved-toggle" type="button" aria-pressed="false">☆ Saved places <span id="saved-count"></span></button>
-            <button id="mobile-filter-toggle" class="mobile-filter-toggle" type="button" aria-label="Parking filters" aria-expanded="false" aria-controls="parking-type-filters parking-rating-filters"><span aria-hidden="true">•••</span></button>
+            <button id="mobile-filter-toggle" class="mobile-filter-toggle" type="button" aria-label="Parking filters and rating" aria-expanded="false" aria-controls="parking-type-filters parking-rating-filters"><span aria-hidden="true">•••</span></button>
           </div>
           <div id="list-view" class="panel-view">
             <div id="permit-banner" class="permit-banner" aria-live="polite"></div>

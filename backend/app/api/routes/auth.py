@@ -48,6 +48,15 @@ def clean_username(v: str) -> str:
 UCI_EMAIL_DOMAIN = re.compile(r"^(?:[a-z0-9-]+\.)*uci\.edu$")
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
+# These team accounts regain access after account deletion and registration, but
+# only after Supabase confirms ownership of the exact email address.
+DEFAULT_ADMIN_EMAILS = frozenset({
+    "blam22@uci.edu",
+    "jessd10@uci.edu",
+    "sstanik@uci.edu",
+    "rayl13@uci.edu",
+})
+
 
 def clean_email(v: str) -> str:
     v = v.strip().lower()
@@ -287,6 +296,7 @@ def _supabase_session(
     # Supabase is rate-limited or unreachable later.
     local_hash = hash_password(password) if password else "supabase"
     row = db.execute("SELECT * FROM users WHERE supabase_id = ?", (remote_id,)).fetchone()
+    previous_email = row["email"] if row is not None else None
     if row is None:
         existing = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
         if existing is not None:
@@ -318,6 +328,14 @@ def _supabase_session(
         db.execute("UPDATE users SET email = ? WHERE id = ?", (email, row["id"]))
     if password:
         db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (local_hash, row["id"]))
+    if email in DEFAULT_ADMIN_EMAILS:
+        db.execute(
+            "UPDATE users SET is_admin = ? WHERE id = ?",
+            (bool(remote.get("email_confirmed_at")), row["id"]),
+        )
+    elif previous_email in DEFAULT_ADMIN_EMAILS and previous_email != email:
+        # A former team address must not keep its automatic access after an email change.
+        db.execute("UPDATE users SET is_admin = FALSE WHERE id = ?", (row["id"],))
     return _issue(db, User(id=row["id"], username=row["username"], email=email), remember_me)
 
 

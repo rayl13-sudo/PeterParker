@@ -92,11 +92,12 @@ setUnauthorizedHandler(toSignIn);
 
 // ---------- Remembered UI state (best effort; storage may be unavailable) ----------
 
-function loadFlag(key) {
+function loadFlag(key, fallback = false) {
   try {
-    return localStorage.getItem(key) === "1";
+    const stored = localStorage.getItem(key);
+    return stored === null ? fallback : stored === "1";
   } catch {
-    return false;
+    return fallback;
   }
 }
 
@@ -110,7 +111,8 @@ function saveFlag(key, value) {
 
 // ---------- Map ----------
 
-const map = L.map("map", { zoomControl: false, dragging: true }).setView(UCI_CENTER, 16);
+// flyTo handles camera animation; avoid a queued CSS zoom overriding a selected lot.
+const map = L.map("map", { zoomControl: false, dragging: true, zoomAnimation: false }).setView(UCI_CENTER, 16);
 L.control.zoom({ position: "topright" }).addTo(map);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
@@ -434,9 +436,12 @@ const POPUP_OPTIONS = { maxWidth: 300, maxHeight: 380, autoPan: false };
 let nextParkingPopupZoom = null;
 
 function centerParkingPopup({ popup, zoom = map.getZoom() }) {
+  clearTimeout(fitTimer);
   map.stop();
+  // Make room for details even on short phones or when the legend is expanded.
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) setPanelLevel(0);
   const frame = map.getContainer().getBoundingClientRect();
-  const mobile = window.matchMedia("(max-width: 640px)").matches;
+  const mobile = window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   const panel = $("panel");
   const panelRect = panel.getBoundingClientRect();
   const keyRect = $("map-key").getBoundingClientRect();
@@ -661,6 +666,7 @@ function shortLotName(lot) {
 
 function openPermitMenu(picker) {
   if (!permitInfo?.holdable_permits) return;
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) setPanelLevel(3);
   const menu = el("div", "permit-menu");
   menu.setAttribute("role", "menu");
   for (const { label, test } of PERMIT_MENU_GROUPS) {
@@ -926,7 +932,7 @@ const NEAREST_RISKY = 2;
 const MAX_PLACE_RESULTS = 6;
 
 // Chips under the search box. Words typed in the search box can switch these on too.
-const chipFilters = { categories: new Set(), minStars: 0 };
+const chipFilters = { categories: new Set(), minStars: 0, evPorts: false };
 const FILTER_NAMES = { free: "free", permit: "permit", paid: "paid", limited: "limited", staff: "faculty & staff" };
 const CATEGORY_WORDS = {
   free: "free", paid: "paid", pay: "paid", meter: "paid", metered: "paid", fee: "paid",
@@ -963,6 +969,7 @@ function activeFilters() {
     minStars: Math.max(chipFilters.minStars, parsedQuery.minStars),
     tokens: parsedQuery.tokens,
     text: parsedQuery.text,
+    evPorts: chipFilters.evPorts,
   };
 }
 
@@ -976,7 +983,13 @@ function lotTypes(lot) {
   return types;
 }
 
-function passes(lot, { categories, minStars, tokens }, { ignoreText = false } = {}) {
+function hasEvPorts(lot) {
+  const ports = lot.spaces?.ev_ports;
+  return (ports?.level1 ?? 0) + (ports?.level2 ?? 0) > 0;
+}
+
+function passes(lot, { categories, minStars, tokens, evPorts }, { ignoreText = false } = {}) {
+  if (evPorts && !hasEvPorts(lot)) return false;
   if (categories.size && !lotTypes(lot).some((t) => categories.has(t))) return false;
   if (minStars && !((averageRating("lot", lot.id) ?? 0) >= minStars)) return false;
   return ignoreText || tokens.every((t) => searchableText(lot).includes(t));
@@ -992,6 +1005,7 @@ function setSearchText(text) {
 }
 
 function syncChips() {
+  $("ev-filter").setAttribute("aria-pressed", String(chipFilters.evPorts));
   document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) => {
     const c = chip.dataset.category;
     const byChip = chipFilters.categories.has(c);
@@ -1129,7 +1143,7 @@ function fitBoundsAroundPanel(bounds, maxZoom) {
   // Keep what we're showing clear of the side panel (or bottom sheet) and the key.
   const panel = $("panel");
   const key = $("map-key");
-  const mobile = window.matchMedia("(max-width: 640px)").matches;
+  const mobile = window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   const panelOpen = !panel.classList.contains("collapsed");
   const rect = panel.getBoundingClientRect();
   const keyRect = key.getBoundingClientRect();
@@ -1152,11 +1166,12 @@ function findPlaces(tokens, minStars) {
 }
 
 function focusLot({ lot, primary: layer }) {
+  clearTimeout(fitTimer);
   rememberTarget("lot", lot.id);
   savedView = false;
   $("search-shortcuts").hidden = true;
   renderList();
-  if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) setPanelExpanded(false);
   map.stop();
   map.closePopup();
   nextParkingPopupZoom = 18;
@@ -1203,7 +1218,7 @@ function applyFilters({ fit = true, animate = false } = {}) {
     return;
   }
   const filters = activeFilters();
-  const active = filters.categories.size || filters.minStars || filters.tokens.length;
+  const active = filters.categories.size || filters.minStars || filters.tokens.length || filters.evPorts;
   placeResults = filters.tokens.length ? findPlaces(filters.tokens, filters.minStars) : [];
   filteredEntries = listEntries.filter(({ lot }) => passes(lot, filters));
   const matched = new Set(filteredEntries);
@@ -1236,6 +1251,12 @@ document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) =>
     applyFilters({ animate: true });
   }),
 );
+$("ev-filter").addEventListener("click", () => {
+  savedView = false;
+  chipFilters.evPorts = !chipFilters.evPorts;
+  applyFilters({ animate: true });
+});
+
 document.querySelectorAll(".star-chip").forEach((chip) =>
   chip.addEventListener("click", () => {
     savedView = false;
@@ -1282,7 +1303,7 @@ const destinationIcon = L.divIcon({
   tooltipAnchor: [0, -36],
 });
 
-function setDestination(place, { remember = true } = {}) {
+function setDestination(place, { remember = true, fit = true, animate = true } = {}) {
   clearTimeout(fitTimer);
   savedView = false;
   destination = place;
@@ -1295,7 +1316,7 @@ function setDestination(place, { remember = true } = {}) {
   showDestinationMarker(place);
 
   parsedQuery = parseQuery(""); // the box now names the destination, not a filter
-  applyFilters({ animate: true });
+  applyFilters({ fit, animate });
 }
 
 // Closest lots to the destination among those passing the chips: usable lots first,
@@ -1478,6 +1499,7 @@ function buildLotLayers({ animate = true } = {}) {
     chip.querySelector(".swatch").style.background = CATEGORIES[c].color;
   }
   renderKey();
+  $("ev-filter").querySelector(".count").textContent = lots.filter(hasEvPorts).length;
   renderPermitBanner();
   applyFilters({ fit: false, animate });
 }
@@ -1492,7 +1514,7 @@ setInterval(() => {
 function fitToLots(lots) {
   // Leave room for the side panel (desktop) or bottom sheet (mobile).
   const panel = $("panel").getBoundingClientRect();
-  const mobile = window.matchMedia("(max-width: 640px)").matches;
+  const mobile = window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   map.fitBounds(L.latLngBounds(lots.map((lot) => [lot.lat, lot.lon])), {
     paddingTopLeft: [mobile ? 32 : panel.right + 32, 48],
     paddingBottomRight: [48, mobile ? window.innerHeight - panel.top + 32 : 48],
@@ -1505,14 +1527,14 @@ function fitToLots(lots) {
 
 // ---------- Collapsible side panel and key ----------
 
-function setupCollapsible({ container, toggle, storageKey, labels }) {
+function setupCollapsible({ container, toggle, storageKey, labels, defaultCollapsed = false }) {
   const apply = (collapsed) => {
     container.classList.toggle("collapsed", collapsed);
     toggle.setAttribute("aria-expanded", String(!collapsed));
     if (labels) toggle.setAttribute("aria-label", collapsed ? labels.show : labels.hide);
   };
-  apply(container.id === "panel" && window.matchMedia("(max-width: 640px)").matches
-    ? false : loadFlag(storageKey));
+  apply(container.id === "panel" && window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches
+    ? false : loadFlag(storageKey, defaultCollapsed));
   toggle.addEventListener("click", () => {
     const collapsed = !container.classList.contains("collapsed");
     apply(collapsed);
@@ -1526,7 +1548,18 @@ setupCollapsible({
   storageKey: "pp_panel_collapsed",
   labels: { show: "Show free parking list", hide: "Hide free parking list" },
 });
-setupCollapsible({ container: $("map-key"), toggle: $("key-toggle"), storageKey: "pp_key_collapsed" });
+setupCollapsible({
+  container: $("map-key"), toggle: $("key-toggle"),
+  storageKey: window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches ? "pp_mobile_key_collapsed" : "pp_key_collapsed",
+  defaultCollapsed: window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches,
+});
+// The folded key can be wider than its header while the list animates closed.
+// Make any exposed part of the white card open it too.
+$("map-key").addEventListener("click", (event) => {
+  if ($("map-key").classList.contains("collapsed") && !event.target.closest("#key-toggle")) {
+    $("key-toggle").click();
+  }
+});
 
 // Four mobile snap points, including a handle-only position to reveal the map.
 const panelHandle = $("panel-handle");
@@ -1537,10 +1570,14 @@ let sheetLevel = 1;
 function setPanelLevel(level) {
   sheetLevel = Math.max(0, Math.min(sheetLevels.length - 1, level));
   panel.dataset.level = String(sheetLevel);
-  panel.classList.toggle("compact-filters", sheetLevel >= 2 || $("spot-list").scrollTop > 8);
+  panel.classList.toggle("compact-filters", sheetLevel === 3);
+  if (sheetLevel !== 3) {
+    document.querySelector(".filters").classList.remove("filters-open");
+    $("mobile-filter-toggle").setAttribute("aria-expanded", "false");
+  }
   panel.classList.toggle("expanded", sheetLevel === 3);
   panel.style.removeProperty("--sheet-height");
-  panel.querySelector(".panel-body").inert = sheetLevel === 0 && window.matchMedia("(max-width: 640px)").matches;
+  panel.querySelector(".panel-body").inert = sheetLevel === 0 && window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   panelHandle.setAttribute("aria-valuenow", String(sheetLevel + 1));
   panelHandle.setAttribute("aria-valuetext", sheetNames[sheetLevel]);
 }
@@ -1555,7 +1592,7 @@ panelHandle.addEventListener("keydown", (event) => {
 });
 let sheetDrag = null;
 panelHandle.addEventListener("pointerdown", (event) => {
-  if (event.button !== 0 || !window.matchMedia("(max-width: 640px)").matches) return;
+  if (event.button !== 0 || !window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) return;
   sheetDrag = { id: event.pointerId, y: event.clientY, height: panel.getBoundingClientRect().height,
     available: panel.parentElement.clientHeight, level: sheetLevel };
   panelHandle.setPointerCapture(event.pointerId);
@@ -1585,7 +1622,11 @@ panelHandle.addEventListener("pointerup", finishSheetDrag);
 panelHandle.addEventListener("pointercancel", finishSheetDrag);
 panelHandle.addEventListener("lostpointercapture", finishSheetDrag);
 setPanelLevel(1);
-window.matchMedia("(max-width: 640px)").addEventListener("change", (event) => {
+panel.addEventListener("focusin", (event) => {
+  if (!window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches || !event.target.matches("input, textarea")) return;
+  setPanelLevel(3);
+});
+window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").addEventListener("change", (event) => {
   if (event.matches && panel.classList.contains("collapsed")) $("panel-toggle").click();
   setPanelLevel(sheetLevel);
 });
@@ -1722,6 +1763,10 @@ function showPanelView(name) {
   for (const view of PANEL_VIEWS) $(view).hidden = view !== name;
   document.querySelector(".filters").hidden = name !== "list-view"; // filters only apply to the list
   if ($("panel").classList.contains("collapsed")) $("panel-toggle").click();
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) {
+    if (name !== "list-view") setPanelLevel(3);
+    panel.querySelector(".panel-body").scrollTop = 0;
+  }
 }
 
 const showDirectionsView = (show) => showPanelView(show ? "directions-view" : "list-view");
@@ -2313,9 +2358,11 @@ function closeMobileFilters() {
 }
 mobileFilterToggle.addEventListener("click", () => {
   const open = filterPanel.classList.toggle("filters-open");
+  if (open && sheetLevel < 3) setPanelLevel(3);
   mobileFilterToggle.setAttribute("aria-expanded", String(open));
 });
 document.addEventListener("click", (event) => {
+  if (document.body.dataset.mapTourStep === "1") return;
   if (!filterPanel.contains(event.target) && !mobileFilterToggle.contains(event.target)) closeMobileFilters();
 });
 filterPanel.addEventListener("keydown", (event) => {
@@ -2325,7 +2372,6 @@ filterPanel.addEventListener("keydown", (event) => {
   }
 });
 $("spot-list").addEventListener("scroll", () => {
-  panel.classList.toggle("compact-filters", sheetLevel >= 2 || $("spot-list").scrollTop > 8);
   closeMobileFilters();
 }, { passive: true });
 const menuTrigger = accountMenu.querySelector("summary");
@@ -2360,6 +2406,7 @@ async function init() {
     mapHistory = createMapHistory(user.id);
     $("user-name").textContent = user.username ?? user.email;
     $("user-name").title = user.email;
+    $("admin-panel-link").hidden = !user.is_admin;
     renderAvatar($("user-avatar"), user.avatar);
     bindAvatarPreview($("user-avatar"), () => user.avatar);
     permitInfo = parking.permit_info;
@@ -2367,14 +2414,62 @@ async function init() {
     canHoldPermit = Boolean(user.is_uci);
     userPermit = canHoldPermit ? user.permit ?? null : null;
     renderLots(parking.lots);
+    let tourState = null;
     const tourActions = {
-      showExample: () => {
-        const studentCenter = places.find((place) => place.name === "Student Center");
-        if (!studentCenter) return false;
-        setDestination(studentCenter, { remember: false });
-        return true;
+      prepareStep: (index) => {
+        tourState ??= {
+          level: sheetLevel,
+          keyCollapsed: $("map-key").classList.contains("collapsed"),
+          categories: new Set(chipFilters.categories), minStars: chipFilters.minStars,
+          evPorts: chipFilters.evPorts, filtersOpen: filterPanel.classList.contains("filters-open"),
+          search: $("search").value, destination, savedView,
+          center: map.getCenter(), zoom: map.getZoom(),
+        };
+        map.closePopup();
+        closePermitMenu();
+        $("account-menu").open = false;
+        showPanelView("list-view");
+        if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) {
+          setPanelLevel(index === 2 || index === 5 ? 0 : 3);
+        }
+        filterPanel.classList.toggle("filters-open", index === 1);
+        mobileFilterToggle.setAttribute("aria-expanded", String(index === 1));
       },
-      clearExample: clearSearch,
+      showExample: () => {
+        const studentCenter = places.find((place) => place.name === "Student Center") ?? places[0];
+        if (!studentCenter) return false;
+        // A previously selected filter must not make the tutorial's example empty.
+        chipFilters.categories.clear();
+        chipFilters.minStars = 0;
+        chipFilters.evPorts = false;
+        setDestination(studentCenter, { remember: false, fit: false, animate: false });
+        return Boolean($("spot-list").querySelector(".item-actions"));
+      },
+      clearExample: () => {
+        setPanelLevel(tourState.level);
+        chipFilters.categories = new Set(tourState.categories);
+        chipFilters.minStars = tourState.minStars;
+        chipFilters.evPorts = tourState.evPorts;
+        if (tourState.destination) setDestination(tourState.destination, { remember: false });
+        else {
+          clearDestination();
+          $("search").value = tourState.search;
+          runSearch();
+          savedView = tourState.savedView;
+          renderList();
+        }
+      },
+      onClose: () => {
+        if (!tourState) return;
+        if ($("map-key").classList.contains("collapsed") !== tourState.keyCollapsed) $("key-toggle").click();
+        setPanelLevel(tourState.level);
+        filterPanel.classList.toggle("filters-open", tourState.filtersOpen);
+        mobileFilterToggle.setAttribute("aria-expanded", String(tourState.filtersOpen));
+        clearTimeout(fitTimer);
+        map.stop();
+        map.setView(tourState.center, tourState.zoom, { animate: false });
+        tourState = null;
+      },
     };
     $("tour-help").addEventListener("click", () => startMapTour(user, tourActions, true));
     $("tour-help").hidden = false;

@@ -19,17 +19,19 @@
   </head>
   <body class="map-page settings-page">
     <header class="topbar">
-      <div class="brand">
-        <a href="map.html" aria-label="Back to map"><img class="mascot-logo" src="assets/peterparker-mascot.png" alt="" width="44" height="48" /></a>
-        <span>PeterParker</span>
-        <img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" />
-      </div>
+      <div class="topbar-campus"><img class="partner-logo" src="assets/uci-logo.svg" alt="UC Irvine" /></div>
+      <a class="brand topbar-brand" href="map.html" aria-label="PeterParker home">
+        <img class="mascot-logo" src="assets/peterparker-mascot.png" alt="" width="44" height="48" />
+        <span class="brand-wordmark"><span class="brand-peter">Peter</span><span class="brand-parker">Parker</span></span>
+        <span class="brand-parking-sign" aria-hidden="true">P</span>
+      </a>
       <div class="account"><span id="report-user" class="user-chip"></span></div>
     </header>
     <main class="settings issue-page">
       <a class="back-button" href="map.html">← Back to map</a>
       <h1>Report an issue</h1>
-      <p class="issue-intro">Tell us what is wrong with a parking location or the website. Reports go to the PeterParker team.</p>
+      <p class="issue-intro">Tell us what is wrong with a parking location or the website. Your report is saved here under “Your reports”; admins review it in the Admin board.</p>
+      <a id="admin-shortcut" class="back-button issue-admin-shortcut" href="#admin-board" hidden>View admin board ↓</a>
 
       <section class="settings-card" aria-labelledby="report-heading">
         <h2 id="report-heading">New report</h2>
@@ -72,6 +74,16 @@
         </div>
         <p id="admin-message" class="card-text" role="status">Loading…</p>
         <ul id="admin-list" class="issue-list"></ul>
+        <h3>Admin access</h3>
+        <ul id="admin-users" class="issue-list"></ul>
+        <form id="add-admin-form" class="settings-form">
+          <label>New admin email
+            <input id="admin-email" type="email" autocomplete="email" required placeholder="Registered user's email" />
+          </label>
+          <p class="card-text">Admins can view all reports, resolve issues, and add other admins.</p>
+          <button type="submit">Add admin</button>
+          <p id="admin-access-message" class="settings-message" role="status" hidden></p>
+        </form>
       </section>
     </main>
   </body>
