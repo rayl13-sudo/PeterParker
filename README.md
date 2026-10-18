@@ -150,6 +150,15 @@ and is never sent to the browser.
 
 ### Local authentication
 
+**When Supabase is on** (the deployed backend), sign-up and sign-in don't depend on it being
+responsive:
+- If Supabase wants the email confirmed first, rate-limits ("Too many attempts") or is down, the
+  account is still created and you're signed in right away. When the email is confirmed later,
+  your next sign-in links the account to Supabase.
+- Every account keeps a hash of the password Supabase last accepted. If Supabase is rate-limited
+  or down, sign-in checks that instead.
+- A linked account whose password Supabase rejects stays rejected.
+
 Opening the app shows a sign-in / sign-up screen. Sign-up asks for a username and an
 email. **Any email works**, and a tip under the field asks UCI students to use their UCI student
 email. Accounts with a UCI email (`@uci.edu` or a UCI subdomain like `@ics.uci.edu`, reported as
@@ -167,8 +176,10 @@ form says so right away. Otherwise it opens a Terms of Service step. The terms c
 - Safe navigation (don't use it while driving), content rules, location and privacy.
 - No warranty, limitation of liability, indemnity, and California law.
 
-A progress bar fills as you read, and the agreement checkbox unlocks only once you reach the
-end. Ticking it enables **Sign up**, which creates the account and opens the map. The text lives
+Each section counts as read once it has been mostly on screen for about a second, and gets a
+small ✓. A progress bar shows how many sections you've read. The agreement checkbox unlocks only
+after every section has been read, so jumping straight to the bottom doesn't count, and clicking
+the checkbox earlier asks you to keep reading. Ticking it enables **Sign up**, which creates the account and opens the map. The text lives
 in `frontend/js/terms.js`. The API rejects sign-ups that don't send `accept_terms: true` and the
 current `TERMS_VERSION` (`backend/app/api/routes/auth.py`), and it records `terms_version` and
 `terms_accepted_at` on the account (migration `007_terms_acceptance.sql`). When you change the

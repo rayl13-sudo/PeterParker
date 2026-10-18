@@ -110,14 +110,17 @@ export function renderTerms(container) {
   meta.textContent = `Effective ${TERMS_EFFECTIVE} · Version ${TERMS_VERSION}`;
   nodes.push(meta);
   for (const [heading, paragraphs] of TERMS_SECTIONS) {
+    const section = document.createElement("section");
+    section.className = "terms-section";
     const h = document.createElement("h3");
     h.textContent = heading;
-    nodes.push(h);
+    section.append(h);
     for (const text of paragraphs) {
       const p = document.createElement("p");
       p.textContent = text;
-      nodes.push(p);
+      section.append(p);
     }
+    nodes.push(section);
   }
   container.replaceChildren(...nodes);
 }

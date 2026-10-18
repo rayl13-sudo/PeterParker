@@ -16,14 +16,46 @@ def enable(monkeypatch, result):
     return calls
 
 
-def test_confirmation_does_not_issue_session(client, monkeypatch):
-    enable(monkeypatch, {"id": "remote"})
-    response = client.post("/api/auth/signup", json={
-        "username": "peter", "email": "peter@uci.edu", "password": "Webslinger!", **TERMS,
-    })
-    assert response.status_code == 201
-    assert response.json()["confirmation_required"]
-    assert "token" not in response.json()
+SIGNUP = {"username": "peter", "email": "peter@uci.edu", "password": "Webslinger!", **TERMS}
+
+
+def fail_with(monkeypatch, status_code):
+    monkeypatch.setattr(settings, "supabase_url", "https://example.supabase.co")
+    monkeypatch.setattr(settings, "supabase_publishable_key", "test-key")
+
+    def request(path, payload, **kwargs):
+        raise HTTPException(status_code, "Supabase says no")
+    monkeypatch.setattr(supabase_auth, "request", request)
+
+
+def test_pending_email_confirmation_still_signs_you_in(client, monkeypatch):
+    enable(monkeypatch, {"id": "remote"})  # Supabase wants the email confirmed first
+    response = client.post("/api/auth/signup", json=SIGNUP)
+    assert response.status_code == 201 and response.json()["token"]
+    # Supabase rejects the unconfirmed sign-in; the account's own password still works.
+    fail_with(monkeypatch, 401)
+    assert client.post("/api/auth/login", json={"identifier": "peter", "password": "Webslinger!"}).status_code == 200
+    assert client.post("/api/auth/login", json={"identifier": "peter", "password": "Wrong-pass1"}).status_code == 401
+
+
+def test_rate_limited_supabase_does_not_block_sign_up_or_sign_in(client, monkeypatch):
+    fail_with(monkeypatch, 429)
+    response = client.post("/api/auth/signup", json=SIGNUP)
+    assert response.status_code == 201 and response.json()["token"]
+    assert client.post("/api/auth/login", json={"identifier": "peter@uci.edu", "password": "Webslinger!"}).status_code == 200
+    assert client.post("/api/auth/login", json={"identifier": "peter@uci.edu", "password": "Wrong-pass1"}).status_code == 429
+
+
+def test_linked_accounts_fall_back_only_when_supabase_is_unavailable(client, monkeypatch):
+    enable(monkeypatch, {"user": {
+        "id": "remote", "email": "peter@uci.edu", "email_confirmed_at": "2026-10-17",
+        "user_metadata": {"username": "peter"},
+    }})
+    assert client.post("/api/auth/login", json={"identifier": "peter@uci.edu", "password": "Webslinger!"}).status_code == 200
+    fail_with(monkeypatch, 429)  # rate-limited: the password Supabase last accepted works
+    assert client.post("/api/auth/login", json={"identifier": "peter", "password": "Webslinger!"}).status_code == 200
+    fail_with(monkeypatch, 401)  # Supabase rejected the password: no fallback for linked accounts
+    assert client.post("/api/auth/login", json={"identifier": "peter", "password": "Webslinger!"}).status_code == 401
 
 
 def test_remote_login_links_user_by_uci_email(client, monkeypatch):

@@ -215,15 +215,22 @@ def signup(payload: SignupIn, db: sqlite3.Connection = Depends(get_db)) -> AuthR
 
     if supabase_auth.enabled():
         accepted_at = datetime.now(timezone.utc).isoformat()
-        result = supabase_auth.request("signup", {
-            "email": payload.email, "password": payload.password,
-            # Kept with the pending account until its first verified sign-in creates our row.
-            "data": {"username": payload.username, "terms_version": TERMS_VERSION, "terms_accepted_at": accepted_at},
-        })
-        # Confirmation-required accounts are linked only after a verified login.
-        if not result.get("access_token"):
-            return ConfirmationResponse()
-        return _supabase_session(db, result["user"], payload.remember_me)
+        try:
+            result = supabase_auth.request("signup", {
+                "email": payload.email, "password": payload.password,
+                # Kept with the Supabase account until its first verified sign-in links our row.
+                "data": {"username": payload.username, "terms_version": TERMS_VERSION, "terms_accepted_at": accepted_at},
+            })
+        except HTTPException as exc:
+            # Supabase rate-limits sign-ups (its confirmation emails especially) and can be
+            # down. Don't lock people out over that: create the account here instead.
+            if exc.status_code not in (429, 502):
+                raise
+            result = {}
+        if result.get("access_token"):
+            return _supabase_session(db, result["user"], payload.remember_me, password=payload.password)
+        # Email confirmation pending (or Supabase unavailable): the account works right away
+        # with its own password. Once the email is confirmed, the next sign-in links the two.
 
     cur = db.execute(
         "INSERT INTO users (username, email, password_hash, terms_version, terms_accepted_at) "
@@ -247,10 +254,20 @@ def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthRes
         email = payload.identifier if by_email else (row["email"] if row else None)
         if email is None:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
-        result = supabase_auth.request("token?grant_type=password", {
-            "email": email, "password": payload.password,
-        })
-        return _supabase_session(db, result["user"], payload.remember_me)
+        try:
+            result = supabase_auth.request("token?grant_type=password", {
+                "email": email, "password": payload.password,
+            })
+            return _supabase_session(db, result["user"], payload.remember_me, password=payload.password)
+        except HTTPException as exc:
+            # Fall back to the password stored here when Supabase is rate-limited or down,
+            # or for accounts Supabase doesn't know yet (unconfirmed email, made locally).
+            # A linked account whose password Supabase rejected stays rejected.
+            linked = row is not None and _is_linked(db, row["id"])
+            if not (exc.status_code in (429, 502) or (exc.status_code == 401 and not linked)):
+                raise
+            if row is None or not verify_password(payload.password, row["password_hash"]):
+                raise
 
     if row is None or not verify_password(payload.password, row["password_hash"]):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect username/email or password")
@@ -258,8 +275,17 @@ def login(payload: LoginIn, db: sqlite3.Connection = Depends(get_db)) -> AuthRes
     return _issue(db, user, payload.remember_me)
 
 
-def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -> AuthResponse:
+def _is_linked(db, user_id: int) -> bool:
+    return bool(db.execute("SELECT supabase_id FROM users WHERE id = ?", (user_id,)).fetchone()["supabase_id"])
+
+
+def _supabase_session(
+    db: sqlite3.Connection, remote: dict, remember_me: bool, password: str | None = None
+) -> AuthResponse:
     remote_id, email = remote["id"], remote["email"].strip().lower()
+    # Keep a hash of the password Supabase just accepted, so sign-in still works if
+    # Supabase is rate-limited or unreachable later.
+    local_hash = hash_password(password) if password else "supabase"
     row = db.execute("SELECT * FROM users WHERE supabase_id = ?", (remote_id,)).fetchone()
     if row is None:
         existing = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
@@ -281,7 +307,7 @@ def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -
             cur = db.execute(
                 "INSERT INTO users (username, email, password_hash, supabase_id, terms_version, terms_accepted_at) "
                 "VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
-                (username, email, "supabase", remote_id, terms_version, accepted_at),
+                (username, email, local_hash, remote_id, terms_version, accepted_at),
             )
             row = db.execute("SELECT * FROM users WHERE id = ?", (cur.fetchone()["id"],)).fetchone()
     elif row["email"] != email:
@@ -290,6 +316,8 @@ def _supabase_session(db: sqlite3.Connection, remote: dict, remember_me: bool) -
         if clash:
             raise HTTPException(409, "This email is already associated with another account")
         db.execute("UPDATE users SET email = ? WHERE id = ?", (email, row["id"]))
+    if password:
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (local_hash, row["id"]))
     return _issue(db, User(id=row["id"], username=row["username"], email=email), remember_me)
 
 
@@ -443,8 +471,8 @@ def _supabase_access_token(db, user, current_password: str) -> str | None:
     account = db.execute(
         "SELECT password_hash, supabase_id FROM users WHERE id = ?", (user["id"],)
     ).fetchone()
-    if account["password_hash"] != "supabase":
-        return None
+    if not account["supabase_id"]:
+        return None  # a local account: its password is checked here
     if not supabase_auth.enabled():
         raise HTTPException(503, "Supabase authentication is not configured")
     try:
@@ -539,6 +567,8 @@ def change_password(
             method="PUT",
             access_token=access_token,
         )
+        # Keep the local fallback copy in step with Supabase.
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(payload.new_password), user["id"]))
     else:
         _editable_account(db, user, payload.current_password)
         db.execute(
