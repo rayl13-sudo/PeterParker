@@ -21,8 +21,11 @@
 .map-tour-card {
   position: absolute;
   width: min(340px, calc(100vw - 24px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   max-height: calc(100vh - 24px);
-  overflow-y: auto;
+  overflow: hidden;
   padding: 1.25rem;
   border-radius: 18px;
   background: #fff;
@@ -30,6 +33,8 @@
   box-shadow: 0 20px 50px rgba(8, 22, 52, 0.32);
   pointer-events: auto;
 }
+.map-tour-heading, .map-tour-actions { flex-shrink: 0; }
+.map-tour-content { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; }
 .map-tour-card:focus { outline: none; }
 .map-tour-heading {
   display: flex;
@@ -61,6 +66,36 @@
 .map-tour-card button:focus-visible { outline: 3px solid #a7bce8; outline-offset: 2px; }
 #tour-help:not([hidden]) { display: flex; align-items: center; justify-content: flex-start; padding: 10px 12px; }
 #tour-help svg { width: 20px; height: 20px; stroke-width: 2.5; }
+
+@media (max-width: 640px) {
+  /* The tour must be able to reveal results even when controls fill the sheet. */
+  .map-tour-active .panel { overflow: hidden; }
+  .map-tour-active .panel .panel-body {
+    position: absolute;
+    inset: 2.75rem 0 0;
+    height: auto;
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 0;
+  }
+  .map-tour-active .panel[data-level="0"] .panel-body { display: none; }
+  .map-tour-active .panel-view { display: block; }
+  .map-tour-active #spot-list { overflow: visible; }
+  .map-tour-active .map-key { max-height: 38dvh; }
+  .map-tour-active .key-list { overflow-y: auto; min-height: 0; }
+  .map-tour-active .key-header { flex-shrink: 0; }
+  .map-tour-card { padding: 0.75rem; }
+  .map-tour-card h2 { margin: 0.55rem 0 0.35rem; font-size: 1.1rem; }
+  .map-tour-card p { font-size: 0.86rem; }
+  .map-tour-actions { margin-top: 0.6rem; }
+  .map-tour-actions button, .map-tour-skip { min-height: 36px; }
+}
+
+/* Short landscape phones need the example and explanation side by side. */
+@media (min-width: 500px) and (max-width: 640px) and (max-height: 450px) {
+  .map-tour-active .panel.expanded:not(.collapsed) { right: 48%; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .map-tour-spotlight { transition: none; }

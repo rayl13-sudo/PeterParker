@@ -2370,14 +2370,55 @@ async function init() {
     canHoldPermit = Boolean(user.is_uci);
     userPermit = canHoldPermit ? user.permit ?? null : null;
     renderLots(parking.lots);
+    let tourState = null;
     const tourActions = {
-      showExample: () => {
-        const studentCenter = places.find((place) => place.name === "Student Center");
-        if (!studentCenter) return false;
-        setDestination(studentCenter, { remember: false });
-        return true;
+      prepareStep: (index) => {
+        tourState ??= {
+          level: sheetLevel,
+          keyCollapsed: $("map-key").classList.contains("collapsed"),
+          categories: new Set(chipFilters.categories), minStars: chipFilters.minStars,
+          search: $("search").value, destination, savedView,
+          center: map.getCenter(), zoom: map.getZoom(),
+        };
+        map.closePopup();
+        closePermitMenu();
+        $("account-menu").open = false;
+        showPanelView("list-view");
+        if (window.matchMedia("(max-width: 640px)").matches) {
+          setPanelLevel(index === 2 || index === 5 ? 0 : 3);
+        }
       },
-      clearExample: clearSearch,
+      showExample: () => {
+        const studentCenter = places.find((place) => place.name === "Student Center") ?? places[0];
+        if (!studentCenter) return false;
+        // A previously selected filter must not make the tutorial's example empty.
+        chipFilters.categories.clear();
+        chipFilters.minStars = 0;
+        setDestination(studentCenter, { remember: false });
+        return Boolean($("spot-list").querySelector(".item-actions"));
+      },
+      clearExample: () => {
+        setPanelLevel(tourState.level);
+        chipFilters.categories = new Set(tourState.categories);
+        chipFilters.minStars = tourState.minStars;
+        if (tourState.destination) setDestination(tourState.destination, { remember: false });
+        else {
+          clearDestination();
+          $("search").value = tourState.search;
+          runSearch();
+          savedView = tourState.savedView;
+          renderList();
+        }
+      },
+      onClose: () => {
+        if (!tourState) return;
+        if ($("map-key").classList.contains("collapsed") !== tourState.keyCollapsed) $("key-toggle").click();
+        setPanelLevel(tourState.level);
+        clearTimeout(fitTimer);
+        map.stop();
+        map.setView(tourState.center, tourState.zoom, { animate: false });
+        tourState = null;
+      },
     };
     $("tour-help").addEventListener("click", () => startMapTour(user, tourActions, true));
     $("tour-help").hidden = false;

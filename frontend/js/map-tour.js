@@ -40,7 +40,7 @@ const STEPS = [
 
 let activeTour = null;
 
-export function startMapTour(user, { showExample, clearExample }, force = false) {
+export function startMapTour(user, { showExample, clearExample, prepareStep, onClose }, force = false) {
   if (activeTour || (!force && !needsTutorial(user))) return;
 
   const layer = document.createElement("div");
@@ -50,11 +50,14 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
     <div class="map-tour-spotlight" aria-hidden="true"></div>
     <section class="map-tour-card" role="dialog" aria-modal="true" aria-labelledby="map-tour-title" tabindex="-1">
       <div class="map-tour-heading"><span id="map-tour-count"></span><button class="map-tour-skip" type="button">Skip tour</button></div>
-      <h2 id="map-tour-title"></h2>
-      <p id="map-tour-body"></p>
+      <div class="map-tour-content">
+        <h2 id="map-tour-title"></h2>
+        <p id="map-tour-body"></p>
+      </div>
       <div class="map-tour-actions"><button class="map-tour-back" type="button">Back</button><button class="map-tour-next" type="button">Next</button></div>
     </section>`;
   document.body.append(layer);
+  document.body.classList.add("map-tour-active");
 
   const spotlight = layer.querySelector(".map-tour-spotlight");
   const card = layer.querySelector(".map-tour-card");
@@ -63,6 +66,7 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
   const skip = layer.querySelector(".map-tour-skip");
   let stepIndex = 0;
   let exampleShown = false;
+  let exampleAttempted = false;
   let updateFrame = 0;
   let settleTimer = 0;
   activeTour = layer;
@@ -71,25 +75,47 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
     const step = STEPS[stepIndex];
     const target = document.querySelector(step.target) ?? document.querySelector(step.fallback ?? "#panel");
     if (!target) return;
+    const viewport = window.visualViewport;
+    const viewportHeight = viewport?.height ?? window.innerHeight;
+    const viewportWidth = viewport?.width ?? window.innerWidth;
+    const mobile = window.matchMedia("(max-width: 640px)").matches;
+    const landscape = mobile && viewportWidth >= 500 && viewportHeight <= 450 && stepIndex !== 5;
+    card.style.width = landscape ? `${Math.min(300, viewportWidth * 0.46)}px` : "";
+    const scrollArea = target.closest(".panel-body");
+    if (mobile && scrollArea) {
+      const delta = target.getBoundingClientRect().top - scrollArea.getBoundingClientRect().top - 10;
+      if (Math.abs(delta) > 1) scrollArea.scrollTop += delta;
+    }
     const rect = target.getBoundingClientRect();
     const pad = 7;
     const left = Math.max(4, rect.left - pad);
     const top = Math.max(4, rect.top - pad);
-    const width = Math.min(window.innerWidth - left - 4, rect.width + pad * 2);
-    const height = Math.min(window.innerHeight - top - 4, rect.height + pad * 2);
+    const width = Math.min(viewportWidth - left - 4, rect.width + pad * 2);
+    const height = Math.min(viewportHeight - top - 4, rect.height + pad * 2);
     Object.assign(spotlight.style, {
       left: `${left}px`, top: `${top}px`, width: `${Math.max(20, width)}px`, height: `${Math.max(20, height)}px`,
     });
 
     const gap = 18;
     const margin = 12;
+    // On phones keep the explanation below the actual target. The explanation
+    // scrolls independently on short/landscape screens; navigation stays visible.
+    card.style.maxHeight = mobile && !landscape
+      ? `${Math.max(110, Math.min(320, viewportHeight * 0.48, viewportHeight - top - height - gap - margin))}px`
+      : `${viewportHeight - margin * 2}px`;
     const cardWidth = card.offsetWidth;
     const cardHeight = card.offsetHeight;
     const clamp = (value, max) => Math.max(margin, Math.min(value, max - margin));
     const centerY = clamp(top + height / 2 - cardHeight / 2, window.innerHeight - cardHeight);
     const centerX = clamp(left + width / 2 - cardWidth / 2, window.innerWidth - cardWidth);
     let x, y;
-    if (window.innerWidth - (left + width) >= cardWidth + gap + margin) {
+    if (landscape) {
+      x = viewportWidth - cardWidth - margin;
+      y = Math.max(margin, (viewportHeight - cardHeight) / 2);
+    } else if (mobile) {
+      x = Math.max(margin, (viewportWidth - cardWidth) / 2);
+      y = viewportHeight - cardHeight - margin;
+    } else if (window.innerWidth - (left + width) >= cardWidth + gap + margin) {
       x = left + width + gap; y = centerY;
     } else if (left >= cardWidth + gap + margin) {
       x = left - cardWidth - gap; y = centerY;
@@ -112,6 +138,7 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
 
   function render() {
     const step = STEPS[stepIndex];
+    prepareStep?.(stepIndex);
     if (stepIndex < 5 && stepIndex !== 2 && document.getElementById("panel").classList.contains("collapsed")) {
       document.getElementById("panel-toggle").click();
     }
@@ -119,17 +146,21 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
       document.getElementById("key-toggle").click();
     }
     if (step.example && !exampleShown) {
+      exampleAttempted = true;
       exampleShown = Boolean(showExample());
       document.getElementById("spot-list").scrollTop = 0;
     }
     if (stepIndex === 3 || stepIndex === 4) {
-      document.querySelector(step.target)?.scrollIntoView({ block: "nearest" });
+      const target = document.querySelector(step.target);
+      const scroller = target?.closest(window.matchMedia("(max-width: 640px)").matches ? ".panel-body" : "#spot-list");
+      if (scroller) scroller.scrollTop += target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 10;
     }
     layer.querySelector("#map-tour-count").textContent = `${stepIndex + 1} / ${STEPS.length}`;
     layer.querySelector("#map-tour-title").textContent = step.title;
     layer.querySelector("#map-tour-body").textContent = !exampleShown && step.fallbackBody ? step.fallbackBody : step.body;
     back.disabled = stepIndex === 0;
     next.textContent = stepIndex === STEPS.length - 1 ? "Start exploring" : "Next";
+    card.querySelector(".map-tour-content").scrollTop = 0;
     schedulePosition();
     clearTimeout(settleTimer);
     settleTimer = setTimeout(schedulePosition, 450); // panel and map animations can move the target
@@ -137,16 +168,29 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
 
   function close() {
     finishTutorial(user);
-    if (exampleShown) clearExample();
+    if (exampleAttempted) clearExample();
+    onClose?.();
     cancelAnimationFrame(updateFrame);
     clearTimeout(settleTimer);
-    window.removeEventListener("resize", schedulePosition);
+    window.removeEventListener("resize", resize);
+    window.visualViewport?.removeEventListener("resize", resize);
+    observer.disconnect();
     document.removeEventListener("scroll", schedulePosition, true);
     document.removeEventListener("keydown", onKeydown);
     layer.remove();
+    document.body.classList.remove("map-tour-active");
     activeTour = null;
-    document.querySelector("#account-menu summary").focus();
+    document.querySelector("#account-menu summary").focus({ preventScroll: true });
   }
+
+  function resize() {
+    prepareStep?.(stepIndex);
+    schedulePosition();
+  }
+
+  const observer = new ResizeObserver(schedulePosition);
+  observer.observe(card);
+  observer.observe(document.getElementById("panel"));
 
   function onKeydown(event) {
     if (event.key === "Escape") return close();
@@ -154,21 +198,27 @@ export function startMapTour(user, { showExample, clearExample }, force = false)
     const buttons = [skip, back, next].filter((button) => !button.disabled);
     const first = buttons[0];
     const last = buttons.at(-1);
+    if (!buttons.includes(document.activeElement)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+      return;
+    }
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
-  back.addEventListener("click", () => { if (stepIndex > 0) { stepIndex--; render(); card.focus(); } });
+  back.addEventListener("click", () => { if (stepIndex > 0) { stepIndex--; render(); card.focus({ preventScroll: true }); } });
   next.addEventListener("click", () => {
     if (stepIndex === STEPS.length - 1) return close();
     stepIndex++;
     render();
-    card.focus();
+    card.focus({ preventScroll: true });
   });
   skip.addEventListener("click", close);
-  window.addEventListener("resize", schedulePosition);
+  window.addEventListener("resize", resize);
+  window.visualViewport?.addEventListener("resize", resize);
   document.addEventListener("scroll", schedulePosition, true);
   document.addEventListener("keydown", onKeydown);
   render();
-  skip.focus();
+  skip.focus({ preventScroll: true });
 }
