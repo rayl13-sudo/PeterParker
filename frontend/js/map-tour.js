@@ -69,6 +69,7 @@ export function startMapTour(user, { showExample, clearExample, prepareStep, onC
   let exampleAttempted = false;
   let updateFrame = 0;
   let settleTimer = 0;
+  let revealTarget = true;
   activeTour = layer;
 
   function position() {
@@ -78,14 +79,15 @@ export function startMapTour(user, { showExample, clearExample, prepareStep, onC
     const viewport = window.visualViewport;
     const viewportHeight = viewport?.height ?? window.innerHeight;
     const viewportWidth = viewport?.width ?? window.innerWidth;
-    const mobile = window.matchMedia("(max-width: 640px)").matches;
+    const mobile = window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
     const landscape = mobile && viewportWidth >= 500 && viewportHeight <= 450 && stepIndex !== 5;
     card.style.width = landscape ? `${Math.min(300, viewportWidth * 0.46)}px` : "";
     const scrollArea = target.closest(".panel-body");
-    if (mobile && scrollArea) {
+    if (mobile && scrollArea && revealTarget) {
       const delta = target.getBoundingClientRect().top - scrollArea.getBoundingClientRect().top - 10;
       if (Math.abs(delta) > 1) scrollArea.scrollTop += delta;
     }
+    revealTarget = false;
     const rect = target.getBoundingClientRect();
     const pad = 7;
     const left = Math.max(4, rect.left - pad);
@@ -138,6 +140,8 @@ export function startMapTour(user, { showExample, clearExample, prepareStep, onC
 
   function render() {
     const step = STEPS[stepIndex];
+    document.body.dataset.mapTourStep = String(stepIndex);
+    revealTarget = true;
     prepareStep?.(stepIndex);
     if (stepIndex < 5 && stepIndex !== 2 && document.getElementById("panel").classList.contains("collapsed")) {
       document.getElementById("panel-toggle").click();
@@ -152,7 +156,7 @@ export function startMapTour(user, { showExample, clearExample, prepareStep, onC
     }
     if (stepIndex === 3 || stepIndex === 4) {
       const target = document.querySelector(step.target);
-      const scroller = target?.closest(window.matchMedia("(max-width: 640px)").matches ? ".panel-body" : "#spot-list");
+      const scroller = target?.closest(window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches ? ".panel-body" : "#spot-list");
       if (scroller) scroller.scrollTop += target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 10;
     }
     layer.querySelector("#map-tour-count").textContent = `${stepIndex + 1} / ${STEPS.length}`;
@@ -161,6 +165,9 @@ export function startMapTour(user, { showExample, clearExample, prepareStep, onC
     back.disabled = stepIndex === 0;
     next.textContent = stepIndex === STEPS.length - 1 ? "Start exploring" : "Next";
     card.querySelector(".map-tour-content").scrollTop = 0;
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      card.animate([{ opacity: 0.6 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+    }
     schedulePosition();
     clearTimeout(settleTimer);
     settleTimer = setTimeout(schedulePosition, 450); // panel and map animations can move the target
@@ -179,18 +186,25 @@ export function startMapTour(user, { showExample, clearExample, prepareStep, onC
     document.removeEventListener("keydown", onKeydown);
     layer.remove();
     document.body.classList.remove("map-tour-active");
+    delete document.body.dataset.mapTourStep;
     activeTour = null;
     document.querySelector("#account-menu summary").focus({ preventScroll: true });
   }
 
   function resize() {
+    revealTarget = true;
     prepareStep?.(stepIndex);
     schedulePosition();
   }
 
-  const observer = new ResizeObserver(schedulePosition);
+  // ResizeObserver runs before paint, so the key and its outline expand together.
+  const observer = new ResizeObserver(() => {
+    if (stepIndex === 2) position();
+    else schedulePosition();
+  });
   observer.observe(card);
   observer.observe(document.getElementById("panel"));
+  observer.observe(document.getElementById("map-key"));
 
   function onKeydown(event) {
     if (event.key === "Escape") return close();

@@ -1287,7 +1287,7 @@ const destinationIcon = L.divIcon({
   tooltipAnchor: [0, -36],
 });
 
-function setDestination(place, { remember = true } = {}) {
+function setDestination(place, { remember = true, fit = true, animate = true } = {}) {
   clearTimeout(fitTimer);
   savedView = false;
   destination = place;
@@ -1300,7 +1300,7 @@ function setDestination(place, { remember = true } = {}) {
   showDestinationMarker(place);
 
   parsedQuery = parseQuery(""); // the box now names the destination, not a filter
-  applyFilters({ animate: true });
+  applyFilters({ fit, animate });
 }
 
 // Closest lots to the destination among those passing the chips: usable lots first,
@@ -2345,6 +2345,7 @@ mobileFilterToggle.addEventListener("click", () => {
   mobileFilterToggle.setAttribute("aria-expanded", String(open));
 });
 document.addEventListener("click", (event) => {
+  if (document.body.dataset.mapTourStep === "1") return;
   if (!filterPanel.contains(event.target) && !mobileFilterToggle.contains(event.target)) closeMobileFilters();
 });
 filterPanel.addEventListener("keydown", (event) => {
@@ -2403,6 +2404,7 @@ async function init() {
           level: sheetLevel,
           keyCollapsed: $("map-key").classList.contains("collapsed"),
           categories: new Set(chipFilters.categories), minStars: chipFilters.minStars,
+          evPorts: chipFilters.evPorts, filtersOpen: filterPanel.classList.contains("filters-open"),
           search: $("search").value, destination, savedView,
           center: map.getCenter(), zoom: map.getZoom(),
         };
@@ -2410,9 +2412,11 @@ async function init() {
         closePermitMenu();
         $("account-menu").open = false;
         showPanelView("list-view");
-        if (window.matchMedia("(max-width: 640px)").matches) {
+        if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) {
           setPanelLevel(index === 2 || index === 5 ? 0 : 3);
         }
+        filterPanel.classList.toggle("filters-open", index === 1);
+        mobileFilterToggle.setAttribute("aria-expanded", String(index === 1));
       },
       showExample: () => {
         const studentCenter = places.find((place) => place.name === "Student Center") ?? places[0];
@@ -2420,13 +2424,15 @@ async function init() {
         // A previously selected filter must not make the tutorial's example empty.
         chipFilters.categories.clear();
         chipFilters.minStars = 0;
-        setDestination(studentCenter, { remember: false });
+        chipFilters.evPorts = false;
+        setDestination(studentCenter, { remember: false, fit: false, animate: false });
         return Boolean($("spot-list").querySelector(".item-actions"));
       },
       clearExample: () => {
         setPanelLevel(tourState.level);
         chipFilters.categories = new Set(tourState.categories);
         chipFilters.minStars = tourState.minStars;
+        chipFilters.evPorts = tourState.evPorts;
         if (tourState.destination) setDestination(tourState.destination, { remember: false });
         else {
           clearDestination();
@@ -2440,6 +2446,8 @@ async function init() {
         if (!tourState) return;
         if ($("map-key").classList.contains("collapsed") !== tourState.keyCollapsed) $("key-toggle").click();
         setPanelLevel(tourState.level);
+        filterPanel.classList.toggle("filters-open", tourState.filtersOpen);
+        mobileFilterToggle.setAttribute("aria-expanded", String(tourState.filtersOpen));
         clearTimeout(fitTimer);
         map.stop();
         map.setView(tourState.center, tourState.zoom, { animate: false });
