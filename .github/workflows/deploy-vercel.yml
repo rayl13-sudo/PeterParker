@@ -8,11 +8,6 @@ on:
 permissions:
   contents: read
 
-# Finish an in-flight deployment before starting the latest push to the same branch.
-concurrency:
-  group: vercel-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   authorize:
     name: Check repository write access
@@ -34,9 +29,60 @@ jobs:
               }
             }
 
+  changes:
+    name: Detect changed projects
+    needs: authorize
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.paths.outputs.matrix }}
+      any: ${{ steps.paths.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: paths
+        name: Select projects from changed paths
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          def git(*args):
+              return subprocess.check_output(["git", *args], stdin=subprocess.DEVNULL)
+
+          base = os.environ.get("BEFORE_SHA", "")
+          if not base:
+              # Manual runs inspect the latest commit.
+              try:
+                  base = git("rev-parse", "HEAD^").decode().strip()
+              except subprocess.CalledProcessError:
+                  base = "0" * 40
+          if set(base) == {"0"}:
+              # A new branch has no previous push: include its complete contents.
+              base = git("hash-object", "-t", "tree", "--stdin").decode().strip()
+          paths = git("diff", "--no-renames", "--name-only", "-z", base, "HEAD").split(b"\0")
+          projects = [
+              {"project": project, "project_secret": secret}
+              for project, secret in [
+                  ("backend", "VERCEL_BACKEND_PROJECT_ID"),
+                  ("frontend", "VERCEL_FRONTEND_PROJECT_ID"),
+              ]
+              if any(path.startswith((project + "/").encode()) for path in paths)
+          ]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("matrix=" + json.dumps({"include": projects}) + "\n")
+              output.write("any=" + str(bool(projects)).lower() + "\n")
+          PY
+
   test:
     name: Test frontend and backend
-    needs: authorize
+    needs: changes
+    if: needs.changes.outputs.any == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,18 +111,18 @@ jobs:
 
   deploy:
     name: Deploy ${{ matrix.project }}
-    needs: test
+    needs: [changes, test]
+    if: needs.changes.outputs.any == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+    # Queue each project separately so a backend push cannot skip a pending frontend deploy.
+    concurrency:
+      group: vercel-${{ github.ref }}-${{ matrix.project }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - project: backend
-            project_secret: VERCEL_BACKEND_PROJECT_ID
-          - project: frontend
-            project_secret: VERCEL_FRONTEND_PROJECT_ID
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

@@ -1,10 +1,15 @@
 # GitHub Actions deployments
 
-The `Deploy to Vercel` workflow tests the app, then builds and deploys both Vercel
-projects. Pushes to `main` update production; pushes to other branches create
+The `Deploy to Vercel` workflow tests the app, then builds and deploys only the
+changed Vercel projects. Changes under `frontend/` deploy the frontend; changes
+under `backend/` deploy the backend. Changes to both deploy both. Documentation
+and workflow-only changes do not deploy either project. Pushes to `main` update production; pushes to other branches create
 previews. Only repository users with write, maintain, or admin permission can
 initiate or re-run deployment workflows. Pull requests from forks do not run this
 deployment workflow. You can also run it from GitHub's Actions tab.
+Push detection compares the entire push, including deletions and renamed files.
+A newly created branch compares against an empty tree and therefore deploys all
+projects present on that branch. Manual runs inspect the latest commit's changes.
 
 ## Preserve original authorship
 
@@ -51,7 +56,7 @@ the workflow credentials before merging this change, or deployments will pause.
    To use an isolated preview backend, configure the preview frontend's API URL
    and the backend's exact allowed origins before using it to change data.
 5. Push this configuration, then check **Actions → Deploy to Vercel**. Both test
-   suites must pass before either project is deployed. Each project is a separate
+   suites must pass before a changed project is deployed. Each project is a separate
    deployment; a failure in one does not roll back the other automatically.
 
 ## Restrict deployment to the bot
