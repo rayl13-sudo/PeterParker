@@ -1517,10 +1517,20 @@ setupCollapsible({
   storageKey: "pp_panel_collapsed",
   labels: { show: "Show free parking list", hide: "Hide free parking list" },
 });
+<<<<<<< Updated upstream
 setupCollapsible({
   container: $("map-key"), toggle: $("key-toggle"),
   storageKey: window.matchMedia("(max-width: 640px)").matches ? "pp_mobile_key_collapsed" : "pp_key_collapsed",
   defaultCollapsed: window.matchMedia("(max-width: 640px)").matches,
+=======
+setupCollapsible({ container: $("map-key"), toggle: $("key-toggle"), storageKey: "pp_key_collapsed" });
+// The folded key can be wider than its header while the list animates closed.
+// Make any exposed part of the white card open it too.
+$("map-key").addEventListener("click", (event) => {
+  if ($("map-key").classList.contains("collapsed") && !event.target.closest("#key-toggle")) {
+    $("key-toggle").click();
+  }
+>>>>>>> Stashed changes
 });
 
 // Four mobile snap points, including a handle-only position to reveal the map.
