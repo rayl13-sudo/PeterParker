@@ -684,7 +684,6 @@
   .topbar-brand { gap: 0.3rem; }
   .topbar-brand .mascot-logo { width: 31px; height: 35px; }
   .topbar-brand .brand-wordmark { font-size: 1.15rem; }
-  .topbar-brand .brand-parking-sign { width: 20px; height: 20px; font-size: 0.68rem; }
   .topbar .account { gap: 0.45rem; }
   .user-chip #user-name { display: none; }
   .issue-link-full { display: none; }
@@ -766,7 +765,6 @@
   .topbar-campus { display: none; }
   .topbar-brand .brand-wordmark { font-size: 1rem; }
   .topbar-brand .mascot-logo { width: 28px; height: 32px; }
-  .topbar-brand .brand-parking-sign { width: 18px; height: 18px; font-size: 0.6rem; border-radius: 5px; }
   .topbar .account { gap: 0.35rem; }
   .topbar .issue-link { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--a-blue-soft); border-radius: 50%; }
   .topbar .issue-link-short { display: none; }
@@ -778,7 +776,6 @@
   .map-page .topbar { gap: 0.2rem; padding-inline: 0.5rem; }
   .topbar-brand .brand-wordmark { font-size: 0.9rem; }
   .topbar-brand .mascot-logo { width: 24px; height: 28px; }
-  .topbar-brand .brand-parking-sign { display: none; }
   .topbar .account { gap: 0.25rem; }
   .topbar .issue-link { width: 26px; height: 26px; }
   .topbar .icon-button { width: 30px; height: 30px; }
