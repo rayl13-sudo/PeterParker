@@ -1,5 +1,7 @@
 .issue-page { max-width: 720px; }
 .issue-intro { margin: -0.55rem 0 1.35rem; color: var(--a-muted); line-height: 1.5; }
+.issue-admin-shortcut { margin: 0 0 1rem; }
+.issue-admin-shortcut[hidden] { display: none; }
 .issue-page .settings-form :is(select, textarea) {
   padding: 0.7rem 0.85rem;
   background: var(--a-field);

@@ -37,7 +37,7 @@ function issueCard(issue, admin = false) {
   const meta = document.createElement("div");
   meta.className = "issue-meta";
   const date = new Date(issue.created_at).toLocaleDateString();
-  meta.textContent = `${categories[issue.category] ?? issue.category} · ${date}${admin ? ` · ${issue.reporter}` : ""}`;
+  meta.textContent = `#${issue.id} · ${categories[issue.category] ?? issue.category} · ${date}${admin ? ` · ${issue.reporter}` : ""}`;
   const detail = document.createElement("p");
   detail.textContent = issue.description;
   li.append(head, meta);
@@ -98,14 +98,14 @@ $("issue-form").addEventListener("submit", async (event) => {
   button.disabled = true;
   message("issue-message", "");
   try {
-    await api.reportIssue({
+    const report = await api.reportIssue({
       category: $("issue-category").value,
       title: $("issue-title").value.trim(),
       location: $("issue-location").value.trim(),
       description: $("issue-description").value.trim(),
     });
     form.reset();
-    message("issue-message", "Report sent. Thank you for helping improve PeterParker.");
+    message("issue-message", `Report #${report.id} saved. You can track it under “Your reports” below.`);
     await loadMine();
     if (!$("admin-board").hidden) await loadAdmin();
   } catch (error) {
@@ -117,13 +117,48 @@ $("issue-form").addEventListener("submit", async (event) => {
 
 $("admin-refresh").addEventListener("click", loadAdmin);
 
+async function loadAdmins() {
+  try {
+    const admins = await api.admins();
+    $("admin-users").replaceChildren(...admins.map((admin) => {
+      const item = document.createElement("li");
+      item.textContent = admin.username ? `${admin.username} (${admin.email})` : admin.email;
+      return item;
+    }));
+  } catch (error) {
+    message("admin-access-message", error.message, true);
+  }
+}
+$("add-admin-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  const button = form.querySelector("button");
+  button.disabled = true;
+  try {
+    const admin = await api.addAdmin($("admin-email").value.trim());
+    form.reset();
+    message("admin-access-message", `Admin access granted to ${admin.email}.`);
+    await loadAdmins();
+  } catch (error) {
+    message("admin-access-message", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 async function init() {
   try {
     const user = await api.me();
     $("report-user").textContent = user.username ?? user.email;
     if (user.is_admin) {
       $("admin-board").hidden = false;
+      $("admin-shortcut").hidden = false;
       loadAdmin();
+      loadAdmins();
+      if (window.location.hash === "#admin-board") {
+        requestAnimationFrame(() => $("admin-board").scrollIntoView());
+      }
     }
     loadMine();
   } catch (error) {
