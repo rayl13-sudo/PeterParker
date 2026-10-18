@@ -58,6 +58,10 @@ Backend settings come from environment variables or `backend/.env` (see `backend
 
 ## Deploy the backend to Vercel
 
+For automatic frontend and backend deployment through GitHub Actions, see
+[the deployment workflow setup](docs/vercel-deployment.md). It includes the
+required secrets and Vercel permission changes for a dedicated deployment bot.
+
 Create a Vercel project from this repository with **Root Directory `backend`**
 and the **FastAPI** framework preset. Leave the build and output directory
 settings at their defaults. `app/main.py` exports the application, and
