@@ -73,14 +73,14 @@
             <div id="search-shortcuts" class="search-shortcuts" hidden></div>
           </div>
           <div class="filters" aria-label="Filter parking">
-            <div class="filter-row" role="group" aria-label="Parking type">
+            <div id="parking-type-filters" class="filter-row" role="group" aria-label="Parking type">
               <button type="button" class="chip-toggle" data-category="free" aria-pressed="false"><i class="swatch"></i>Free <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="permit" aria-pressed="false"><i class="swatch"></i>Permit <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="paid" aria-pressed="false"><i class="swatch"></i>Paid <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="limited" aria-pressed="false"><i class="swatch"></i>Limited <span class="count"></span></button>
               <button type="button" class="chip-toggle" data-category="staff" aria-pressed="false"><i class="swatch"></i>Staff <span class="count"></span></button>
             </div>
-            <div class="filter-row" role="group" aria-label="Minimum rating">
+            <div id="parking-rating-filters" class="filter-row" role="group" aria-label="Minimum rating">
               <span class="filter-label">Rating</span>
               <button type="button" class="chip-toggle star-chip" data-stars="0" aria-pressed="true">Any</button>
               <button type="button" class="chip-toggle star-chip" data-stars="3" aria-pressed="false">3+ ★</button>
@@ -88,7 +88,10 @@
               <button type="button" class="chip-toggle star-chip" data-stars="4.5" aria-pressed="false">4.5+ ★</button>
             </div>
           </div>
-          <button id="saved-toggle" class="saved-toggle" type="button" aria-pressed="false">☆ Saved places <span id="saved-count"></span></button>
+          <div class="saved-filter-controls">
+            <button id="saved-toggle" class="saved-toggle" type="button" aria-pressed="false">☆ Saved places <span id="saved-count"></span></button>
+            <button id="mobile-filter-toggle" class="mobile-filter-toggle" type="button" aria-label="Parking filters" aria-expanded="false" aria-controls="parking-type-filters parking-rating-filters"><span aria-hidden="true">•••</span></button>
+          </div>
           <div id="list-view" class="panel-view">
             <div id="permit-banner" class="permit-banner" aria-live="polite"></div>
             <h1 id="panel-title">Free parking near UCI</h1>

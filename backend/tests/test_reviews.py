@@ -59,6 +59,39 @@ def test_likes_are_unique_persisted_and_scoped_to_user(client, auth_headers):
     assert client.delete(url, headers=gwen).status_code == 404
 
 
+def test_top_three_liked_reviews_are_pinned(client, auth_headers, monkeypatch):
+    from app.api.routes import reviews as routes
+
+    mine = review(client, auth_headers, 4).json()["reviews"][0]["id"]
+    others = []
+    for index in range(4):
+        headers = other_user(client, f"parker{index}")
+        review_id = review(client, headers, 4).json()["reviews"][0]["id"]
+        others.append((review_id, headers))
+    voters = [auth_headers, *(headers for _, headers in others)]
+    # Four liked reviews; only the three leaders should precede my unliked review.
+    for count, (review_id, _) in enumerate(others, start=1):
+        for headers in voters[:count]:
+            assert client.put(f"/api/reviews/{review_id}/like", headers=headers).status_code == 200
+    params = {"target_type": "lot", "target_id": MPS}
+
+    def ids():
+        result = client.get("/api/reviews", params=params, headers=auth_headers)
+        assert result.status_code == 200
+        return [item["id"] for item in result.json()["reviews"]]
+
+    leaders = [others[i][0] for i in [3, 2, 1]]
+    assert ids() == [*leaders, mine, others[0][0]]
+    # Ranking happens before the page limit.
+    monkeypatch.setattr(routes, "PAGE", 3)
+    assert ids() == leaders
+    # Ties are deterministic (all test timestamps match, so newer IDs win).
+    client.delete(f"/api/reviews/{others[3][0]}/like", headers=auth_headers)
+    tied = ids()
+    assert tied == ids()
+    assert set(tied) == set(leaders)
+
+
 def test_post_list_and_average(client, auth_headers):
     res = review(client, auth_headers, 4, "  Easy to find a spot after 10am.  ")
     assert res.status_code == 200, res.json()

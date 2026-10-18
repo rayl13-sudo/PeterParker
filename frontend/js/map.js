@@ -1521,6 +1521,7 @@ let sheetLevel = 1;
 function setPanelLevel(level) {
   sheetLevel = Math.max(0, Math.min(sheetLevels.length - 1, level));
   panel.dataset.level = String(sheetLevel);
+  panel.classList.toggle("compact-filters", sheetLevel >= 2 || $("spot-list").scrollTop > 8);
   panel.classList.toggle("expanded", sheetLevel === 3);
   panel.style.removeProperty("--sheet-height");
   panel.querySelector(".panel-body").inert = sheetLevel === 0 && window.matchMedia("(max-width: 640px)").matches;
@@ -2288,6 +2289,29 @@ $("directions-reroute").addEventListener("click", () => planTrip());
 // ---------- Boot ----------
 
 const accountMenu = $("account-menu");
+const mobileFilterToggle = $("mobile-filter-toggle");
+const filterPanel = document.querySelector(".filters");
+function closeMobileFilters() {
+  filterPanel.classList.remove("filters-open");
+  mobileFilterToggle.setAttribute("aria-expanded", "false");
+}
+mobileFilterToggle.addEventListener("click", () => {
+  const open = filterPanel.classList.toggle("filters-open");
+  mobileFilterToggle.setAttribute("aria-expanded", String(open));
+});
+document.addEventListener("click", (event) => {
+  if (!filterPanel.contains(event.target) && !mobileFilterToggle.contains(event.target)) closeMobileFilters();
+});
+filterPanel.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeMobileFilters();
+    mobileFilterToggle.focus();
+  }
+});
+$("spot-list").addEventListener("scroll", () => {
+  panel.classList.toggle("compact-filters", sheetLevel >= 2 || $("spot-list").scrollTop > 8);
+  closeMobileFilters();
+}, { passive: true });
 const menuTrigger = accountMenu.querySelector("summary");
 accountMenu.addEventListener("click", (event) => {
   if (event.target.closest(".account-dropdown button, .account-dropdown a")) accountMenu.open = false;

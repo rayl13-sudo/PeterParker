@@ -1388,6 +1388,7 @@
 .popup .a11y-where { margin: 0.2rem 0 0; color: var(--a-ink); font-size: 0.76rem; line-height: 1.4; }
 .a11y-line { color: #22408f !important; }
 
+<<<<<<< Updated upstream
 /* ---------- Click a building: confirm it as the destination ---------- */
 .building-confirm-ask { color: var(--a-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .building-confirm-also { margin-top: 0.35rem !important; font-size: 0.75rem; }
@@ -1405,3 +1406,48 @@
 }
 .chip-link:hover { background: var(--a-field); transform: scale(1.04); }
 .building-popup .leaflet-popup-content-wrapper { animation: msg-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+=======
+/* Compact phone controls leave the bottom sheet's height for parking results. */
+.saved-filter-controls { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; margin-bottom: 0.65rem; }
+.saved-filter-controls .saved-toggle { margin: 0; }
+.mobile-filter-toggle { display: none; }
+@media (max-width: 640px) {
+  .panel .panel-body { padding: 2.5rem 0.85rem 0.65rem; }
+  .panel-handle { height: 2.5rem; }
+  .panel-body > .filters {
+    position: static; margin: 0 0 0.5rem; align-items: stretch; gap: 0.45rem;
+    max-width: none; flex-shrink: 0;
+  }
+  .panel-body > .filters > .filter-row { display: flex; }
+  .saved-filter-controls { margin-bottom: 0.35rem; }
+  .saved-filter-controls .mobile-filter-toggle { display: none; }
+  .panel.compact-filters .saved-filter-controls .mobile-filter-toggle { display: grid; }
+  .panel.compact-filters .panel-body > .filters {
+    position: absolute; top: 7.5rem; right: 0.85rem; z-index: 50;
+    margin: 0; align-items: flex-end; gap: 0;
+    max-width: calc(100% - 1.3rem);
+  }
+  .mobile-filter-toggle {
+    display: grid; place-items: center; width: 44px; height: 36px;
+    padding: 0; border: 1px solid var(--a-line); border-radius: 9px;
+    background: var(--a-white); color: var(--a-ink); font-size: 1rem;
+  }
+  .mobile-filter-toggle:focus-visible { outline: 2px solid var(--a-blue); outline-offset: 2px; }
+  .mobile-filter-toggle[aria-expanded="true"] { background: var(--a-blue-tint); }
+  .panel.compact-filters .panel-body > .filters > .filter-row { display: none; }
+  .panel.compact-filters .panel-body > .filters:not(.filters-open) { display: none; }
+  .panel.compact-filters .panel-body > .filters.filters-open {
+    width: min(320px, calc(100% - 1.3rem)); padding: 6px;
+    border: 1px solid var(--a-line); border-radius: 12px;
+    background: var(--a-white); box-shadow: 0 8px 24px rgba(20, 24, 43, 0.18);
+  }
+  .panel.compact-filters .panel-body > .filters.filters-open > .filter-row {
+    display: flex; align-self: stretch; padding: 8px; gap: 6px;
+  }
+  .panel-body > .search { margin-bottom: 0.35rem; }
+  .panel-body > .saved-toggle { margin-top: 0; margin-bottom: 0.35rem; }
+  .panel h1 { font-size: 1.05rem; }
+  .panel-sub { margin-bottom: 0.35rem; font-size: 0.8rem; }
+  .permit-banner { margin-top: 0; margin-bottom: 0.35rem; }
+}
+>>>>>>> Stashed changes
