@@ -3,7 +3,7 @@ import { api, setUnauthorizedHandler } from "./api.js";
 import { clearToken, getToken } from "./auth.js";
 import { bindAvatarPreview, imageFileToAvatar, renderAvatar } from "./avatar.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
-import { STALL_NOTE, permitSummary, rulesSourceFor } from "./permit-rules.js";
+import { STALL_NOTE, assignedArea, notValidFor, permitSummary, rulesSourceFor } from "./permit-rules.js";
 import { clearTutorialState } from "./tutorial-state.js";
 import { clearMapHistory } from "./map-history.mjs";
 
@@ -241,6 +241,19 @@ function renderPermitDetails(code) {
     li.append(el("b", null, when), el("span", null, where));
     list.append(li);
   }
+  const area = assignedArea(code);
+  const areaBlock = [];
+  if (area) {
+    const places = el("ul", "permit-area-list");
+    for (const place of area.places) places.append(el("li", null, place));
+    areaBlock.push(el("p", "permit-heading", `${area.title}, as listed by UCI`), places);
+  }
+  const notValid = notValidFor(code);
+  if (notValid.length) {
+    const nv = el("ul", "permit-area-list not-valid");
+    for (const item of notValid) nv.append(el("li", null, item));
+    areaBlock.push(el("p", "permit-heading", "Not valid in"), nv);
+  }
   const note = el("p", "permit-note", `${STALL_NOTE} Overnight parking isn't included unless it's your resident area. `);
   const src = el("a", null, "UCI's permit rules");
   src.href = rulesSourceFor(code);
@@ -249,8 +262,10 @@ function renderPermitDetails(code) {
   note.append(src);
   box.replaceChildren(
     el("p", "permit-meta", `${info.who} · ${info.price}`),
+    ...areaBlock.slice(0, 2),
     el("p", "permit-heading", "Free for you here, at these times"),
     list,
+    ...areaBlock.slice(2),
     note,
   );
   box.hidden = false;

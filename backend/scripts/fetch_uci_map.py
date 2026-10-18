@@ -28,6 +28,8 @@ PARKING = 8403  # every lot and structure, with its stall table
 EV_CHARGING = 36405  # charging ports per location
 FACULTY_STAFF = 36952  # "Faculty, Staff & Visitor Parking"
 ACCESSIBLE = 36871  # "Accessible Parking Stalls"; one sub-layer per lot, describing where its ADA stalls are
+DISPENSERS = 35849  # "Parking Permit Dispensers": "MPS Dispenser", "Lot 16 Pay-by-Space Dispenser", ...
+PARKBYPLATE = 55161  # "ParkbyPlate(TM) Areas": pay by license plate, one location per lot
 
 client = httpx.Client(headers={"User-Agent": "PeterParker/0.1 (UCI parking finder)"}, timeout=60)
 
@@ -95,6 +97,16 @@ def main() -> None:
             if note and note not in accessible.setdefault(lot_name, []):
                 accessible[lot_name].append(note)
 
+    # Where visitors can pay: each dispenser / ParkbyPlate area, named after its lot.
+    pay = []
+    for loc in by_layer(DISPENSERS):
+        name = re.sub(r"\s+", " ", loc["name"]).strip()
+        kind = "pay_by_space" if re.search(r"pay-by-space", name, re.I) else "dispenser"
+        place = re.sub(r"\s*(Pay-by-Space\s*)?Dispenser$", "", name, flags=re.I)
+        pay.append({"lot": place, "kind": kind, "lat": round(loc["lat"], 6), "lon": round(loc["lng"], 6)})
+    for loc in by_layer(PARKBYPLATE):
+        pay.append({"lot": clean_name(loc["name"]), "kind": "parkbyplate", "lat": round(loc["lat"], 6), "lon": round(loc["lng"], 6)})
+
     lots = {}
     for loc in by_layer(PARKING):
         detail = get(f"locations/{loc['id']}")
@@ -117,6 +129,7 @@ def main() -> None:
         "faculty_staff_lots": staff,
         "ev_charging": ev,
         "accessible_locations": accessible,
+        "pay_stations": pay,
         "lots": lots,
     }, indent=1) + "\n")
     print(f"Wrote {len(lots)} lots, {len(ev)} EV locations, {len(staff)} faculty/staff lots to {OUT}")

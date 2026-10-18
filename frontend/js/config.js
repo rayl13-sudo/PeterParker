@@ -5,5 +5,6 @@ const localHostnames = new Set(["localhost", "127.0.0.1"]);
 window.APP_CONFIG = {
   API_BASE_URL: localHostnames.has(window.location.hostname)
     ? "http://localhost:8000/api"
-    : "https://peterparker-mauve.vercel.app/api",
+    : "https://peter-parker-eight.vercel.app/",
+    
 };

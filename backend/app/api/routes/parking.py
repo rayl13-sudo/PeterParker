@@ -97,6 +97,11 @@ class ParkingLot(BaseModel):
     category: Category
     inferred: str | None = None  # why the category was guessed, if it was
     permit_accepted: bool = False  # paid lots that also take UCI permits
+    # Ways to pay here, whatever the lot's main category (a staff lot can also sell
+    # visitor permits): "dispenser", "pay_by_space", "parkbyplate" (UCI's map) or
+    # "fee" (OpenStreetMap fee=yes).
+    pay: list[str] = []
+    merged_from: int = 1  # number of mapped pieces combined into this lot
     # "limited" lots: who may park, any time limit, and a tow/ticket warning
     restriction: str | None = None
     time_limit: str | None = None
@@ -185,6 +190,92 @@ def _other_spaces(lot: dict) -> Spaces | None:
     return None
 
 
+PAY_ALIASES = {"arc": "lot arc"}
+MERGE_GAP_M = 12  # pieces of one lot: same name and rules, outlines this close
+
+
+def _abbr(name: str) -> str | None:
+    """'Mesa Parking Structure (MPS)' -> 'mps'; 'Anteater Parking Structure' -> 'aps'."""
+    if m := re.search(r"\(([A-Z]{2,5})\)$", name):
+        return m.group(1).lower()
+    if name.endswith("Parking Structure"):
+        return "".join(w[0] for w in name.split()[:-2]).lower() + "ps"
+    return None
+
+
+def _attach_pay_stations(lots: list[dict], stations: list[dict]) -> None:
+    """Mark lots that have a UCI permit dispenser, Pay-by-Space machine or ParkbyPlate area."""
+    by_key = {}
+    for lot in lots:
+        by_key.setdefault(_key(lot["name"]), lot)
+        if abbr := _abbr(lot["name"]):
+            by_key.setdefault(abbr, lot)
+    for station in stations:
+        key = _key(station["lot"])
+        lot = by_key.get(PAY_ALIASES.get(key, key))
+        if lot is None or _meters_apart(lot, station) > 400:
+            continue  # e.g. "EP": no lot by that name, and we don't guess
+        if station["kind"] not in lot.setdefault("pay", []):
+            lot["pay"].append(station["kind"])
+
+
+def _gap_m(a: list, b: list) -> float:
+    """Smallest distance between two outlines' vertices and edges (m); rings of [lat, lon]."""
+    lat0 = math.radians(a[0][0][0])
+    xy = lambda ring: [(lon * 111_320 * math.cos(lat0), lat * 111_320) for lat, lon in ring]
+
+    def point_seg(p, s1, s2):
+        dx, dy = s2[0] - s1[0], s2[1] - s1[1]
+        t = 0 if dx == dy == 0 else max(0, min(1, ((p[0] - s1[0]) * dx + (p[1] - s1[1]) * dy) / (dx * dx + dy * dy)))
+        return math.hypot(p[0] - s1[0] - t * dx, p[1] - s1[1] - t * dy)
+
+    best = math.inf
+    for ra in map(xy, a):
+        for rb in map(xy, b):
+            for pts, ring in ((ra, rb), (rb, ra)):
+                for p in pts:
+                    for s1, s2 in zip(ring, ring[1:] + ring[:1]):
+                        best = min(best, point_seg(p, s1, s2))
+    return best
+
+
+def _merge_pieces(lots: list[dict]) -> list[dict]:
+    """OSM often maps one lot as several touching areas ("Free parking by Sepulveda Vista
+    Point" x3). Combine free/limited pieces with the same name and rules that touch."""
+    groups: dict[tuple, list[dict]] = {}
+    for lot in lots:
+        if lot["category"] in ("free", "limited") and lot.get("outline"):
+            groups.setdefault((lot["name"], lot["category"], lot.get("restriction"), lot.get("time_limit")), []).append(lot)
+    drop = set()
+    for pieces in groups.values():
+        if len(pieces) < 2:
+            continue
+        parent = list(range(len(pieces)))
+        find = lambda i: i if parent[i] == i else find(parent[i])
+        for i in range(len(pieces)):
+            for j in range(i + 1, len(pieces)):
+                if _meters_apart(pieces[i], pieces[j]) < 400 and _gap_m(pieces[i]["outline"], pieces[j]["outline"]) <= MERGE_GAP_M:
+                    parent[find(j)] = find(i)
+        clusters: dict[int, list[dict]] = {}
+        for i, lot in enumerate(pieces):
+            clusters.setdefault(find(i), []).append(lot)
+        for cluster in clusters.values():
+            if len(cluster) < 2:
+                continue
+            cluster.sort(key=lambda lot: lot["id"])  # keep the first id, so its reviews stay
+            keep = cluster[0]
+            weights = [max(_area_m2(lot["outline"]), 1) for lot in cluster]
+            keep["lat"] = round(sum(l["lat"] * w for l, w in zip(cluster, weights)) / sum(weights), 6)
+            keep["lon"] = round(sum(l["lon"] * w for l, w in zip(cluster, weights)) / sum(weights), 6)
+            keep["outline"] = [ring for lot in cluster for ring in lot["outline"]]
+            caps = [lot.get("capacity") for lot in cluster]
+            keep["capacity"] = sum(caps) if all(caps) else None
+            keep["serves"] = list(dict.fromkeys(s for lot in cluster for s in lot.get("serves", [])))
+            keep["merged_from"] = len(cluster)
+            drop.update(lot["id"] for lot in cluster[1:])
+    return [lot for lot in lots if lot["id"] not in drop]
+
+
 def _merge_uci_lots(lots: list[dict], uci_lots: dict) -> None:
     """Attach UCI's stall tables to our lots; add UCI lots we don't have as map points."""
     by_key = {_key(lot["name"]): lot for lot in lots}
@@ -226,8 +317,12 @@ def _load() -> ParkingResponse:
     uci = json.loads(PERMITS_FILE.read_text())
     uci_map = json.loads(UCI_LOTS_FILE.read_text()) if UCI_LOTS_FILE.exists() else None
     staff_lots = set()
+    data["lots"] = _merge_pieces(data["lots"])
+    for lot in data["lots"]:
+        lot["pay"] = ["fee"] if lot["category"] == "paid" else []
     if uci_map:
         _merge_uci_lots(data["lots"], uci_map)
+        _attach_pay_stations(data["lots"], uci_map.get("pay_stations", []))
         # UCI's staff layer sometimes drops the "Lot" prefix ("EHS" vs "Lot EHS").
         staff_lots = {_key(n) for n in uci_map["faculty_staff_lots"]} | {
             _key(f"Lot {n}") for n in uci_map["faculty_staff_lots"] if not n.lower().startswith("lot ")
