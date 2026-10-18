@@ -423,9 +423,9 @@ function centerParkingPopup({ popup, zoom = map.getZoom() }) {
   clearTimeout(fitTimer);
   map.stop();
   // Make room for details even on short phones or when the legend is expanded.
-  if (window.matchMedia("(max-width: 640px)").matches) setPanelLevel(0);
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) setPanelLevel(0);
   const frame = map.getContainer().getBoundingClientRect();
-  const mobile = window.matchMedia("(max-width: 640px)").matches;
+  const mobile = window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   const panel = $("panel");
   const panelRect = panel.getBoundingClientRect();
   const keyRect = $("map-key").getBoundingClientRect();
@@ -650,7 +650,7 @@ function shortLotName(lot) {
 
 function openPermitMenu(picker) {
   if (!permitInfo?.holdable_permits) return;
-  if (window.matchMedia("(max-width: 640px)").matches) setPanelLevel(3);
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) setPanelLevel(3);
   const menu = el("div", "permit-menu");
   menu.setAttribute("role", "menu");
   for (const { label, test } of PERMIT_MENU_GROUPS) {
@@ -1119,7 +1119,7 @@ function fitBoundsAroundPanel(bounds, maxZoom) {
   // Keep what we're showing clear of the side panel (or bottom sheet) and the key.
   const panel = $("panel");
   const key = $("map-key");
-  const mobile = window.matchMedia("(max-width: 640px)").matches;
+  const mobile = window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   const panelOpen = !panel.classList.contains("collapsed");
   const rect = panel.getBoundingClientRect();
   const keyRect = key.getBoundingClientRect();
@@ -1147,7 +1147,7 @@ function focusLot({ lot, primary: layer }) {
   savedView = false;
   $("search-shortcuts").hidden = true;
   renderList();
-  if (window.matchMedia("(max-width: 640px)").matches) setPanelExpanded(false);
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) setPanelExpanded(false);
   map.stop();
   map.closePopup();
   nextParkingPopupZoom = 18;
@@ -1483,7 +1483,7 @@ setInterval(() => {
 function fitToLots(lots) {
   // Leave room for the side panel (desktop) or bottom sheet (mobile).
   const panel = $("panel").getBoundingClientRect();
-  const mobile = window.matchMedia("(max-width: 640px)").matches;
+  const mobile = window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   map.fitBounds(L.latLngBounds(lots.map((lot) => [lot.lat, lot.lon])), {
     paddingTopLeft: [mobile ? 32 : panel.right + 32, 48],
     paddingBottomRight: [48, mobile ? window.innerHeight - panel.top + 32 : 48],
@@ -1502,7 +1502,7 @@ function setupCollapsible({ container, toggle, storageKey, labels, defaultCollap
     toggle.setAttribute("aria-expanded", String(!collapsed));
     if (labels) toggle.setAttribute("aria-label", collapsed ? labels.show : labels.hide);
   };
-  apply(container.id === "panel" && window.matchMedia("(max-width: 640px)").matches
+  apply(container.id === "panel" && window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches
     ? false : loadFlag(storageKey, defaultCollapsed));
   toggle.addEventListener("click", () => {
     const collapsed = !container.classList.contains("collapsed");
@@ -1519,8 +1519,8 @@ setupCollapsible({
 });
 setupCollapsible({
   container: $("map-key"), toggle: $("key-toggle"),
-  storageKey: window.matchMedia("(max-width: 640px)").matches ? "pp_mobile_key_collapsed" : "pp_key_collapsed",
-  defaultCollapsed: window.matchMedia("(max-width: 640px)").matches,
+  storageKey: window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches ? "pp_mobile_key_collapsed" : "pp_key_collapsed",
+  defaultCollapsed: window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches,
 });
 
 // Four mobile snap points, including a handle-only position to reveal the map.
@@ -1532,10 +1532,14 @@ let sheetLevel = 1;
 function setPanelLevel(level) {
   sheetLevel = Math.max(0, Math.min(sheetLevels.length - 1, level));
   panel.dataset.level = String(sheetLevel);
-  panel.classList.toggle("compact-filters", sheetLevel >= 2 || $("spot-list").scrollTop > 8);
+  panel.classList.toggle("compact-filters", sheetLevel === 3);
+  if (sheetLevel !== 3) {
+    document.querySelector(".filters").classList.remove("filters-open");
+    $("mobile-filter-toggle").setAttribute("aria-expanded", "false");
+  }
   panel.classList.toggle("expanded", sheetLevel === 3);
   panel.style.removeProperty("--sheet-height");
-  panel.querySelector(".panel-body").inert = sheetLevel === 0 && window.matchMedia("(max-width: 640px)").matches;
+  panel.querySelector(".panel-body").inert = sheetLevel === 0 && window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches;
   panelHandle.setAttribute("aria-valuenow", String(sheetLevel + 1));
   panelHandle.setAttribute("aria-valuetext", sheetNames[sheetLevel]);
 }
@@ -1550,7 +1554,7 @@ panelHandle.addEventListener("keydown", (event) => {
 });
 let sheetDrag = null;
 panelHandle.addEventListener("pointerdown", (event) => {
-  if (event.button !== 0 || !window.matchMedia("(max-width: 640px)").matches) return;
+  if (event.button !== 0 || !window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) return;
   sheetDrag = { id: event.pointerId, y: event.clientY, height: panel.getBoundingClientRect().height,
     available: panel.parentElement.clientHeight, level: sheetLevel };
   panelHandle.setPointerCapture(event.pointerId);
@@ -1581,10 +1585,10 @@ panelHandle.addEventListener("pointercancel", finishSheetDrag);
 panelHandle.addEventListener("lostpointercapture", finishSheetDrag);
 setPanelLevel(1);
 panel.addEventListener("focusin", (event) => {
-  if (!window.matchMedia("(max-width: 640px)").matches || !event.target.matches("input, textarea")) return;
+  if (!window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches || !event.target.matches("input, textarea")) return;
   setPanelLevel(3);
 });
-window.matchMedia("(max-width: 640px)").addEventListener("change", (event) => {
+window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").addEventListener("change", (event) => {
   if (event.matches && panel.classList.contains("collapsed")) $("panel-toggle").click();
   setPanelLevel(sheetLevel);
 });
@@ -1721,7 +1725,7 @@ function showPanelView(name) {
   for (const view of PANEL_VIEWS) $(view).hidden = view !== name;
   document.querySelector(".filters").hidden = name !== "list-view"; // filters only apply to the list
   if ($("panel").classList.contains("collapsed")) $("panel-toggle").click();
-  if (window.matchMedia("(max-width: 640px)").matches) {
+  if (window.matchMedia("(max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse)").matches) {
     if (name !== "list-view") setPanelLevel(3);
     panel.querySelector(".panel-body").scrollTop = 0;
   }
@@ -2328,7 +2332,6 @@ filterPanel.addEventListener("keydown", (event) => {
   }
 });
 $("spot-list").addEventListener("scroll", () => {
-  panel.classList.toggle("compact-filters", sheetLevel >= 2 || $("spot-list").scrollTop > 8);
   closeMobileFilters();
 }, { passive: true });
 const menuTrigger = accountMenu.querySelector("summary");

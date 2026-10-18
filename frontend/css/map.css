@@ -660,7 +660,7 @@
 
 /* ---------- Small screens: panel becomes a bottom sheet ---------- */
 
-@media (max-width: 640px) {
+@media (max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse) {
   .topbar { padding: 0.6rem 1rem; }
   .topbar .brand { gap: 0.4rem; white-space: nowrap; }
   .topbar .partner-logo { display: none; }
@@ -888,6 +888,24 @@
 /* ---------- Filters under the search box ---------- */
 
 .filters { display: flex; flex-direction: column; gap: 0.45rem; margin: -0.35rem 0 0.9rem; }
+.mobile-filter-toggle { display: none; }
+.saved-filter-controls { flex-shrink: 0; }
+@media (max-width: 768px), (max-width: 1024px) and (max-height: 600px) and (pointer: coarse) {
+  .panel[data-level="3"] .filters { flex-shrink: 0; }
+  .panel[data-level="3"] .mobile-filter-toggle {
+    display: grid; place-items: center; align-self: flex-end;
+    width: 44px; height: 36px; padding: 0;
+    background: var(--a-field); color: var(--a-ink);
+    border: 1px solid var(--a-line); border-radius: 8px;
+  }
+  .panel[data-level="3"] .mobile-filter-toggle:focus-visible {
+    outline: 2px solid var(--a-blue); outline-offset: 2px;
+  }
+  .panel[data-level="3"] .filters:not(.filters-open) .filter-row { display: none; }
+  .panel[data-level="3"] .filters.filters-open .filter-row {
+    padding: 0.5rem; background: var(--a-field); border-radius: 8px;
+  }
+}
 .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
 .filter-label { margin-right: 0.15rem; color: var(--a-muted); font-size: 0.75rem; font-weight: 600; }
 .chip-toggle {
