@@ -2373,6 +2373,8 @@ async function init() {
     mapHistory = createMapHistory(user.id);
     $("user-name").textContent = user.username ?? user.email;
     $("user-name").title = user.email;
+    const adminLink = $("admin-link");
+    if (adminLink) adminLink.hidden = !user.is_admin;
     renderAvatar($("user-avatar"), user.avatar);
     bindAvatarPreview($("user-avatar"), () => user.avatar);
     permitInfo = parking.permit_info;
