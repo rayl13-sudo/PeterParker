@@ -956,6 +956,7 @@
 .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
 #parking-rating-filters { margin-top: 0.2rem; padding-top: 0.55rem; border-top: 1px solid var(--a-line); }
 .filter-label { margin-right: 0.15rem; color: var(--a-muted); font-size: 0.75rem; font-weight: 600; }
+#parking-rating-filters .filter-label { flex: 0 0 100%; margin: 0 0 0.1rem; }
 .chip-toggle {
   display: inline-flex;
   align-items: center;
