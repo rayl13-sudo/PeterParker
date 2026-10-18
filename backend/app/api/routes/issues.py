@@ -56,11 +56,48 @@ class IssueStatusIn(BaseModel):
     status: State
 
 
+class AdminIn(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if value.count("@") != 1 or any(char.isspace() for char in value):
+            raise ValueError("Enter a valid email address")
+        local, domain = value.split("@")
+        if not local or not domain or "." not in domain:
+            raise ValueError("Enter a valid email address")
+        return value
+
+
+class AdminOut(BaseModel):
+    email: str
+    username: str | None
+
+
 def require_admin(user=Depends(get_current_user), db=Depends(get_db)):
     row = db.execute("SELECT is_admin FROM users WHERE id = ?", (user["id"],)).fetchone()
     if not row or not row["is_admin"]:
         raise HTTPException(403, "Admin access required")
     return user
+
+
+@router.get("/admins", response_model=list[AdminOut])
+def list_admins(_=Depends(require_admin), db=Depends(get_db)):
+    rows = db.execute("SELECT email, username FROM users WHERE is_admin = TRUE ORDER BY email").fetchall()
+    return [AdminOut(**dict(row)) for row in rows]
+
+
+@router.post("/admins", response_model=AdminOut)
+def add_admin(payload: AdminIn, _=Depends(require_admin), db=Depends(get_db)):
+    row = db.execute(
+        "UPDATE users SET is_admin = TRUE WHERE LOWER(email) = ? RETURNING email, username",
+        (str(payload.email).lower(),),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, "No registered user with that email. Ask them to create an account first.")
+    return AdminOut(**dict(row))
 
 
 @router.post("", response_model=IssueOut, status_code=201)

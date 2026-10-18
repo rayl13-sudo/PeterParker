@@ -916,7 +916,7 @@ const NEAREST_RISKY = 2;
 const MAX_PLACE_RESULTS = 6;
 
 // Chips under the search box. Words typed in the search box can switch these on too.
-const chipFilters = { categories: new Set(), minStars: 0 };
+const chipFilters = { categories: new Set(), minStars: 0, evPorts: false };
 const FILTER_NAMES = { free: "free", permit: "permit", paid: "paid", limited: "limited", staff: "faculty & staff" };
 const CATEGORY_WORDS = {
   free: "free", paid: "paid", pay: "paid", meter: "paid", metered: "paid", fee: "paid",
@@ -953,6 +953,7 @@ function activeFilters() {
     minStars: Math.max(chipFilters.minStars, parsedQuery.minStars),
     tokens: parsedQuery.tokens,
     text: parsedQuery.text,
+    evPorts: chipFilters.evPorts,
   };
 }
 
@@ -966,7 +967,13 @@ function lotTypes(lot) {
   return types;
 }
 
-function passes(lot, { categories, minStars, tokens }, { ignoreText = false } = {}) {
+function hasEvPorts(lot) {
+  const ports = lot.spaces?.ev_ports;
+  return (ports?.level1 ?? 0) + (ports?.level2 ?? 0) > 0;
+}
+
+function passes(lot, { categories, minStars, tokens, evPorts }, { ignoreText = false } = {}) {
+  if (evPorts && !hasEvPorts(lot)) return false;
   if (categories.size && !lotTypes(lot).some((t) => categories.has(t))) return false;
   if (minStars && !((averageRating("lot", lot.id) ?? 0) >= minStars)) return false;
   return ignoreText || tokens.every((t) => searchableText(lot).includes(t));
@@ -982,6 +989,7 @@ function setSearchText(text) {
 }
 
 function syncChips() {
+  $("ev-filter").setAttribute("aria-pressed", String(chipFilters.evPorts));
   document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) => {
     const c = chip.dataset.category;
     const byChip = chipFilters.categories.has(c);
@@ -1194,7 +1202,7 @@ function applyFilters({ fit = true, animate = false } = {}) {
     return;
   }
   const filters = activeFilters();
-  const active = filters.categories.size || filters.minStars || filters.tokens.length;
+  const active = filters.categories.size || filters.minStars || filters.tokens.length || filters.evPorts;
   placeResults = filters.tokens.length ? findPlaces(filters.tokens, filters.minStars) : [];
   filteredEntries = listEntries.filter(({ lot }) => passes(lot, filters));
   const matched = new Set(filteredEntries);
@@ -1227,6 +1235,12 @@ document.querySelectorAll(".chip-toggle[data-category]").forEach((chip) =>
     applyFilters({ animate: true });
   }),
 );
+$("ev-filter").addEventListener("click", () => {
+  savedView = false;
+  chipFilters.evPorts = !chipFilters.evPorts;
+  applyFilters({ animate: true });
+});
+
 document.querySelectorAll(".star-chip").forEach((chip) =>
   chip.addEventListener("click", () => {
     savedView = false;
@@ -1469,6 +1483,7 @@ function buildLotLayers({ animate = true } = {}) {
     chip.querySelector(".swatch").style.background = CATEGORIES[c].color;
   }
   renderKey();
+  $("ev-filter").querySelector(".count").textContent = lots.filter(hasEvPorts).length;
   renderPermitBanner();
   applyFilters({ fit: false, animate });
 }
@@ -2373,6 +2388,7 @@ async function init() {
     mapHistory = createMapHistory(user.id);
     $("user-name").textContent = user.username ?? user.email;
     $("user-name").title = user.email;
+    $("admin-panel-link").hidden = !user.is_admin;
     renderAvatar($("user-avatar"), user.avatar);
     bindAvatarPreview($("user-avatar"), () => user.avatar);
     permitInfo = parking.permit_info;

@@ -92,6 +92,8 @@ export const api = {
   reportIssue: (issue) => request("/issues", { method: "POST", body: JSON.stringify(issue) }),
   myIssues: () => request("/issues/mine"),
   adminIssues: () => request("/issues/admin"),
+  admins: () => request("/issues/admins"),
+  addAdmin: (email) => request("/issues/admins", { method: "POST", body: JSON.stringify({ email }) }),
   updateIssue: (id, status) => request(`/issues/${id}`, {
     method: "PATCH", body: JSON.stringify({ status }),
   }),

@@ -155,6 +155,7 @@ def init_db() -> None:
             if column not in columns:
                 conn.execute(sql)
         conn.executescript(INDEXES)
+        conn.execute("UPDATE users SET is_admin = 1 WHERE LOWER(email) = ?", ("blam22@uci.edu",))
 
 
 def get_db() -> Iterator[sqlite3.Connection | PostgresConnection]:

@@ -117,6 +117,36 @@ $("issue-form").addEventListener("submit", async (event) => {
 
 $("admin-refresh").addEventListener("click", loadAdmin);
 
+async function loadAdmins() {
+  try {
+    const admins = await api.admins();
+    $("admin-users").replaceChildren(...admins.map((admin) => {
+      const item = document.createElement("li");
+      item.textContent = admin.username ? `${admin.username} (${admin.email})` : admin.email;
+      return item;
+    }));
+  } catch (error) {
+    message("admin-access-message", error.message, true);
+  }
+}
+$("add-admin-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  const button = form.querySelector("button");
+  button.disabled = true;
+  try {
+    const admin = await api.addAdmin($("admin-email").value.trim());
+    form.reset();
+    message("admin-access-message", `Admin access granted to ${admin.email}.`);
+    await loadAdmins();
+  } catch (error) {
+    message("admin-access-message", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 async function init() {
   try {
     const user = await api.me();
@@ -124,6 +154,7 @@ async function init() {
     if (user.is_admin) {
       $("admin-board").hidden = false;
       loadAdmin();
+      loadAdmins();
     }
     loadMine();
   } catch (error) {

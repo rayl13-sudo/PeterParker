@@ -111,7 +111,8 @@
   width: 20px; height: 20px; font-size: 18px; line-height: 1;
   color: var(--a-muted);
 }
-.account-dropdown > [hidden] { display: none; }
+.account-dropdown > button[hidden],
+.account-dropdown > a.icon-button[hidden] { display: none; }
 .account-dropdown > button:hover,
 .account-dropdown > a.icon-button:hover {
   background: var(--a-field);
@@ -934,6 +935,7 @@
 .chip-toggle[aria-pressed="true"] { border-color: var(--chip-fill, var(--a-ink)); color: var(--a-white); }
 .chip-toggle[aria-pressed="true"] .count { color: rgba(255, 255, 255, 0.7); }
 .star-chip { --chip-fill: #a36a00; }
+#ev-filter { --chip-fill: #28734a; }
 /* Switched on by words typed in the search box ("free parking", "4 stars") */
 .chip-toggle.implied { border-style: dashed; }
 .chip-toggle:focus-visible { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }

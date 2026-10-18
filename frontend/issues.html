@@ -70,6 +70,16 @@
         </div>
         <p id="admin-message" class="card-text" role="status">Loading…</p>
         <ul id="admin-list" class="issue-list"></ul>
+        <h3>Admin access</h3>
+        <ul id="admin-users" class="issue-list"></ul>
+        <form id="add-admin-form" class="settings-form">
+          <label>New admin email
+            <input id="admin-email" type="email" autocomplete="email" required placeholder="Registered user's email" />
+          </label>
+          <p class="card-text">Admins can view all reports, resolve issues, and add other admins.</p>
+          <button type="submit">Add admin</button>
+          <p id="admin-access-message" class="settings-message" role="status" hidden></p>
+        </form>
       </section>
     </main>
   </body>

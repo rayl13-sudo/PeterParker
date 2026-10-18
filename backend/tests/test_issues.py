@@ -55,3 +55,24 @@ def test_issue_validation_and_missing_report(client, auth_headers):
         db.execute("UPDATE users SET is_admin = 1 WHERE email = ?", ("peter@uci.edu",))
     assert client.patch("/api/issues/999", headers=auth_headers, json={"status": "unknown"}).status_code == 422
     assert client.patch("/api/issues/999", headers=auth_headers, json={"status": "resolved"}).status_code == 404
+
+
+def test_initial_admin_can_delegate_access(client, auth_headers):
+    assert client.get("/api/issues/admins").status_code == 401
+    assert client.post("/api/issues/admins", headers=auth_headers, json={"email": "peter@uci.edu"}).status_code == 403
+    result = client.post("/api/auth/signup", json={
+        "username": "initialadmin", "email": "blam22@uci.edu", "password": "Webslinger!", **TERMS,
+    })
+    assert result.status_code == 201, result.text
+    owner = {"Authorization": f"Bearer {result.json()['token']}"}
+    assert client.get("/api/auth/me", headers=owner).json()["is_admin"] is True
+    assert client.get("/api/issues/admin", headers=owner).status_code == 200
+    assert client.get("/api/issues/admins", headers=auth_headers).status_code == 403
+    added = client.post("/api/issues/admins", headers=owner, json={"email": " PETER@UCI.EDU "})
+    assert added.status_code == 200, added.text
+    assert client.get("/api/auth/me", headers=auth_headers).json()["is_admin"] is True
+    assert client.get("/api/issues/admin", headers=auth_headers).status_code == 200
+    assert client.post("/api/issues/admins", headers=auth_headers, json={"email": "blam22@uci.edu"}).status_code == 200
+    assert len(client.get("/api/issues/admins", headers=owner).json()) == 2
+    assert client.post("/api/issues/admins", headers=owner, json={"email": "missing@uci.edu"}).status_code == 404
+    assert client.post("/api/issues/admins", headers=owner, json={"email": "invalid"}).status_code == 422

