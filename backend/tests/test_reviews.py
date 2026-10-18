@@ -3,6 +3,7 @@ import json
 import pytest
 
 from app.api.routes.navigation import PLACES_FILE
+from tests.conftest import TERMS
 
 MPS = "way/171169301"  # Mesa Parking Structure
 
@@ -16,7 +17,7 @@ def langson():
 def other_user(client, name="gwen"):
     res = client.post(
         "/api/auth/signup",
-        json={"username": name, "email": f"{name}@uci.edu", "password": "Spider-Verse1"},
+        json={"username": name, "email": f"{name}@uci.edu", "password": "Spider-Verse1", **TERMS},
     )
     return {"Authorization": f"Bearer {res.json()['token']}"}
 

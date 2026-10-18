@@ -2,6 +2,7 @@
 import { api } from "./api.js";
 import { clearToken, getToken, saveToken } from "./auth.js";
 import { bindRuleChecklist, passwordMeetsRules } from "./password-rules.js";
+import { TERMS_VERSION, renderTerms } from "./terms.js";
 import { noteSignup } from "./tutorial-state.js";
 
 const MAP_PAGE = "map.html";
@@ -27,6 +28,7 @@ const updatePasswordRules = bindRuleChecklist(authPassword, $("password-rules"))
 
 function setMode(next) {
   mode = next;
+  if (termsStep && !termsStep.hidden) hideTerms();
   document.querySelector(".tabs").dataset.mode = mode;
   tabs.forEach((tab) => {
     const active = tab.dataset.mode === mode;
@@ -52,63 +54,213 @@ function showAuthError(err) {
   authError.hidden = !err;
 }
 
-// Accounts use a UCI email: name@uci.edu or a UCI department address (name@ics.uci.edu).
-// The server checks this too.
-const UCI_EMAIL = /^[^\s@]+@(?:[a-z0-9-]+\.)*uci\.edu$/i;
-const UCI_EMAIL_ERROR = "Invalid email: use your UCI email address (ending in uci.edu).";
+// Any email works; UCI emails (name@uci.edu, name@ics.uci.edu) also unlock UCI permits.
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateAuthForm(password) {
   if (mode === "login") {
-    const email = authIdentifier.value.trim();
-    if (!email || !password) return "Enter your UCI email and password.";
-    if (!UCI_EMAIL.test(email)) return UCI_EMAIL_ERROR;
+    const identifier = authIdentifier.value.trim();
+    if (!identifier || !password) return "Enter your email or username, and your password.";
     return null;
   }
-  if (!authUsername.value.trim() || !authEmail.value.trim()) return "Enter a username and your UCI email.";
-  if (!UCI_EMAIL.test(authEmail.value.trim())) return UCI_EMAIL_ERROR;
+  if (!authUsername.value.trim() || !authEmail.value.trim()) return "Enter a username and your email.";
+  const nameProblem = usernameProblem(authUsername.value.trim());
+  if (nameProblem) return `Username: ${nameProblem.toLowerCase()}.`;
+  if (!EMAIL.test(authEmail.value.trim())) return "Enter a valid email address.";
   if (!passwordMeetsRules(password)) return "Password doesn't meet all the requirements below.";
   return null;
 }
 
 tabs.forEach((tab) => tab.addEventListener("click", () => setMode(tab.dataset.mode)));
 
+// ---------- Live username hints while signing up ----------
+
+const USERNAME_MIN = 3;
+const USERNAME_MAX = 67; // same limits as the server
+const usernameStatus = $("username-status");
+let usernameTimer = null;
+let usernameRequest = 0; // only the latest lookup may update the hint
+
+function setUsernameStatus(text, tone) {
+  if (usernameStatus.textContent === text && usernameStatus.dataset.tone === tone) return;
+  usernameStatus.textContent = text;
+  usernameStatus.dataset.tone = tone ?? "";
+  usernameStatus.classList.remove("pop");
+  void usernameStatus.offsetWidth; // replay the entrance
+  if (text) usernameStatus.classList.add("pop");
+}
+
+// Problems you can see without asking the server; null when the shape is fine.
+function usernameProblem(name) {
+  if (/[\s@]/.test(name)) return "No spaces or “@”";
+  if (name.length < USERNAME_MIN) return `Too short: at least ${USERNAME_MIN} characters`;
+  if (name.length > USERNAME_MAX) return `Too long: ${USERNAME_MAX} characters max (${name.length})`;
+  return null;
+}
+
+authUsername.addEventListener("input", () => {
+  clearTimeout(usernameTimer);
+  const request = ++usernameRequest;
+  const name = authUsername.value.trim();
+  if (!name) return setUsernameStatus("", null);
+  const problem = usernameProblem(name);
+  if (problem) return setUsernameStatus(problem, "error");
+  setUsernameStatus("Checking…", "pending");
+  usernameTimer = setTimeout(async () => {
+    try {
+      const { available } = await api.usernameAvailable(name);
+      if (request !== usernameRequest) return; // you've kept typing
+      setUsernameStatus(available ? "Username available" : "That username is taken", available ? "ok" : "error");
+    } catch {
+      if (request === usernameRequest) setUsernameStatus("", null); // offline: the form re-checks on submit
+    }
+  }, 300);
+});
+
 authForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const password = authPassword.value;
-  const rememberMe = authRemember.checked;
   const problem = validateAuthForm(password);
   if (problem) return showAuthError(new Error(problem));
+  // New accounts go through the Terms of Service first; that step creates the account.
+  // Check the username and email are free before asking anyone to read the terms.
+  if (mode === "signup") {
+    authSubmit.disabled = true;
+    authSubmit.setAttribute("aria-busy", "true");
+    try {
+      await api.checkSignup({ username: authUsername.value.trim(), email: authEmail.value.trim() });
+    } catch (err) {
+      return showAuthError(err);
+    } finally {
+      authSubmit.disabled = false;
+      authSubmit.removeAttribute("aria-busy");
+    }
+    return showTerms();
+  }
+  await submitAuth(authSubmit, () =>
+    api.login({ identifier: authIdentifier.value.trim(), password, rememberMe: authRemember.checked }),
+  );
+});
 
-  authSubmit.disabled = true;
-  authSubmit.setAttribute("aria-busy", "true");
+// Runs a sign-in or sign-up request from `button`, then opens the map.
+async function submitAuth(button, send) {
+  const rememberMe = authRemember.checked;
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  let done = false;
   try {
-    const result =
-      mode === "login"
-        ? await api.login({ identifier: authIdentifier.value.trim(), password, rememberMe })
-        : await api.signup({
-            username: authUsername.value.trim(),
-            email: authEmail.value.trim(),
-            password,
-            rememberMe,
-          });
+    const result = await send();
     if (result.confirmation_required) {
       // No app session exists until email confirmation; show the map tour at first sign-in.
       noteSignup(authEmail.value);
       authForm.reset();
+      setUsernameStatus("", null);
       updatePasswordRules();
       setMode("login");
       showAuthError(new Error(result.message));
       return;
     }
     saveToken(result.token, rememberMe);
-    if (mode === "signup") noteSignup(result.user.email);
+    if (mode === "signup") {
+      noteSignup(result.user.email);
+      // A beat of "Welcome!" on the button before the map takes over.
+      done = true;
+      button.classList.add("success");
+      button.textContent = "Welcome to PeterParker!";
+      await new Promise((resolve) => setTimeout(resolve, 650));
+    }
     window.ppNavigate(MAP_PAGE, { replace: true });
   } catch (err) {
+    if (mode === "signup") hideTerms(); // e.g. username taken: fix it on the form
     showAuthError(err);
   } finally {
-    authSubmit.disabled = false;
-    authSubmit.removeAttribute("aria-busy");
+    if (!done) button.disabled = false;
+    button.removeAttribute("aria-busy");
   }
+}
+
+// ---------- Sign up, step 2: Terms of Service ----------
+
+const authCard = document.querySelector(".auth-card");
+const termsStep = $("terms-step");
+const termsBox = $("terms-box");
+const termsAgree = $("terms-agree");
+const termsSubmit = $("terms-submit");
+let termsRendered = false;
+let termsRead = false; // set once the terms have been scrolled all the way through
+
+function showTerms() {
+  if (!termsRendered) {
+    renderTerms(termsBox);
+    termsRendered = true;
+  }
+  showAuthError(null);
+  $("terms-error").hidden = true;
+  authCard.dataset.step = "terms";
+  authForm.hidden = true;
+  termsStep.hidden = false;
+  termsBox.scrollTop = 0;
+  updateTermsProgress();
+  termsBox.focus({ preventScroll: true });
+}
+
+function hideTerms() {
+  delete authCard.dataset.step;
+  termsStep.hidden = true;
+  authForm.hidden = false;
+  authForm.classList.add("returning");
+  authForm.addEventListener("animationend", () => authForm.classList.remove("returning"), { once: true });
+}
+
+// Reading to the end unlocks the checkbox; the bar under the text fills as you scroll.
+function updateTermsProgress() {
+  const max = termsBox.scrollHeight - termsBox.clientHeight;
+  const read = max <= 0 ? 1 : Math.min(1, termsBox.scrollTop / (max - 4));
+  $("terms-progress-bar").style.transform = `scaleX(${read})`;
+  if (read >= 1 && !termsRead) {
+    termsRead = true;
+    termsAgree.disabled = false;
+    $("terms-agree-label").classList.add("unlocked");
+    $("terms-hint").textContent = "Thanks for reading. Check the box to continue.";
+    $("terms-hint").classList.add("done");
+  }
+}
+termsBox.addEventListener("scroll", updateTermsProgress, { passive: true });
+
+// Trying to agree before reading to the end: point back at the unread terms.
+$("terms-agree-label").addEventListener("click", (e) => {
+  if (termsRead) return;
+  e.preventDefault();
+  const hint = $("terms-hint");
+  hint.textContent = "Please scroll through all of the Terms of Service first.";
+  hint.classList.remove("nudge");
+  void hint.offsetWidth; // replay the shake
+  hint.classList.add("nudge");
+  termsBox.focus({ preventScroll: true });
+});
+
+termsAgree.addEventListener("change", () => {
+  if (!termsRead) termsAgree.checked = false;
+  termsSubmit.disabled = !(termsRead && termsAgree.checked);
+  termsSubmit.classList.toggle("ready", termsAgree.checked);
+});
+
+$("terms-back").addEventListener("click", () => {
+  hideTerms();
+  firstField().focus();
+});
+
+termsSubmit.addEventListener("click", () => {
+  if (!termsRead || !termsAgree.checked) return; // must read all of the terms, then agree
+  submitAuth(termsSubmit, () =>
+    api.signup({
+      username: authUsername.value.trim(),
+      email: authEmail.value.trim(),
+      password: authPassword.value,
+      rememberMe: authRemember.checked,
+      termsVersion: TERMS_VERSION,
+    }),
+  );
 });
 
 // Decorative, non-interactive campus map behind the card. Skipped if Leaflet

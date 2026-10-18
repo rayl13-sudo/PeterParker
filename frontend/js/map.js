@@ -500,10 +500,12 @@ function addLot(lot) {
         .addTo(map)
     : null;
 
+  // Limited lots share one dot per area (see groupDots), unless a lot has no shape at all.
+  const sharedDot = lot.category === "limited" && lot.dot_group && area;
   const marker =
     cat.marker === "pin"
       ? L.marker([lot.lat, lot.lon], { icon: pinIcon(lot), title: lot.name, zIndexOffset: 500 })
-      : cat.marker === "dot" || !area
+      : (cat.marker === "dot" && !sharedDot) || !area
         ? dot(lot)
         : null;
   if (marker) {
@@ -518,6 +520,7 @@ function addLot(lot) {
 // ---------- Your permit: permit lots it covers right now count as free ----------
 
 let userPermit = null; // e.g. "S4"; set in settings
+let canHoldPermit = false; // UCI accounts only; others see permit lots but no permit options
 const permitName = (code) => permitInfo?.permits?.[code]?.name ?? code;
 
 // Re-labels lots for the current time; returns true if any lot changed.
@@ -589,6 +592,10 @@ const PERMIT_MENU_GROUPS = [
 
 function renderPermitBanner() {
   const banner = $("permit-banner");
+  if (!canHoldPermit) {
+    banner.hidden = true;
+    return;
+  }
   const count = listEntries.filter(({ lot }) => lot.category === "mine").length;
   banner.className = userPermit ? "permit-banner" : "permit-banner empty";
 
@@ -1003,7 +1010,72 @@ const searchableText = (lot) => {
   return searchIndex.get(lot.id);
 };
 
-function setLotState({ lot, area, marker }, state) {
+// ---------- Shared red dots: one per area of limited lots ----------
+//
+// The backend groups limited lots within ~95 m (lot.dot_group). Each lot keeps its own
+// shaded outline; the group gets one dot in the middle. Clicking it opens the lot, or
+// a short list to choose from when the dot covers several.
+
+let dotGroups = []; // [{ entries, marker }]
+
+function groupDots() {
+  const byGroup = new Map();
+  for (const entry of listEntries) {
+    if (entry.lot.category !== "limited" || !entry.lot.dot_group || !entry.area) continue;
+    if (!byGroup.has(entry.lot.dot_group)) byGroup.set(entry.lot.dot_group, []);
+    byGroup.get(entry.lot.dot_group).push(entry);
+  }
+  dotGroups = [...byGroup.values()].map((entries) => {
+    const lat = entries.reduce((sum, e) => sum + e.lot.lat, 0) / entries.length;
+    const lon = entries.reduce((sum, e) => sum + e.lot.lon, 0) / entries.length;
+    const marker = dot({ category: "limited", lat, lon }).addTo(map);
+    const group = { entries, marker };
+    for (const entry of entries) entry.dotGroup = group;
+    marker.on("click", () => {
+      if (entries.length === 1) entries[0].area.openPopup([entries[0].lot.lat, entries[0].lot.lon]);
+      else L.popup(POPUP_OPTIONS).setLatLng([lat, lon]).setContent(groupPopup(entries)).openOn(map);
+    });
+    return group;
+  });
+}
+
+function groupPopup(entries) {
+  const root = el("div", "popup");
+  if (entries.every((e) => e.lot.utc)) {
+    root.append(el("strong", null, `University Town Center · ${entries.length} lots`));
+    root.append(el("p", null, "Shopper parking, mostly 2 hours max; students parking here to walk to campus have been towed. Pick a lot for details:"));
+  } else {
+    root.append(el("strong", null, `${entries.length} limited-parking areas here`));
+    root.append(el("p", null, "Each may be ticketed or towed if you're not visiting what it serves. Pick one for details:"));
+  }
+  const list = el("div", "building-confirm-list");
+  for (const entry of entries) {
+    const btn = el("button", "chip-link", entry.lot.name);
+    btn.type = "button";
+    btn.title = entry.lot.restriction ?? "";
+    btn.addEventListener("click", () => {
+      map.closePopup();
+      entry.area.openPopup([entry.lot.lat, entry.lot.lon]);
+    });
+    list.append(btn);
+  }
+  root.append(list);
+  return root;
+}
+
+// A shared dot looks like its liveliest lot: highlighted if any match, faded if all are.
+function refreshGroupDot(group) {
+  const states = group.entries.map((e) => e.state ?? "normal");
+  const state = states.includes("match") ? "match" : states.every((s) => s === "dim") ? "dim" : "normal";
+  const faded = state === "dim" ? 0.2 : 1;
+  group.marker.setStyle({ opacity: faded, fillOpacity: faded }).setRadius(state === "match" ? 8 : 6);
+  if (state === "match") group.marker.bringToFront();
+}
+
+function setLotState(entry, state) {
+  entry.state = state;
+  if (entry.dotGroup) refreshGroupDot(entry.dotGroup);
+  const { lot, area, marker } = entry;
   const cat = CATEGORIES[lot.category];
   const weight = homeEdge(lot)?.weight ?? cat.weight ?? 1.5;
   const styles = {
@@ -1236,6 +1308,98 @@ function showDestinationMarker(place) {
     .addTo(map);
 }
 
+// ---------- Click a building to make it the destination ----------
+//
+// Places carry their footprint (or the footprint of the building they're in). Clicking
+// inside one asks to confirm, then does exactly what picking it in the search does.
+
+function insideRing([lat, lon], ring) {
+  let hit = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [y1, x1] = ring[i];
+    const [y2, x2] = ring[j];
+    if (y1 > lat !== y2 > lat && lon < ((x2 - x1) * (lat - y1)) / (y2 - y1) + x1) hit = !hit;
+  }
+  return hit;
+}
+
+function ringArea(ring) {
+  let sum = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) sum += ring[j][1] * ring[i][0] - ring[i][1] * ring[j][0];
+  return Math.abs(sum / 2);
+}
+
+// Places under a point, sharing the smallest footprint there: the building itself first,
+// then whatever's mapped inside it (a cafe, an office).
+function placesAt(latlng) {
+  const point = [latlng.lat, latlng.lng];
+  const hits = [];
+  for (const place of places) {
+    const ring = place.outline?.find((r) => insideRing(point, r));
+    if (ring) hits.push({ place, ring, area: ringArea(ring) });
+  }
+  if (!hits.length) return null;
+  const smallest = Math.min(...hits.map((h) => h.area));
+  const here = hits.filter((h) => h.area <= smallest * 1.0001);
+  here.sort((a, b) => (a.place.id.startsWith("node/") - b.place.id.startsWith("node/")) || a.place.name.localeCompare(b.place.name));
+  return { ring: here[0].ring, places: [...new Map(here.map((h) => [h.place.name, h.place])).values()] };
+}
+
+let buildingHighlight = null;
+
+function confirmBuilding(latlng) {
+  const found = placesAt(latlng);
+  if (!found) return;
+  const [main, ...inside] = found.places;
+  buildingHighlight?.remove();
+  buildingHighlight = L.polygon(found.ring, {
+    color: "#2f55c4", weight: 2.5, dashArray: "5 4", fillColor: "#2f55c4", fillOpacity: 0.15, interactive: false,
+  }).addTo(map);
+
+  const root = el("div", "popup building-confirm");
+  root.append(el("small", "building-confirm-ask", "Navigate here?"), el("strong", null, main.name));
+  if (main.kind) root.append(el("p", null, main.kind));
+  const choose = (place) => {
+    map.closePopup();
+    setDestination(place);
+  };
+  const actions = el("div", "popup-actions");
+  const yes = el("button", "pill-button primary", "Yes, find parking");
+  yes.type = "button";
+  yes.addEventListener("click", () => choose(main));
+  const no = el("button", "pill-button", "Cancel");
+  no.type = "button";
+  no.addEventListener("click", () => map.closePopup());
+  actions.append(yes, no);
+  root.append(actions);
+  if (inside.length) {
+    root.append(el("p", "building-confirm-also", "Or something inside:"));
+    const list = el("div", "building-confirm-list");
+    for (const place of inside) {
+      const btn = el("button", "chip-link", place.name);
+      btn.type = "button";
+      btn.addEventListener("click", () => choose(place));
+      list.append(btn);
+    }
+    root.append(list);
+  }
+  L.popup({ maxWidth: 260, className: "building-popup" })
+    .setLatLng(latlng)
+    .setContent(root)
+    .on("remove", () => {
+      buildingHighlight?.remove();
+      buildingHighlight = null;
+    })
+    .openOn(map);
+  yes.focus({ preventScroll: true });
+}
+
+// Lot shapes and markers handle their own clicks; this only sees clicks on the basemap.
+map.on("click", (e) => {
+  if (pendingPick) return; // the trip planner is waiting for a point
+  confirmBuilding(e.latlng);
+});
+
 function clearDestination() {
   if (!destination) return;
   destination = null;
@@ -1285,10 +1449,12 @@ function buildLotLayers({ animate = true } = {}) {
     area?.remove();
     marker?.remove();
   }
+  for (const group of dotGroups) group.marker.remove();
   const lots = [...allLots].sort(
     (a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || a.name.localeCompare(b.name, undefined, { numeric: true }),
   );
   listEntries = lots.map((lot) => ({ lot, ...addLot(lot) }));
+  groupDots();
   for (const chip of document.querySelectorAll(".chip-toggle[data-category]")) {
     const c = chip.dataset.category;
     const count = lots.filter((lot) => lotTypes(lot).includes(c)).length;
@@ -2158,7 +2324,8 @@ async function init() {
     bindAvatarPreview($("user-avatar"), () => user.avatar);
     permitInfo = parking.permit_info;
     uciSource = parking.uci_source ?? null;
-    userPermit = user.permit ?? null;
+    canHoldPermit = Boolean(user.is_uci);
+    userPermit = canHoldPermit ? user.permit ?? null : null;
     renderLots(parking.lots);
     const tourActions = {
       showExample: () => {

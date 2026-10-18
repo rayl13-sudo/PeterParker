@@ -1387,3 +1387,21 @@
 }
 .popup .a11y-where { margin: 0.2rem 0 0; color: var(--a-ink); font-size: 0.76rem; line-height: 1.4; }
 .a11y-line { color: #22408f !important; }
+
+/* ---------- Click a building: confirm it as the destination ---------- */
+.building-confirm-ask { color: var(--a-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.building-confirm-also { margin-top: 0.35rem !important; font-size: 0.75rem; }
+.building-confirm-list { display: flex; flex-wrap: wrap; gap: 0.3rem; max-height: 7.5rem; overflow-y: auto; }
+.chip-link {
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--a-line, #d5d9e3);
+  border-radius: 999px;
+  background: var(--a-white);
+  color: var(--a-ink);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.chip-link:hover { background: var(--a-field); transform: scale(1.04); }
+.building-popup .leaflet-popup-content-wrapper { animation: msg-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

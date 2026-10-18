@@ -1,4 +1,5 @@
 """Reports stay private; only a DB-appointed admin can manage the queue."""
+from tests.conftest import TERMS
 
 import sqlite3
 
@@ -26,7 +27,7 @@ def test_issue_report_and_admin_queue(client, auth_headers):
     assert client.patch(f"/api/issues/{report_id}", headers=auth_headers, json={"status": "resolved"}).status_code == 403
 
     second = client.post("/api/auth/signup", json={
-        "username": "other", "email": "other@uci.edu", "password": "Webslinger!",
+        "username": "other", "email": "other@uci.edu", "password": "Webslinger!", **TERMS,
     })
     second_headers = {"Authorization": f"Bearer {second.json()['token']}"}
     assert client.get("/api/issues/mine", headers=second_headers).json() == []

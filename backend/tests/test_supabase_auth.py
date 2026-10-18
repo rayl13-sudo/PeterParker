@@ -2,6 +2,7 @@ from app import supabase_auth
 from app.config import settings
 from fastapi import HTTPException
 from urllib.request import Request
+from tests.conftest import TERMS
 
 
 def enable(monkeypatch, result):
@@ -18,7 +19,7 @@ def enable(monkeypatch, result):
 def test_confirmation_does_not_issue_session(client, monkeypatch):
     enable(monkeypatch, {"id": "remote"})
     response = client.post("/api/auth/signup", json={
-        "username": "peter", "email": "peter@uci.edu", "password": "Webslinger!",
+        "username": "peter", "email": "peter@uci.edu", "password": "Webslinger!", **TERMS,
     })
     assert response.status_code == 201
     assert response.json()["confirmation_required"]
@@ -37,9 +38,11 @@ def test_remote_login_links_user_by_uci_email(client, monkeypatch):
     headers = {"Authorization": "Bearer " + response.json()["token"]}
     assert client.get("/api/auth/me", headers=headers).json()["username"] == "peter"
     assert calls[-1][1]["email"] == "peter@uci.edu"
-    # Usernames are no longer accepted for sign-in.
-    response = client.post("/api/auth/login", json={"identifier": "peter", "password": "Webslinger!"})
-    assert response.status_code == 422
+    # A username signs in through its account's email.
+    response = client.post("/api/auth/login", json={"identifier": "Peter", "password": "Webslinger!"})
+    assert response.status_code == 200
+    assert calls[-1][1]["email"] == "peter@uci.edu"
+    assert client.post("/api/auth/login", json={"identifier": "nobody", "password": "x"}).status_code == 401
     assert client.post("/api/auth/logout", headers=headers).status_code == 204
     assert client.get("/api/auth/me", headers=headers).status_code == 401
 

@@ -328,7 +328,9 @@ async function init() {
   try {
     current = await api.me();
     showUser(current);
-    loadPermits();
+    // UCI parking permits are for UCI accounts only.
+    document.querySelector(".permit-card").hidden = !current.is_uci;
+    if (current.is_uci) loadPermits();
   } catch (err) {
     showMessage($("details-message"), err.message, "error");
   }
