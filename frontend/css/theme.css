@@ -1,0 +1,170 @@
+/* Dark theme. Loaded last on every page; js/theme.js sets <html data-theme="dark">
+   from the Appearance setting (System / Light / Dark).
+
+   Most colors come from the --a-* palette, swapped here. The rest are the few
+   hard-coded tints and text colors that need a dark counterpart. */
+
+:root[data-theme="dark"] .auth,
+:root[data-theme="dark"] .map-page {
+  --a-blue: #5b7bd5;
+  --a-blue-dark: #6f8de0;   /* hover: a touch lighter on dark */
+  --a-blue-fade: #2c3a5e;
+  --a-blue-soft: #3b4e80;
+  --a-blue-tint: #1d253b;
+  --a-gray: #4a5164;
+  --a-gray-light: #2a2f3c;
+  --a-white: #171a23;       /* cards, panels, popups */
+  --a-ink: #e8eaf2;
+  --a-muted: #9ba2b6;
+  --a-field: #212532;
+  --a-line: #2d3242;
+  --a-on-accent: #ffffff;
+}
+
+/* ---------- Page backgrounds ---------- */
+
+:root[data-theme="dark"] body { background: #0f1118; }
+:root[data-theme="dark"] .auth,
+:root[data-theme="dark"] .map-page { background: #0f1118; }
+:root[data-theme="dark"] .auth-map { background: #141824; }
+:root[data-theme="dark"] #map { background: #141824; }
+
+/* Map tiles: OpenStreetMap only ships light tiles, so invert them into a dim night map.
+   hue-rotate keeps water blue and parks green after the inversion. */
+:root[data-theme="dark"] #map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.88) saturate(0.55);
+}
+:root[data-theme="dark"] .auth-map .leaflet-tile-pane {
+  filter: grayscale(1) invert(1) brightness(0.85) contrast(0.9);
+}
+
+/* ---------- Leaflet chrome ---------- */
+
+:root[data-theme="dark"] .leaflet-popup-content-wrapper,
+:root[data-theme="dark"] .leaflet-popup-tip {
+  background: var(--a-white);
+  color: var(--a-ink);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+:root[data-theme="dark"] .leaflet-container a.leaflet-popup-close-button { color: var(--a-muted); }
+:root[data-theme="dark"] .leaflet-bar a,
+:root[data-theme="dark"] .leaflet-bar a:hover {
+  background: var(--a-white);
+  color: var(--a-ink);
+  border-bottom-color: var(--a-line);
+}
+:root[data-theme="dark"] .leaflet-bar { border-color: rgba(255, 255, 255, 0.14); }
+:root[data-theme="dark"] .leaflet-control-attribution {
+  background: rgba(23, 26, 35, 0.8);
+  color: var(--a-muted);
+}
+:root[data-theme="dark"] .leaflet-control-attribution a { color: #9fb4ee; }
+:root[data-theme="dark"] .leaflet-tooltip {
+  background: var(--a-white);
+  color: var(--a-ink);
+  border-color: var(--a-line);
+}
+:root[data-theme="dark"] .leaflet-tooltip-top::before { border-top-color: var(--a-white); }
+:root[data-theme="dark"] .locate-button { border-color: rgba(255, 255, 255, 0.14); }
+:root[data-theme="dark"] .locate-button:hover { background: var(--a-field); }
+
+/* ---------- Text colors tuned for light backgrounds ---------- */
+
+/* Blue (routes, location, accessible parking) */
+:root[data-theme="dark"] .locate-button[data-state="on"],
+:root[data-theme="dark"] .trip-field.is-here input,
+:root[data-theme="dark"] .from-field.is-here .from-select { color: #8ea9f2; }
+:root[data-theme="dark"] .chip.drive { background: #1f2a4a; color: #a9bdf5; }
+:root[data-theme="dark"] .chip.walk,
+:root[data-theme="dark"] .terms-box p { color: #c3c8d6; }
+:root[data-theme="dark"] .accessible-sub { background: #182238; }
+:root[data-theme="dark"] .accessible-sub h5,
+:root[data-theme="dark"] .a11y-line,
+:root[data-theme="dark"] .a11y-parts span { color: #a9bdf5 !important; }
+:root[data-theme="dark"] .a11y-parts span { border-color: #34436b; }
+
+/* Green (your permit, open now, success) */
+:root[data-theme="dark"] .permit-banner { background: #12302a; color: #8fe0c9; }
+:root[data-theme="dark"] .permit-banner.empty { background: var(--a-field); color: var(--a-muted); }
+:root[data-theme="dark"] .permit-option:hover,
+:root[data-theme="dark"] .permit-option:focus-visible { background: #12302a; border-color: #2f7a66; }
+:root[data-theme="dark"] .permit-option.none.current { color: var(--a-white); }
+:root[data-theme="dark"] .permit-windows li.now,
+:root[data-theme="dark"] .stat.open-now { background: #12302a; }
+:root[data-theme="dark"] .permit-windows li.now,
+:root[data-theme="dark"] .permit-windows li.now b,
+:root[data-theme="dark"] .permit-yours .permit-now.ok,
+:root[data-theme="dark"] .permit-home-tag,
+:root[data-theme="dark"] .permit-home-lot,
+:root[data-theme="dark"] .stat.open-now b,
+:root[data-theme="dark"] .open-line,
+:root[data-theme="dark"] .field-status[data-tone="ok"] { color: #74d6b9 !important; }
+:root[data-theme="dark"] .permit-home-lot.now { color: #fff !important; }
+:root[data-theme="dark"] .permit-home { border-top-color: rgba(116, 214, 185, 0.2); }
+
+/* Red (warnings, errors, delete) */
+:root[data-theme="dark"] .popup-warning,
+:root[data-theme="dark"] .settings-message.error { background: #33191a; }
+:root[data-theme="dark"] .popup-warning b,
+:root[data-theme="dark"] .popup .popup-warning a,
+:root[data-theme="dark"] .panel-sub.error,
+:root[data-theme="dark"] .review-message.error,
+:root[data-theme="dark"] .reply-error,
+:root[data-theme="dark"] .settings-message.error,
+:root[data-theme="dark"] .delete-card h2,
+:root[data-theme="dark"] .delete-dialog h2,
+:root[data-theme="dark"] .delete-dialog .settings-message,
+:root[data-theme="dark"] .text-button.danger:hover,
+:root[data-theme="dark"] .text-button.danger.confirming,
+:root[data-theme="dark"] .pill-button.confirming,
+:root[data-theme="dark"] .locate-button[data-state="error"],
+:root[data-theme="dark"] .field-status[data-tone="error"] { color: #f2958d; }
+:root[data-theme="dark"] .popup .popup-warning p { color: #f0c9c5; }
+:root[data-theme="dark"] .delete-card { border-color: #4a2523; }
+:root[data-theme="dark"] #auth-form label:has(.field-status[data-tone="error"]) .input-with-icon input { border-color: #7a3a35; }
+:root[data-theme="dark"] #auth-form label:has(.field-status[data-tone="ok"]) .input-with-icon input { border-color: #2f7a66; }
+
+/* Amber (ratings, notices) */
+:root[data-theme="dark"] .rating-line { color: #e9b552 !important; }
+:root[data-theme="dark"] .panel-sub.warn { color: #e5ad45; }
+:root[data-theme="dark"] .star-chip { --chip-fill: #b9790a; }
+:root[data-theme="dark"] .stars { color: #4a5164; }
+:root[data-theme="dark"] .stars .half { background: linear-gradient(90deg, #f2a900 50%, #4a5164 50%); -webkit-background-clip: text; background-clip: text; }
+:root[data-theme="dark"] .star-input button { color: #4a5164; }
+:root[data-theme="dark"] .star-input button.on { color: #f2a900; }
+
+/* Report-an-issue badges */
+:root[data-theme="dark"] .issue-badge { background: #3a2e12; color: #f0c565; }
+:root[data-theme="dark"] .issue-badge.resolved { background: #13301f; color: #84d9a6; }
+
+/* ---------- Dialogs and cards with fixed light colors ---------- */
+
+:root[data-theme="dark"] .delete-dialog,
+:root[data-theme="dark"] .map-tour-card {
+  background: var(--a-white, #171a23);
+  color: var(--a-ink, #e8eaf2);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+:root[data-theme="dark"] .delete-dialog p,
+:root[data-theme="dark"] .map-tour-card p { color: #b3b9c9; }
+:root[data-theme="dark"] .delete-choices { border-color: var(--a-line); }
+:root[data-theme="dark"] #delete-password { background: var(--a-field); border-color: var(--a-line); color: var(--a-ink); }
+:root[data-theme="dark"] .map-tour-heading,
+:root[data-theme="dark"] .map-tour-skip { color: #8ea9f2; }
+:root[data-theme="dark"] .map-tour-back { background: var(--a-field, #212532); color: var(--a-ink, #e8eaf2); }
+
+/* Shadows are near-invisible on dark backgrounds; deepen the main ones. */
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .panel { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 20px 50px -14px rgba(0, 0, 0, 0.65); }
+
+/* ---------- Switching themes ---------- */
+
+/* js/theme.js reveals the new theme as a circle growing from the clicked button. */
+html.theme-switching::view-transition-old(root),
+html.theme-switching::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.theme-switching::view-transition-old(root) { z-index: 1; }
+html.theme-switching::view-transition-new(root) { z-index: 2; }
+
+/* The UCI wordmark is dark blue; lift it so it reads on dark backgrounds. */
+:root[data-theme="dark"] img[src$="uci-logo.svg"] { filter: brightness(2.1) saturate(0.85); }

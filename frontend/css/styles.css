@@ -10,14 +10,12 @@
   --radius: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121418;
-    --surface: #1b1e24;
-    --text: #e8eaed;
-    --muted: #9aa0a6;
-    --border: #2c3038;
-  }
+:root[data-theme="dark"] {
+  --bg: #121418;
+  --surface: #1b1e24;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --border: #2c3038;
 }
 
 * { box-sizing: border-box; }
@@ -100,8 +98,8 @@ li {
 
 /* ---------- Auth ---------- */
 
-/* The auth and map pages use their own fixed blue-and-gray palette in both
-   light and dark mode. */
+/* The auth and map pages share this blue-and-gray palette; css/theme.css swaps it
+   for the dark theme. */
 .auth, .map-page {
   --a-blue: #4f6db8;       /* buttons, slider, checks: white text stays readable */
   --a-blue-dark: #405a9a;
@@ -115,6 +113,7 @@ li {
   --a-muted: #6b7184;
   --a-field: #f3f5fa;
   --a-line: #e4e7ef;
+  --a-on-accent: #ffffff;  /* text on blue/teal buttons, in both themes */
 }
 
 .auth {
@@ -225,7 +224,7 @@ li {
   transition: color 0.3s;
 }
 .tab:hover { color: var(--a-ink); }
-.tab.active, .tab.active:hover { color: var(--a-white); }
+.tab.active, .tab.active:hover { color: var(--a-on-accent); }
 .tab:focus-visible { outline: 2px solid var(--a-blue-soft); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -338,7 +337,7 @@ li {
   place-items: center;
   font-size: 0.7rem;
   line-height: 1;
-  color: var(--a-white);
+  color: var(--a-on-accent);
   transition: background 0.15s, border-color 0.15s;
 }
 .rules li.met { color: var(--a-ink); }

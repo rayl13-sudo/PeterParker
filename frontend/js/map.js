@@ -30,6 +30,22 @@ const CATEGORIES = {
   staff: { label: "Faculty & staff", color: "#8a5cb8", fillOpacity: 0.35 },
 };
 const CATEGORY_ORDER = Object.keys(CATEGORIES);
+
+// Dark mode (js/theme.js): the same categories, lightened so they stand out on the
+// dimmed night map. The dark gray of "Permit required" would vanish otherwise.
+const LIGHT_COLORS = Object.fromEntries(Object.entries(CATEGORIES).map(([key, cat]) => [key, cat.color]));
+const DARK_COLORS = { free: "#7193ea", mine: "#25a98a", permit: "#a3abc1", paid: "#a9afc1", limited: "#ec847d", staff: "#ad87dc" };
+function applyThemeColors() {
+  const colors = document.documentElement.dataset.theme === "dark" ? DARK_COLORS : LIGHT_COLORS;
+  for (const [key, cat] of Object.entries(CATEGORIES)) cat.color = colors[key];
+}
+applyThemeColors();
+// Re-color the map live when the theme changes (system setting, or another tab).
+new MutationObserver(() => {
+  applyThemeColors();
+  if (allLots.length) buildLotLayers({ animate: false });
+  else renderKey();
+}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 const isFree = (lot) => lot.category === "free";
 
 const $ = (id) => document.getElementById(id);

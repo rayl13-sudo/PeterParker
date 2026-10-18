@@ -216,6 +216,41 @@ deleteForm.addEventListener("submit", async (event) => {
   }
 });
 
+// ---------- Appearance: light / dark mode (js/theme.js applies it on every page) ----------
+
+const themePicker = $("theme-picker");
+const themeChoices = [...themePicker.querySelectorAll("[data-choice]")];
+
+function showThemeChoice(value) {
+  themePicker.dataset.value = value;
+  for (const button of themeChoices) {
+    const on = button.dataset.choice === value;
+    button.setAttribute("aria-checked", String(on));
+    button.tabIndex = on ? 0 : -1;
+  }
+}
+
+function chooseTheme(button) {
+  const value = button.dataset.choice;
+  if (value === themePicker.dataset.value) return;
+  showThemeChoice(value);
+  const r = button.getBoundingClientRect();
+  window.ppTheme.set(value, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+}
+
+for (const button of themeChoices) button.addEventListener("click", () => chooseTheme(button));
+// Arrow keys move between the options, like native radio buttons.
+themePicker.addEventListener("keydown", (e) => {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (!step) return;
+  e.preventDefault();
+  const at = themeChoices.findIndex((b) => b.dataset.choice === themePicker.dataset.value);
+  const next = themeChoices[(at + step + themeChoices.length) % themeChoices.length];
+  chooseTheme(next);
+  next.focus();
+});
+showThemeChoice(window.ppTheme.get());
+
 // ---------- Boot ----------
 
 async function init() {

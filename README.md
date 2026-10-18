@@ -164,7 +164,7 @@ email. **Any email works**, and a tip under the field asks UCI students to use t
 email. Accounts with a UCI email (`@uci.edu` or a UCI subdomain like `@ics.uci.edu`, reported as
 `is_uci` by `/api/auth/me`) can choose a UCI parking permit. Other accounts see every lot,
 including permit-only lots shaded "Permit required", but get no permit options: no map banner
-or picker and no Settings card, and the API returns 403 on `PUT /api/auth/me/permit`. Sign-in
+or picker, and the API returns 403 on `PUT /api/auth/me/permit`. Sign-in
 takes your **email or username** (usernames are case-insensitive).
 
 **Terms of Service.** After filling in the sign-up form, **Create account** first checks
@@ -176,10 +176,8 @@ form says so right away. Otherwise it opens a Terms of Service step. The terms c
 - Safe navigation (don't use it while driving), content rules, location and privacy.
 - No warranty, limitation of liability, indemnity, and California law.
 
-Each section counts as read once it has been mostly on screen for about a second, and gets a
-small ✓. A progress bar shows how many sections you've read. The agreement checkbox unlocks only
-after every section has been read, so jumping straight to the bottom doesn't count, and clicking
-the checkbox earlier asks you to keep reading. Ticking it enables **Sign up**, which creates the account and opens the map. The text lives
+A progress bar fills as you scroll, and the agreement checkbox unlocks once you've scrolled to
+the end; clicking it earlier asks you to scroll through first. Ticking it enables **Sign up**, which creates the account and opens the map. The text lives
 in `frontend/js/terms.js`. The API rejects sign-ups that don't send `accept_terms: true` and the
 current `TERMS_VERSION` (`backend/app/api/routes/auth.py`), and it records `terms_version` and
 `terms_accepted_at` on the account (migration `007_terms_acceptance.sql`). When you change the
@@ -324,8 +322,9 @@ University Town Center's 6 lots are grouped only with each other, into 2 dots.
 
 ## Your parking permit
 
-In **Settings → Your parking permit** (UCI-email accounts only), pick the UCI permit you hold ("S" zone, "P" preferred zone,
-"R" resident or "E" evening; saved with `PUT /api/auth/me/permit`). The map then turns every lot
+On the map, the permit banner's badge (UCI-email accounts only) picks the UCI permit you hold
+("S" zone, "P" preferred zone, "R" resident, "E" evening or faculty/staff; saved with
+`PUT /api/auth/me/permit`). The map then turns every lot
 that permit covers *right now* into **Free with your permit** (teal), counts them in a banner,
 includes them in the Free chip and "free parking" searches, and explains the hours in each lot's
 popup. It re-checks every minute, since coverage changes at 7 am, 3 pm, 5 pm and midnight.
@@ -375,6 +374,16 @@ parking "is valid only in your housing community". Popups and Settings list UCI'
 stalls for your permit type: P/AR before 5 pm (S), R, X, exclusively reserved, service/E-plate,
 disabled without a placard, Pay-by-Space, yellow ECPS, and overnight. ARC hours come from
 campusrec.uci.edu and change over breaks.
+
+## Light and dark mode
+
+**Settings → Appearance** chooses **System** (follows the device, live), **Light** or **Dark**.
+The new theme spreads out as a circle from the button you click, where the browser supports
+View Transitions. The choice is saved per device in `localStorage` (`pp_theme`), and
+`js/theme.js` applies it in each page's `<head>`, so pages never flash the wrong theme.
+`css/theme.css` holds the dark palette (the `--a-*` tokens) and dark versions of the few
+hard-coded tints. In dark mode the OpenStreetMap tiles are inverted into a dim night map, and
+lot colors are lightened (`DARK_COLORS` in `map.js`) so they stand out.
 
 ## Reviews
 
