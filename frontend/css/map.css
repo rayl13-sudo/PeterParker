@@ -679,8 +679,15 @@
     min-height: 2.75rem;
   }
   .panel[data-level="0"] { --sheet-height: 2.75rem; }
-  .panel[data-level="0"]:not(.dragging) .panel-body { visibility: hidden; }
+  .panel[data-level="0"]:not(.dragging) .panel-body {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .panel { overflow: hidden; }
   .panel[data-level="2"] { --sheet-height: 70%; }
+  .panel[data-level="1"] #panel-title,
+  .panel[data-level="1"] #spot-count { display: none; }
   .panel .panel-body { padding-top: 2.75rem; }
   .panel-handle {
     position: absolute;
