@@ -187,13 +187,7 @@ const termsBox = $("terms-box");
 const termsAgree = $("terms-agree");
 const termsSubmit = $("terms-submit");
 let termsRendered = false;
-let termsRead = false; // set once every section has been on screen long enough to read
-let readTimer = null;
-// A section counts as read after it has been (mostly) on screen this long, so jumping
-// straight to the bottom, or flicking past it, doesn't count.
-const SECTION_READ_MS = 1000;
-const READ_TICK_MS = 100;
-const sectionTime = new Map(); // section element -> ms on screen
+let termsRead = false; // set once the terms have been scrolled all the way to the end
 
 function showTerms() {
   if (!termsRendered) {
@@ -207,47 +201,24 @@ function showTerms() {
   termsStep.hidden = false;
   termsBox.scrollTop = 0;
   updateTermsProgress();
-  clearInterval(readTimer);
-  if (!termsRead) readTimer = setInterval(tickReading, READ_TICK_MS);
   termsBox.focus({ preventScroll: true });
 }
 
 function hideTerms() {
   delete authCard.dataset.step;
   termsStep.hidden = true;
-  clearInterval(readTimer);
   authForm.hidden = false;
   authForm.classList.add("returning");
   authForm.addEventListener("animationend", () => authForm.classList.remove("returning"), { once: true });
 }
 
-// Time each section spends on screen while the page is visible.
-function tickReading() {
-  if (document.hidden) return;
-  const box = termsBox.getBoundingClientRect();
-  for (const section of termsBox.querySelectorAll(".terms-section")) {
-    const r = section.getBoundingClientRect();
-    const onScreen = Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top);
-    if (onScreen >= Math.min(r.height, box.height) * 0.6) {
-      sectionTime.set(section, (sectionTime.get(section) ?? 0) + READ_TICK_MS);
-    }
-  }
-  updateTermsProgress();
-}
-
-// Reading every section unlocks the checkbox; the bar under the text fills as you read.
+// Scrolling to the end unlocks the checkbox; the bar under the text fills as you scroll.
 function updateTermsProgress() {
-  const sections = [...termsBox.querySelectorAll(".terms-section")];
-  const done = sections.filter((s) => (sectionTime.get(s) ?? 0) >= SECTION_READ_MS);
-  for (const s of done) s.classList.add("read");
-  const read = sections.length ? done.length / sections.length : 0;
+  const max = termsBox.scrollHeight - termsBox.clientHeight;
+  const read = max <= 0 ? 1 : Math.min(1, termsBox.scrollTop / (max - 4));
   $("terms-progress-bar").style.transform = `scaleX(${read})`;
-  if (!termsRead && done.length && read < 1) {
-    $("terms-hint").textContent = `Keep reading… ${done.length} of ${sections.length} sections`;
-  }
   if (read >= 1 && !termsRead) {
     termsRead = true;
-    clearInterval(readTimer);
     termsAgree.disabled = false;
     $("terms-agree-label").classList.add("unlocked");
     $("terms-hint").textContent = "Thanks for reading. Check the box to continue.";
@@ -261,9 +232,7 @@ $("terms-agree-label").addEventListener("click", (e) => {
   if (termsRead) return;
   e.preventDefault();
   const hint = $("terms-hint");
-  const total = termsBox.querySelectorAll(".terms-section").length;
-  const read = termsBox.querySelectorAll(".terms-section.read").length;
-  hint.textContent = `Please read all of the Terms of Service first (${read} of ${total} sections read).`;
+  hint.textContent = "Please scroll through all of the Terms of Service first.";
   hint.classList.remove("nudge");
   void hint.offsetWidth; // replay the shake
   hint.classList.add("nudge");
