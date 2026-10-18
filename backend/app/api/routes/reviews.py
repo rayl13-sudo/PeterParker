@@ -153,17 +153,27 @@ def list_reviews(
     ).fetchone()
     rows = db.execute(
         """
+        WITH counted AS (
+            SELECT reviews.*,
+                   (SELECT COUNT(*) FROM review_likes WHERE review_id = reviews.id) AS like_count
+            FROM reviews WHERE target_type = ? AND target_id = ?
+        ), ranked AS (
+            SELECT counted.*, ROW_NUMBER() OVER (
+                ORDER BY like_count DESC, updated_at DESC, id DESC
+            ) AS like_rank FROM counted
+        )
         SELECT reviews.id, reviews.user_id, reviews.rating, reviews.comment,
                reviews.created_at, reviews.updated_at,
-               (SELECT COUNT(*) FROM review_likes WHERE review_id = reviews.id) AS like_count,
+               reviews.like_count,
                EXISTS(SELECT 1 FROM review_likes WHERE review_id = reviews.id AND user_id = ?) AS liked,
                users.username, users.avatar_bg, users.avatar_fg, users.avatar_image
-        FROM reviews JOIN users ON users.id = reviews.user_id
-        WHERE reviews.target_type = ? AND reviews.target_id = ?
-        ORDER BY reviews.user_id = ? DESC, reviews.updated_at DESC
+        FROM ranked AS reviews JOIN users ON users.id = reviews.user_id
+        ORDER BY CASE WHEN like_count > 0 AND like_rank <= 3 THEN 0 ELSE 1 END,
+                 CASE WHEN like_count > 0 AND like_rank <= 3 THEN like_rank ELSE 4 END,
+                 reviews.user_id = ? DESC, reviews.updated_at DESC, reviews.id DESC
         LIMIT ?
         """,
-        (user["id"], target_type, target_id, user["id"], PAGE),
+        (target_type, target_id, user["id"], user["id"], PAGE),
     ).fetchall()
     replies = _replies(db, [r["id"] for r in rows], user["id"])
     reviews = [
