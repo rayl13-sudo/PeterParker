@@ -37,7 +37,7 @@ function issueCard(issue, admin = false) {
   const meta = document.createElement("div");
   meta.className = "issue-meta";
   const date = new Date(issue.created_at).toLocaleDateString();
-  meta.textContent = `${categories[issue.category] ?? issue.category} · ${date}${admin ? ` · ${issue.reporter}` : ""}`;
+  meta.textContent = `#${issue.id} · ${categories[issue.category] ?? issue.category} · ${date}${admin ? ` · ${issue.reporter}` : ""}`;
   const detail = document.createElement("p");
   detail.textContent = issue.description;
   li.append(head, meta);
@@ -98,14 +98,14 @@ $("issue-form").addEventListener("submit", async (event) => {
   button.disabled = true;
   message("issue-message", "");
   try {
-    await api.reportIssue({
+    const report = await api.reportIssue({
       category: $("issue-category").value,
       title: $("issue-title").value.trim(),
       location: $("issue-location").value.trim(),
       description: $("issue-description").value.trim(),
     });
     form.reset();
-    message("issue-message", "Report sent. Thank you for helping improve PeterParker.");
+    message("issue-message", `Report #${report.id} saved. You can track it under “Your reports” below.`);
     await loadMine();
     if (!$("admin-board").hidden) await loadAdmin();
   } catch (error) {
@@ -153,8 +153,12 @@ async function init() {
     $("report-user").textContent = user.username ?? user.email;
     if (user.is_admin) {
       $("admin-board").hidden = false;
+      $("admin-shortcut").hidden = false;
       loadAdmin();
       loadAdmins();
+      if (window.location.hash === "#admin-board") {
+        requestAnimationFrame(() => $("admin-board").scrollIntoView());
+      }
     }
     loadMine();
   } catch (error) {
